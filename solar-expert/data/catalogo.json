@@ -1,0 +1,163 @@
+{
+  "paneles": [
+    {
+      "id": "rene330",
+      "marca": "ReneSola",
+      "modelo": "RS11-330-E1",
+      "potencia_wp": 330,
+      "vmp": 33.8,
+      "imp": 9.77,
+      "voc": 41.2,
+      "isc": 10.42,
+      "eficiencia": 0.191,
+      "ancho_mm": 1016,
+      "alto_mm": 1684,
+      "peso_kg": 18.5,
+      "precio_ars": 120000
+    },
+    {
+      "id": "longi430",
+      "marca": "LONGi",
+      "modelo": "Hi-MO 6 LR5-54HTH-430M",
+      "potencia_wp": 430,
+      "vmp": 33.3,
+      "imp": 12.92,
+      "voc": 40.8,
+      "isc": 13.63,
+      "eficiencia": 0.213,
+      "ancho_mm": 1134,
+      "alto_mm": 1722,
+      "peso_kg": 21.8,
+      "precio_ars": 185000
+    },
+    {
+      "id": "longi450",
+      "marca": "LONGi",
+      "modelo": "Hi-MO 6 LR5-54HTH-450M",
+      "potencia_wp": 450,
+      "vmp": 34.2,
+      "imp": 13.16,
+      "voc": 41.5,
+      "isc": 13.9,
+      "eficiencia": 0.223,
+      "ancho_mm": 1134,
+      "alto_mm": 1722,
+      "peso_kg": 22.0,
+      "precio_ars": 195000
+    },
+    {
+      "id": "jinko550",
+      "marca": "Jinko",
+      "modelo": "Tiger Pro 72HC-550M",
+      "potencia_wp": 550,
+      "vmp": 41.5,
+      "imp": 13.25,
+      "voc": 49.6,
+      "isc": 13.95,
+      "eficiencia": 0.212,
+      "ancho_mm": 1134,
+      "alto_mm": 2179,
+      "peso_kg": 27.5,
+      "precio_ars": 220000
+    }
+  ],
+  "baterias": [
+    {
+      "id": "litio12v200ah",
+      "tipo": "LiFePO4",
+      "marca": "Genérico",
+      "modelo": "12V 200Ah",
+      "tension_nominal_v": 12,
+      "capacidad_ah": 200,
+      "energia_wh": 2400,
+      "dod_max": 0.80,
+      "eficiencia": 0.93,
+      "peso_kg": 22,
+      "precio_ars": 320000
+    },
+    {
+      "id": "litio48v100ah",
+      "tipo": "LiFePO4",
+      "marca": "Leoch",
+      "modelo": "LFP48100",
+      "tension_nominal_v": 51.2,
+      "capacidad_ah": 100,
+      "energia_wh": 5120,
+      "dod_max": 0.80,
+      "eficiencia": 0.93,
+      "peso_kg": 42,
+      "precio_ars": 2615000
+    },
+    {
+      "id": "plomo200ah",
+      "tipo": "Plomo-ácido",
+      "marca": "Genérico",
+      "modelo": "12V 200Ah",
+      "tension_nominal_v": 12,
+      "capacidad_ah": 200,
+      "energia_wh": 2400,
+      "dod_max": 0.50,
+      "eficiencia": 0.85,
+      "peso_kg": 52,
+      "precio_ars": 180000
+    }
+  ],
+  "inversores": [
+    {
+      "id": "growatt3000",
+      "marca": "Growatt",
+      "modelo": "SPF 3000TL LVM-24",
+      "potencia_nominal_va": 3000,
+      "potencia_nominal_w": 3000,
+      "potencia_pico_w": 6000,
+      "tension_banco_v": 24,
+      "rango_mppt_v": [120, 450],
+      "voc_max_v": 500,
+      "corriente_max_carga_a": 80,
+      "max_pv_w": 2400,
+      "onda": "Senoidal pura",
+      "eficiencia": 0.93,
+      "precio_ars": 950000
+    },
+    {
+      "id": "victron3000",
+      "marca": "Victron",
+      "modelo": "MultiPlus-II 48/3000/35-50",
+      "potencia_nominal_va": 3000,
+      "potencia_nominal_w": 2400,
+      "potencia_pico_w": 6000,
+      "tension_banco_v": 48,
+      "rango_mppt_v": [60, 450],
+      "voc_max_v": 500,
+      "corriente_max_carga_a": 50,
+      "max_pv_w": 4300,
+      "onda": "Senoidal pura",
+      "eficiencia": 0.95,
+      "precio_ars": 3200000
+    }
+  ],
+  "controladores": [
+    {
+      "id": "epever0501d",
+      "marca": "EPEVER",
+      "modelo": "XTRA 5415 50A",
+      "tipo": "MPPT",
+      "tension_banco_v": 12,
+      "corriente_max_a": 50,
+      "voc_max_v": 150,
+      "rango_mppt_v": [15, 120],
+      "precio_ars": 180000
+    },
+    {
+      "id": "victron100",
+      "marca": "Victron",
+      "modelo": "SmartSolar MPPT 250/100",
+      "tipo": "MPPT",
+      "tension_banco_v": 48,
+      "corriente_max_a": 100,
+      "voc_max_v": 250,
+      "rango_mppt_v": [60, 245],
+      "precio_ars": 950000
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+RewriteEngine On
+
+# Redirigir todo al calendario.php
+RewriteRule ^(.*)$ calendario.php [QSA,L]
+
+# Seguridad - Denegar acceso a archivos sensibles
+<Files "config.php">
+    Order deny,allow
+    Deny from all
+</Files>
+<Files "*.log">
+    Order deny,allow
+    Deny from all
+</Files>
+
+# Configuración PHP
+php_value upload_max_filesize 10M
+php_value post_max_size 10M
+php_value max_execution_time 300

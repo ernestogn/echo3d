@@ -1,0 +1,1 @@
+usuario_autenticado|b:1;usuario_id|i:18;usuario_nombre|s:4:"emao";usuario_email|s:17:"emaocdu@gmail.com";usuario_rol_id|i:1;usuario_rol_nombre|s:13:"Administrador";tenant_id|i:13;is_super_admin|i:0;impersonated_mode|b:1;impersonated_tenant_name|s:14:"Arte y Oficios";

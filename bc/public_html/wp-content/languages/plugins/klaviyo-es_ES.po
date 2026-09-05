@@ -1,0 +1,99 @@
+# Translation of Plugins - Klaviyo - Stable (latest release) in Spanish (Spain)
+# This file is distributed under the same license as the Plugins - Klaviyo - Stable (latest release) package.
+msgid ""
+msgstr ""
+"PO-Revision-Date: 2025-08-23 11:33:37+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: GlotPress/4.0.1\n"
+"Language: es\n"
+"Project-Id-Version: Plugins - Klaviyo - Stable (latest release)\n"
+
+#: includes/blocks/build/block.json
+msgctxt "block description"
+msgid "Klaviyo's marketing consent checkbox."
+msgstr "Casilla de verificación de consentimiento de marketing de Klaviyo."
+
+#: includes/blocks/build/block.json
+msgctxt "block title"
+msgid "Klaviyo"
+msgstr "Klaviyo"
+
+#: klaviyo.php:422
+msgid "Security check failed"
+msgstr "La comprobación de seguridad ha fallado"
+
+#: klaviyo.php:151 klaviyo.php:160
+msgid "Cheatin&#8217; huh?"
+msgstr "Haciendo trampas, ¿eh?"
+
+#: includes/blocks/StoreApi.php:100
+msgid "Subscribe to sms marketing newsletter."
+msgstr "Suscríbete al boletín de marketing por SMS."
+
+#: includes/blocks/StoreApi.php:94
+msgid "Subscribe to email newsletter."
+msgstr "Suscríbete al boletín por correo electrónico."
+
+#: includes/blocks/CheckoutIntegration.php:132
+msgid "By checking this box and entering your phone number above, you consent to receive marketing text messages (such as [promotion codes] and [cart reminders]) from [company name] at the number provided, including messages sent by autodialer. Consent is not a condition of any purchase. Message and data rates may apply. Message frequency varies. You can unsubscribe at any time by replying STOP or clicking the unsubscribe link (where available) in one of our messages. View our Privacy Policy [link] and Terms of Service [link]"
+msgstr "Al marcar esta casilla e introducir tu número de teléfono arriba, das tu consentimiento para recibir mensajes de texto de marketing (como [códigos de promoción] y [recordatorios de compra]) de [nombre de la empresa] en el número proporcionado, incluidos los mensajes enviados por marcación automática. El consentimiento no es condición para ninguna compra. Pueden aplicarse tarifas de mensajes y datos. La frecuencia de los mensajes varía. Puedes darte de baja en cualquier momento respondiendo STOP o haciendo clic en el enlace para darse de baja (cuando esté disponible) en uno de nuestros mensajes. Consulta nuestra política de privacidad [enlace] y las condiciones del servicio [enlace]"
+
+#: includes/blocks/CheckoutIntegration.php:123
+msgid "Sign me up to receive SMS updates and news (optional)"
+msgstr "Inscribirme para recibir actualizaciones y noticias por SMS (opcional)"
+
+#: includes/blocks/CheckoutIntegration.php:114
+msgid "Sign me up to receive email updates and news (optional)"
+msgstr "Inscribirme para recibir actualizaciones y noticias por correo electrónico (opcional)"
+
+#: inc/kla-widgets.php:212
+msgid "Form ID:"
+msgstr "ID del formulario:"
+
+#: inc/kla-widgets.php:211
+msgid "Title:"
+msgstr "Titulo:"
+
+#: inc/kla-widgets.php:126
+msgid "Button Styles:"
+msgstr "Estilo del botón:"
+
+#: inc/kla-widgets.php:125
+msgid "List ID:"
+msgstr "ID de lista:"
+
+#: inc/kla-widgets.php:124
+msgid "Button Text:"
+msgstr "Texto del botón:"
+
+#: inc/kla-widgets.php:122
+msgid "List Description:"
+msgstr "Descripción de la lista:"
+
+#. Author URI of the plugin
+#: klaviyo.php
+msgid "https://www.klaviyo.com"
+msgstr "https://www.klaviyo.com"
+
+#. Author of the plugin
+#: klaviyo.php
+msgid "Klaviyo, Inc."
+msgstr "Klaviyo, Inc."
+
+#. Description of the plugin
+#: klaviyo.php
+msgid "A plugin to automatically sync your WooCommerce sales, products and customers with Klaviyo. With Klaviyo you can set up abandoned cart emails, collect emails for your newsletter to grow your business."
+msgstr "Un plugin para sincronizar automáticamente tus ventas, productos y clientes de WooCommerce con Klaviyo. Con Klaviyo puedes configurar correos electrónicos para carritos abandonados, recopilar correos electrónicos para tu boletín de noticias y hacer crecer tu negocio."
+
+#. Plugin URI of the plugin
+#: klaviyo.php
+msgid "https://wordpress.org/plugins/klaviyo/"
+msgstr "https://wordpress.org/plugins/klaviyo/"
+
+#. Plugin Name of the plugin
+#: klaviyo.php
+msgid "Klaviyo"
+msgstr "Klaviyo"

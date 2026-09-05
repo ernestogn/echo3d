@@ -1,0 +1,212 @@
+# Instalación del Sistema Calendario Completo
+
+## 🚀 Instalación Rápida (5 minutos)
+
+### Método Automático (Recomendado)
+1. **Sube todos los archivos** a tu servidor web
+2. **Ve al navegador:** `http://tu-servidor/calendario/install/`
+3. **Sigue los 5 pasos** del instalador automático
+4. **¡Listo!** Sistema completamente funcional
+
+### Método Manual
+1. **Copia** `install/config-sample.php` → `config.php`
+2. **Edita** `config.php` con tus configuraciones de BD
+3. **Ejecuta** `install/database.sql` en tu MySQL
+4. **Accede** a `calendario.php` para usar el sistema
+
+## 📋 Requisitos del Sistema
+
+### Servidor
+- **PHP 7.4+** con extensiones: `pdo`, `pdo_mysql`, `mysqli`, `json`, `mbstring`, `curl`, `gd`
+- **MySQL 5.7+** o **MariaDB 10.0+**
+- **Apache/Nginx** con soporte para `.htaccess`
+
+### Permisos
+- **Escritura** en directorios: `logs/`, `cache/`, `admin/`, `api/`
+- **Ejecución** de scripts PHP
+
+## ⚙️ Configuración
+
+### Base de Datos
+```sql
+-- El instalador crea automáticamente:
+-- - Base de datos (si no existe)
+-- - Todas las tablas del sistema
+-- - Usuario administrador
+-- - Datos iniciales (categorías, etc.)
+```
+
+### Archivo config.php
+```php
+// Generado automáticamente por el instalador
+ = [
+    'host' => 'localhost',
+    'name' => 'tu_base_datos',
+    'user' => 'usuario_mysql',
+    'pass' => 'contraseña',
+    'prefix' => 'calendario_'
+];
+
+ = [
+    'url' => 'https://tu-sitio.com',
+    'name' => 'Mi Calendario',
+    'admin_name' => 'Administrador',
+    'admin_email' => 'admin@tu-sitio.com'
+];
+```
+
+## 🎯 Funcionalidades Incluidas
+
+### ✅ Gestión Completa de Eventos
+- Crear, editar, eliminar eventos
+- Categorías y etiquetas
+- Estados: borrador, publicado, cancelado, finalizado
+- Visibilidad: público/privado
+
+### ✅ Sistema de Participantes
+- Inscripción a eventos
+- Seguimiento de asistencia
+- Gestión de capacidad máxima
+- Información de contacto
+
+### ✅ API Pública REST
+- Endpoints: `listar`, `detalle`, `calendario`, `categorias`, `empresas`
+- Autenticación por API key
+- Rate limiting automático
+- Formatos JSON
+
+### ✅ Panel de Administración
+- Gestión de eventos
+- Administración de API keys
+- Logs y estadísticas
+- Configuración del sistema
+
+### ✅ Seguridad
+- API keys encriptadas
+- Rate limiting por IP/API key
+- Validación de entrada
+- Logs de auditoría
+
+## 📁 Estructura de Archivos
+
+```
+calendario/
+├── calendario.php          # Página principal del sistema
+├── calendario.css          # Estilos del sistema
+├── calendario.js           # JavaScript del sistema
+├── funciones_calendario.php # Funciones auxiliares
+├── README.md               # Documentación
+│
+├── api/
+│   └── public_eventos.php  # API pública REST
+│
+├── admin/
+│   ├── api_keys_admin.php  # Panel de administración
+│   └── api_keys_logs.php   # Logs de API
+│
+├── install/
+│   ├── index.php           # Instalador web
+│   └── database.sql        # Script SQL completo
+│
+├── logs/                   # Logs del sistema (auto-creado)
+├── cache/                  # Caché (auto-creado)
+└── config.php              # Configuración (generado por instalador)
+```
+
+## 🚀 Uso Después de la Instalación
+
+### Acceder al Sistema
+- **Calendario principal:** `http://tu-servidor/calendario/calendario.php`
+- **Panel admin:** `http://tu-servidor/calendario/admin/api_keys_admin.php`
+- **API pública:** `http://tu-servidor/calendario/api/public_eventos.php`
+
+### Primeros Pasos
+1. **Inicia sesión** como administrador con las credenciales del instalador
+2. **Crea tu primer evento** desde el panel principal
+3. **Genera API keys** desde el panel de administración
+4. **Configura categorías** y personaliza el sistema
+
+## 🔧 API Endpoints
+
+### GET /api/public_eventos.php?action=listar
+Lista eventos públicos con filtros opcionales.
+
+**Parámetros:**
+- `fecha_desde`, `fecha_hasta`: Rango de fechas
+- `tipo`: Tipo de evento
+- `categoria`: Nombre de categoría
+- `q`: Búsqueda por texto
+- `limite`, `pagina`: Paginación
+
+### GET /api/public_eventos.php?action=detalle&id={ID}
+Detalles completos de un evento específico.
+
+### GET /api/public_eventos.php?action=calendario
+Eventos formateados para calendarios externos (FullCalendar).
+
+### GET /api/public_eventos.php?action=categorias
+Lista de categorías disponibles.
+
+### GET /api/public_eventos.php?action=empresas
+Lista de empresas organizadoras.
+
+## 📞 Cliente API Incluido
+
+También se incluye un **cliente PHP completo** en `cliente/` para consumir la API desde otros servidores:
+
+```php
+require_once 'cliente/CalendarioAPI.php';
+
+ = new CalendarioAPI();
+ = (['limite' => 10]);
+```
+
+## 🆘 Solución de Problemas
+
+### Error de conexión a BD
+- Verifica las credenciales en `config.php`
+- Asegúrate de que la BD y tablas existen
+
+### Permisos de escritura
+```bash
+chmod 755 logs/ cache/ admin/ api/
+```
+
+### API no responde
+- Verifica que la API esté habilitada en configuración
+- Revisa logs en `logs/api_client.log`
+
+## 📋 Lista de Cambios - v1.0.0
+
+### ✅ Características Implementadas
+- ✅ Sistema completo de gestión de eventos
+- ✅ API REST pública con autenticación
+- ✅ Panel de administración web
+- ✅ Sistema de API keys seguro
+- ✅ Cliente PHP para consumo externo
+- ✅ Instalador automático WordPress-like
+- ✅ Base de datos completa con todas las tablas
+- ✅ Categorías y etiquetas de eventos
+- ✅ Gestión de participantes e inscripciones
+- ✅ Rate limiting y seguridad
+- ✅ Logs y auditoría completa
+- ✅ Interfaz responsive y moderna
+
+### 🎯 Próximas Versiones
+- Módulo de pagos integrado
+- Notificaciones por email
+- Integración con calendarios externos
+- API webhooks
+- Módulo de reportes avanzados
+
+## 📞 Soporte
+
+Para soporte técnico:
+- Revisa la documentación en `README.md`
+- Verifica los logs en `logs/`
+- Consulta la configuración en `config.php`
+
+---
+**Instalado:** 2025-12-14 03:03:13
+**Versión:** 1.0.0
+**Sistema:** Calendario de Eventos Completo

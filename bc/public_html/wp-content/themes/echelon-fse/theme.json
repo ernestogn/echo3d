@@ -1,0 +1,158 @@
+{
+	"$schema": "https://schemas.wp.org/wp/6.2/theme.json",
+	"customTemplates": [],
+	"settings": {
+		"appearanceTools": true,
+		"color": {
+			"gradients": [],
+			"palette": [{"slug":"theme-0","name":"Primary","color":"#07121c"},{"slug":"theme-1","name":"Secondary","color":"#52bfb2"},{"slug":"theme-2","name":"Third","color":"#11569b"},{"slug":"theme-3","name":"Fourth","color":"#ffffff"},{"slug":"theme-4","name":"Fifth","color":"#474d53"},{"slug":"theme-5","name":"Sixth","color":"#ced2dc"},{"slug":"theme-6","name":"Seventh","color":"#e6f1fc"},{"slug":"theme-7","name":"Eighth","color":"#0e4881"},{"slug":"theme-8","name":"Ninth","color":"#a2a2a2"},{"slug":"theme-9","name":"Tenth","color":"#104f8e"}]
+		},
+		"custom": {
+			"headings": {
+				"typography": {
+					"fontFamily": "var(--wp--preset--font-family--primary)"
+				}
+			}
+		},
+		"layout": {"contentSize":"1140px","wideSize":"1200px"},
+		"spacing": {
+			"padding": true,
+			"margin": true,
+			"blockGap": true,
+			"units": [
+				"px",
+				"em",
+				"rem",
+				"vh",
+				"vw"
+			]
+		},
+		"typography": {
+			"customFontSize": true,
+			"fontFamilies": [
+				{
+					"fontFace": [
+						{
+								"fontFamily": "Lato",
+								"fontStretch": "normal",
+								"fontStyle": "normal",
+								"fontWeight": "regular",
+								"src": [
+									"file:./assets/fonts/lato/lato-v24-latin-regular.woff2"
+								]
+							},{
+								"fontFamily": "Lato",
+								"fontStretch": "normal",
+								"fontStyle": "normal",
+								"fontWeight": "500",
+								"src": [
+									"file:./assets/fonts/lato/"
+								]
+							},{
+								"fontFamily": "Lato",
+								"fontStretch": "normal",
+								"fontStyle": "normal",
+								"fontWeight": "600",
+								"src": [
+									"file:./assets/fonts/lato/"
+								]
+							}
+					],
+					"fontFamily": "Lato",
+					"name": "Lato",
+					"slug": "lato"
+				},{
+					"fontFace": [
+						{
+								"fontFamily": "Open Sans",
+								"fontStretch": "normal",
+								"fontStyle": "normal",
+								"fontWeight": "regular",
+								"src": [
+									"file:./assets/fonts/open-sans/open-sans-v40-latin-regular.woff2"
+								]
+							}
+					],
+					"fontFamily": "Open Sans",
+					"name": "Open Sans",
+					"slug": "open-sans"
+				}
+			],
+			"fontSizes": [
+				{
+					"fluid": {
+						"min": "0.875rem",
+						"max": "1rem"
+					},
+					"size": "1rem",
+					"slug": "small"
+				},
+				{
+					"fluid": {
+						"min": "1rem",
+						"max": "1.125rem"
+					},
+					"size": "1.125rem",
+					"slug": "medium"
+				},
+				{
+					"fluid": {
+						"min": "1.75rem",
+						"max": "1.875rem"
+					},
+					"size": "1.75rem",
+					"slug": "large"
+				},
+				{
+					"fluid": false,
+					"size": "2.25rem",
+					"slug": "x-large"
+				},
+				{
+					"fluid": {
+						"min": "4rem",
+						"max": "10rem"
+					},
+					"size": "10rem",
+					"slug": "xx-large"
+				},
+				{
+					"size": "clamp(48px, 4.444vw, 68px)",
+					"slug": "heading-1"
+				},
+				{
+					"size": "clamp(38px, 3.888vw, 46px)",
+					"slug": "heading-2"
+				},
+				{
+					"size": "clamp(24px, 3.333vw, 25px)",
+					"slug": "heading-3"
+				},
+				{
+					"size": "clamp(21px, 2.777vw, 24px)",
+					"slug": "heading-4"
+				},
+				{
+					"size": "clamp(21px, 2.222vw, 22px)",
+					"slug": "heading-5"
+				},
+				{
+					"size": "clamp(16px, 1.666vw, 18px)",
+					"slug": "heading-6"
+				}
+			]
+		}
+	},
+	"styles": {"spacing":{"blockGap":0},"elements":{"link":{"color":{"text":"var(--wp--preset--color--theme-2)"},"typography":{"textDecoration":"underline"}},"heading":{"typography":{"fontFamily":"var(--wp--preset--font-family--lato)"},"color":{"text":"var(--wp--preset--color--theme-0)"}},"button":{"color":{"background":"var(--wp--preset--color--theme-2)"}}},"typography":{"fontFamily":"var(--wp--preset--font-family--open-sans)"},"color":{"text":"var(--wp--preset--color--theme-4)"}},
+	"templateParts": [
+		{
+			"area": "header",
+			"name": "header"
+		},
+		{
+			"area": "footer",
+			"name": "footer"
+		}
+	],
+	"version": 2
+}

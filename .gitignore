@@ -1,0 +1,11 @@
+# Repos anidados (tienen su propio control de versiones)
+/data/
+/hub/
+/bc/public_html/echodata/
+
+# Runtime / log / cache
+node_modules/
+*.log
+.env
+cache/
+tmp/

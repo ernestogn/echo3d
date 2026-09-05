@@ -1,0 +1,135 @@
+/* Estilos específicos para el calendario de eventos */
+
+body {
+    background-color: #f8f9fa;
+}
+
+.calendar-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+#calendario {
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.fc-event {
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.85em;
+    padding: 2px 4px;
+}
+
+.fc-event:hover {
+    opacity: 0.8;
+}
+
+.button-bar {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.status-bar {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.form-section {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: none;
+}
+
+.form-section.active {
+    display: block;
+}
+
+.btn-minimal {
+    border: none;
+    background: none;
+    color: #6c757d;
+    padding: 8px 16px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.btn-minimal:hover {
+    background-color: #f8f9fa;
+    color: #495057;
+}
+
+.btn-minimal.active {
+    background-color: #007bff;
+    color: white;
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    margin-right: 20px;
+    font-size: 0.9em;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+/* Estilos para el dropdown de sugerencias de empresas */
+.sugerencias-empresas {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.sugerencia-item {
+    padding: 0.5rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.sugerencia-item:hover {
+    background-color: #f8f9fa;
+}
+
+.sugerencia-item:last-child {
+    border-bottom: none;
+}
+
+/* Estilos para truncar texto en eventos del calendario - VERSIÓN SIMPLIFICADA */
+.fc-event-title,
+.fc-event-title-container {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.fc-daygrid-event .fc-event-title {
+    font-size: 0.8em;
+    font-weight: 500;
+}

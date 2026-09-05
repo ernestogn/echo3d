@@ -1,0 +1,24 @@
+/*
+Theme Name: Echelon FSE
+Description: Echelon FSE is a modern and responsive style theme template for WordPress fullsite editing and fully compatible with Gutenverse plugin. Echelon FSE created especially for Corporate, Company Profile, Business Agency, Consulting, and all other Business websites. The templates includes both core version and Gutenverse plugin version, also has core and Gutenverse block patterns ready so you can start mix and match your template parts as you desire. The templates is built ready so you don't need to build it from scratch. We want to make your experience using WordPress fullsite editor more convenient.
+Author: Jegstudio
+Author URI: https://gutenverse.com
+Theme URI: https://gutenverse.com/themes/echelon-fse/
+Version: 1.1.1
+Stable tag: 1.1.1
+Requires at least: 6.2
+Tested up to: 6.6
+Requires PHP: 7.0
+License: GNU General Public License v3 or later.
+License URI: https://www.gnu.org/licenses/gpl-3.0.html
+Text Domain: echelon-fse
+Tags: one-column,block-patterns,custom-colors,custom-logo,custom-menu,editor-style,featured-images,full-site-editing,translation-ready
+Copyright: © Jegstudio. All rights reserved.
+*/
+
+:root{
+    --wp--preset--color--primary: var(--wp--preset--color--theme-0);--wp--preset--color--theme-0: var(--wp--preset--color--primary);--wp--preset--color--secondary: var(--wp--preset--color--theme-1);--wp--preset--color--theme-1: var(--wp--preset--color--secondary);--wp--preset--color--third: var(--wp--preset--color--theme-2);--wp--preset--color--theme-2: var(--wp--preset--color--third);--wp--preset--color--fourth: var(--wp--preset--color--theme-3);--wp--preset--color--theme-3: var(--wp--preset--color--fourth);--wp--preset--color--fifth: var(--wp--preset--color--theme-4);--wp--preset--color--theme-4: var(--wp--preset--color--fifth);--wp--preset--color--sixth: var(--wp--preset--color--theme-5);--wp--preset--color--theme-5: var(--wp--preset--color--sixth);--wp--preset--color--seventh: var(--wp--preset--color--theme-6);--wp--preset--color--theme-6: var(--wp--preset--color--seventh);--wp--preset--color--eighth: var(--wp--preset--color--theme-7);--wp--preset--color--theme-7: var(--wp--preset--color--eighth);--wp--preset--color--ninth: var(--wp--preset--color--theme-8);--wp--preset--color--theme-8: var(--wp--preset--color--ninth);--wp--preset--color--tenth: var(--wp--preset--color--theme-9);--wp--preset--color--theme-9: var(--wp--preset--color--tenth);
+}
+.editor-styles-wrapper .block-editor-block-list__layout.is-root-container > .block-library-block__reusable-block-container {
+    max-width: 100%;
+}

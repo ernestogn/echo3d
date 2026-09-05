@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solar Expert · echo3d</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background:#0f172a; color:#e2e8f0; min-height:100vh; }
+  .wrap { max-width:900px; margin:auto; padding:30px 20px; }
+  h1 { font-size:22px; margin-bottom:6px; color:#38bdf8; }
+  .sub { color:#94a3b8; font-size:13px; margin-bottom:22px; }
+  form { display:grid; gap:12px; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media(max-width:600px){ .row { grid-template-columns:1fr; } }
+  label { font-size:13px; font-weight:600; color:#cbd5e1; }
+  input, select { padding:9px 12px; border-radius:6px; border:1px solid #334155; background:#1e293b; color:#f1f5f9; font-size:14px; }
+  button { padding:10px; background:#0ea5e9; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:700; }
+  button:hover { background:#0284c7; }
+  button:disabled { background:#475569; cursor:not-allowed; }
+  #status { margin-top:14px; font-size:13px; min-height:20px; }
+  .err { color:#f87171; }
+  .ok { color:#4ade80; }
+  #resultado { margin-top:22px; }
+  #resultado pre { background:#1e293b; padding:14px; border-radius:6px; overflow:auto; font-size:12px; line-height:1.5; color:#e2e8f0; }
+  #resultado h2 { color:#38bdf8; font-size:16px; margin:18px 0 8px; border-bottom:1px solid #334155; padding-bottom:4px; }
+  .btn-download { background:#0f766e; display:inline-block; padding:8px 14px; border-radius:6px; color:#fff; text-decoration:none; font-size:13px; margin-top:8px; cursor:pointer; border:none; font-weight:600; }
+  .btn-download:hover { background:#115e59; }
+  .hidden { display:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>☀️ Solar Expert</h1>
+  <p class="sub">Dimensionamiento off-grid · echo3d</p>
+
+  <form id="form">
+    <div class="row">
+      <div>
+        <label>Ubicación (provincia o ciudad)</label>
+        <input type="text" id="ubicacion" value="Entre Ríos" required>
+      </div>
+      <div>
+        <label>Modo de ubicación</label>
+        <select id="modo">
+          <option value="provincia" selected>Solo provincia</option>
+          <option value="coordenadas">Solo coordenadas GPS</option>
+          <option value="hibrido">Híbrido (provincia + GPS)</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="campos_gps" class="row hidden">
+      <div>
+        <label>Latitud (grados decimales, negativa para sur)</label>
+        <input type="number" id="lat" value="-32.0" step="0.0001" min="-55" max="-20">
+      </div>
+      <div>
+        <label>Longitud (grados decimales, negativa para oeste)</label>
+        <input type="number" id="lon" value="-58.0" step="0.0001" min="-75" max="-50">
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Consumo mensual (kWh/mes)</label>
+        <input type="number" id="consumo_mensual" value="450" step="0.1" required>
+      </div>
+      <div>
+        <label>Consumo anual promedio (kWh/mes)</label>
+        <input type="number" id="consumo_anual" value="450" step="0.1">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Potencia demandada pico (W)</label>
+        <input type="number" id="potencia" value="0">
+      </div>
+      <div>
+        <label>Factor de simultaneidad (0.5 - 0.8)</label>
+        <input type="number" id="factor" value="0.6" step="0.05" min="0.1" max="1">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Días de autonomía</label>
+        <input type="number" id="autonomia" value="1" min="1" max="14">
+      </div>
+      <div>
+        <label>Tensión del sistema (0 = auto)</label>
+        <select id="tension">
+          <option value="0" selected>Automático</option>
+          <option value="12">12 V</option>
+          <option value="24">24 V</option>
+          <option value="48">48 V</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Tecnología de baterías</label>
+        <select id="tipo_bat">
+          <option value="LiFePO4" selected>LiFePO4</option>
+          <option value="Plomo-ácido">Plomo-ácido</option>
+        </select>
+      </div>
+      <div>
+        <label>Panel (opcional)</label>
+        <select id="panel">
+          <option value="">Automático</option>
+          <option value="rene330">ReneSola 330W</option>
+          <option value="longi430">LONGi 430W</option>
+          <option value="jinko550">Jinko 550W</option>
+        </select>
+      </div>
+    </div>
+    <button type="submit" id="btn">🚀 Calcular sistema</button>
+  </form>
+
+  <div id="status"></div>
+  <div id="resultado"></div>
+
+  <p style="margin-top:30px;font-size:12px;color:#64748b">
+    echo3d · Solar Expert v1.0 · API local
+  </p>
+</div>
+
+<script>
+const API = (location.hostname === 'echo3d.local' || location.hostname === 'localhost')
+  ? 'http://localhost:8000'
+  : '';
+
+const form = document.getElementById('form');
+const btn = document.getElementById('btn');
+const status = document.getElementById('status');
+const resultado = document.getElementById('resultado');
+const modoSelect = document.getElementById('modo');
+const camposGps = document.getElementById('campos_gps');
+
+function fmt(n) { return Number(n).toLocaleString('es-AR'); }
+
+function toggleGps() {
+  const v = modoSelect.value;
+  camposGps.classList.toggle('hidden', v === 'provincia');
+}
+modoSelect.addEventListener('change', toggleGps);
+toggleGps();
+
+function buildBody() {
+  const modo = modoSelect.value;
+  const body = {
+    ubicacion: document.getElementById('ubicacion').value,
+    consumo_mensual_kwh: parseFloat(document.getElementById('consumo_mensual').value),
+    consumo_anual_promedio_kwh: parseFloat(document.getElementById('consumo_anual').value) || undefined,
+    potencia_demandada_w: parseFloat(document.getElementById('potencia').value) || 0,
+    factor_uso: parseFloat(document.getElementById('factor').value),
+    dias_autonomia: parseInt(document.getElementById('autonomia').value, 10),
+    tipo_bateria: document.getElementById('tipo_bat').value,
+    tension_sistema: parseInt(document.getElementById('tension').value, 10) || undefined,
+    panel_id: document.getElementById('panel').value || undefined,
+    modo_coordenadas: modo,
+  };
+  if (modo !== 'provincia') {
+    body.lat = parseFloat(document.getElementById('lat').value);
+    body.lon = parseFloat(document.getElementById('lon').value);
+  }
+  return body;
+}
+
+async function postJSON(url, body) {
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  return r.json();
+}
+
+function postForm(url, body) {
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = url;
+  form.target = '_blank';
+  Object.entries(body).forEach(([k, v]) => {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = k;
+    input.value = JSON.stringify(v);
+    form.appendChild(input);
+  });
+  document.body.appendChild(form);
+  form.submit();
+  document.body.removeChild(form);
+}
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  btn.disabled = true;
+  status.innerHTML = '⏳ Calculando...';
+  status.className = 'ok';
+  resultado.innerHTML = '';
+
+  const body = buildBody();
+  try {
+    const data = await postJSON(API + '/calcular', body);
+    if (!data.ok) throw new Error(data.error || 'Error desconocido');
+    mostrar(data.resultado);
+    status.innerHTML = '✅ Cálculo exitoso';
+  } catch (err) {
+    status.innerHTML = '❌ ' + err.message;
+    status.className = 'err';
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+function mostrar(d) {
+  const bat = d.bateria;
+  const inv = d.inversor;
+  const ctrl = d.controlador;
+  const panel = d.panel;
+  const st = d.config_strings;
+
+  const rows = [
+    ['Paneles', d.n_paneles, panel.marca + ' ' + panel.modelo + ' · ' + panel.potencia_wp + ' Wp'],
+    ['Config. strings', st.serie + 'S × ' + st.paralelo + 'P', 'Vmp: ' + st.vmp_string_v + ' V · Voc: ' + st.voc_string_v + ' V'],
+    ['Baterías', d.n_baterias, bat.marca + ' ' + bat.modelo + ' (' + bat.tipo + ') ' + bat.tension_nominal_v + 'V'],
+    ['Energía banco', (d.energia_banco_wh/1000).toFixed(1) + ' kWh', 'Útil: ' + (d.energia_util_wh/1000).toFixed(1) + ' kWh · Autonomía: ' + d.autonomia_real_dias + ' días'],
+    ['Controlador', '1', ctrl.marca + ' ' + ctrl.modelo],
+    ['Inversor', '1', inv.marca + ' ' + inv.modelo + ' · ' + inv.potencia_nominal_w + ' W'],
+    ['Presupuesto materiales', '$' + fmt(d.presupuesto_materiales_ars) + ' ARS', '*Precios referenciales'],
+  ];
+
+  let html = '<h2>📋 Resumen del sistema</h2><pre>';
+  rows.forEach(([k,v,obs]) => {
+    html += k.padEnd(24) + ' ' + String(v).padEnd(28) + ' ' + obs + '\n';
+  });
+  html += '</pre>';
+
+  if (d.pasos && d.pasos.length) {
+    html += '<h2>📐 Pasos del cálculo</h2><pre>';
+    d.pasos.forEach(p => { html += p + '\n\n'; });
+    html += '</pre>';
+  }
+
+  const detalles = [
+    ['Demanda real', d.consumo_real_wh + ' Wh/día'],
+    ['Demanda simultánea', d.demanda_sim_w + ' W'],
+    ['HSP anual', d.hsp_anual],
+    ['HSP peor mes', d.hsp_peor_mes],
+    ['Cap. requerida baterías', d.capacidad_requerida_ah + ' Ah'],
+    ['Provincia detectada', d.provincia_detectada || d.ubicacion],
+  ];
+  html += '<h2>📊 Detalles</h2><pre>';
+  detalles.forEach(([k,v]) => { html += k.padEnd(24) + ' ' + String(v).padEnd(28) + '\n'; });
+  html += '</pre>';
+
+  const prot = d.protecciones;
+  const protData = [
+    ['Fusible por string', prot.fusible_string_a + ' A'],
+    ['Fusible combiner', prot.fusible_combiner_a + ' A'],
+    ['Fusible carga MPPT→bat', prot.fusible_carga_a + ' A'],
+    ['Disyuntor AC bipolar', prot.disyuntor_ac_a + ' A / 230V'],
+  ];
+  html += '<h2>🛡️ Protecciones</h2><pre>';
+  protData.forEach(([k,v]) => { html += k.padEnd(28) + ' ' + String(v).padEnd(20) + '\n'; });
+  html += '</pre>';
+
+  const btnVer = document.createElement('button');
+  btnVer.className = 'btn-download';
+  btnVer.innerHTML = '📥 Ver informe completo (nueva pestaña)';
+  btnVer.onclick = () => postForm(API + '/informe/html', buildBody());
+
+  const wrap = document.createElement('div');
+  wrap.style.marginTop = '8px';
+  wrap.appendChild(btnVer);
+
+  resultado.innerHTML = html;
+  resultado.appendChild(wrap);
+}
+</script>
+</body>
+</html>

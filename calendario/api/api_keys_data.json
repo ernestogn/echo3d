@@ -1,0 +1,14 @@
+{
+    "api_keys": [],
+    "api_config": {
+        "requerir_api_key": true,
+        "permitir_sin_key_localhost": true,
+        "rate_limit_enabled": true,
+        "rate_limit_default": 100,
+        "rate_limit_ip_sin_key": 50,
+        "log_requests": true,
+        "ip_whitelist": [],
+        "ip_blacklist": []
+    },
+    "timestamp": 1765679542
+}
