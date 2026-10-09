@@ -9,3 +9,8 @@ node_modules/
 .env
 cache/
 tmp/
+
+# SRCI - credenciales de produccion y fotos subidas por usuarios
+srci/includes/config.local.php
+srci/uploads/*
+!srci/uploads/.htaccess
