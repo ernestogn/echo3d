@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/funciones.php';
@@ -80,7 +80,7 @@ if ($exportar === 'csv' || $exportar === 'geojson') {
     header('Content-Disposition: attachment; filename="incidencias_' . date('Y-m-d') . '.csv"');
     $salida = fopen('php://output', 'w');
     // Columnas alineadas con Planilla_relevamiento_barrios.xlsx
-    fputcsv($salida, ['NÂ°','Fecha','Hora','Barrio','DirecciÃ³n / calle y altura','Tipo de situaciÃ³n','Gravedad','Familias afectadas','Servicio afectado','Calle intransitable','Estado','Responsable / Ã¡rea','Fecha de resoluciÃ³n','DÃ­as abiertos','Relevado por','Contacto vecino / referente','Observaciones','Latitud','Longitud','Foto'], ';');
+    fputcsv($salida, ['N°','Fecha','Hora','Barrio','Dirección / calle y altura','Tipo de situación','Gravedad','Familias afectadas','Servicio afectado','Calle intransitable','Estado','Responsable / área','Fecha de resolución','Días abiertos','Relevado por','Contacto vecino / referente','Observaciones','Latitud','Longitud','Foto'], ';');
     foreach ($filas as $f) {
       fputcsv($salida, [
         $f['id'],
@@ -92,7 +92,7 @@ if ($exportar === 'csv' || $exportar === 'geojson') {
         nombre_gravedad($f['gravedad']),
         $f['familias_afectadas'] ?? '',
         $f['servicio_afectado'] ?? '',
-        $f['calle_intransitable'] === null ? '' : ($f['calle_intransitable'] ? 'SÃ­' : 'No'),
+        $f['calle_intransitable'] === null ? '' : ($f['calle_intransitable'] ? 'Sí' : 'No'),
         nombre_estado($f['estado']),
         $f['responsable_area'] ?? '',
         $f['fecha_resolucion'] ?? '',
@@ -175,7 +175,7 @@ function url_filtros(array $extras = []): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Listado de Incidencias â€” SRCI</title>
+  <title>Listado de Incidencias — SRCI</title>
   <meta name="description" content="Listado completo de incidencias reportadas por los ciudadanos.">
   <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010">
 </head>
@@ -184,7 +184,7 @@ function url_filtros(array $extras = []): string {
 <nav class="nav-principal" role="navigation">
   <div class="nav-contenido">
     <a href="/srci/index.php" class="nav-logo">
-      <span class="nav-logo-icono" aria-hidden="true">ðŸ—ºï¸</span>
+      <span class="nav-logo-icono" aria-hidden="true">🗺️</span>
       SRCI
     </a>
     <div class="nav-enlaces">
@@ -195,7 +195,7 @@ function url_filtros(array $extras = []): string {
       <?php endif; ?>
     </div>
     <div class="nav-usuario">
-      <span>ðŸ‘¤ <?= $nombre_usuario ?></span>
+      <span>👤 <?= $nombre_usuario ?></span>
       <a href="/srci/logout.php" class="boton boton-secundario boton-sm">Salir</a>
     </div>
   </div>
@@ -205,8 +205,8 @@ function url_filtros(array $extras = []): string {
   <div class="pagina-encabezado">
     <h1>Incidencias reportadas</h1>
     <div style="display:flex;gap:var(--espacio-sm);flex-wrap:wrap;">
-      <a href="<?= url_filtros(['exportar' => 'csv']) ?>" class="boton boton-secundario boton-sm">â¬‡ CSV</a>
-      <a href="<?= url_filtros(['exportar' => 'geojson']) ?>" class="boton boton-secundario boton-sm">â¬‡ GeoJSON</a>
+      <a href="<?= url_filtros(['exportar' => 'csv']) ?>" class="boton boton-secundario boton-sm">⬇ CSV</a>
+      <a href="<?= url_filtros(['exportar' => 'geojson']) ?>" class="boton boton-secundario boton-sm">⬇ GeoJSON</a>
     </div>
   </div>
 
@@ -241,7 +241,7 @@ function url_filtros(array $extras = []): string {
         <option value="baja"    <?= $gravedad === 'baja'    ? 'selected' : '' ?>>Baja</option>
         <option value="media"   <?= $gravedad === 'media'   ? 'selected' : '' ?>>Media</option>
         <option value="alta"    <?= $gravedad === 'alta'    ? 'selected' : '' ?>>Alta</option>
-        <option value="critica" <?= $gravedad === 'critica' ? 'selected' : '' ?>>CrÃ­tica</option>
+        <option value="critica" <?= $gravedad === 'critica' ? 'selected' : '' ?>>Crítica</option>
       </select>
     </div>
     <div class="campo">
@@ -249,7 +249,7 @@ function url_filtros(array $extras = []): string {
       <select id="f-estado" name="estado">
         <option value="">Todos los estados</option>
         <option value="pendiente"  <?= $estado === 'pendiente'  ? 'selected' : '' ?>>Pendiente</option>
-        <option value="en_proceso" <?= $estado === 'en_proceso' ? 'selected' : '' ?>>En gestiÃ³n</option>
+        <option value="en_proceso" <?= $estado === 'en_proceso' ? 'selected' : '' ?>>En gestión</option>
         <option value="resuelto"   <?= $estado === 'resuelto'   ? 'selected' : '' ?>>Resuelto</option>
       </select>
     </div>
@@ -270,7 +270,7 @@ function url_filtros(array $extras = []): string {
   <!-- Tabla -->
   <?php if (empty($incidencias)): ?>
     <div class="mensaje mensaje-info">
-      <span>â„¹ï¸</span>
+      <span>ℹ️</span>
       <span>No hay incidencias que coincidan con los filtros seleccionados.</span>
     </div>
   <?php else: ?>
@@ -286,7 +286,7 @@ function url_filtros(array $extras = []): string {
             <th>Fecha</th>
             <th>Usuario</th>
             <th>Notas</th>
-            <th>AcciÃ³n</th>
+            <th>Acción</th>
           </tr>
         </thead>
         <tbody>
@@ -354,17 +354,17 @@ function url_filtros(array $extras = []): string {
     <?php if ($total_pags > 1): ?>
       <nav class="paginacion" aria-label="Paginacion">
         <?php if ($pagina > 1): ?>
-          <a href="<?= url_filtros(['pagina' => $pagina - 1]) ?>" class="pagina-enlace" aria-label="Pagina anterior">â€¹</a>
+          <a href="<?= url_filtros(['pagina' => $pagina - 1]) ?>" class="pagina-enlace" aria-label="Pagina anterior">‹</a>
         <?php endif; ?>
         <?php for ($p = max(1, $pagina - 2); $p <= min($total_pags, $pagina + 2); $p++): ?>
           <a href="<?= url_filtros(['pagina' => $p]) ?>" class="pagina-enlace <?= $p === $pagina ? 'activa' : '' ?>" aria-current="<?= $p === $pagina ? 'page' : 'false' ?>"><?= $p ?></a>
         <?php endfor; ?>
         <?php if ($pagina < $total_pags): ?>
-          <a href="<?= url_filtros(['pagina' => $pagina + 1]) ?>" class="pagina-enlace" aria-label="Pagina siguiente">â€º</a>
+          <a href="<?= url_filtros(['pagina' => $pagina + 1]) ?>" class="pagina-enlace" aria-label="Pagina siguiente">›</a>
         <?php endif; ?>
       </nav>
       <p style="text-align:center;color:var(--color-texto-suave);font-size:.875rem;margin-top:var(--espacio-sm);">
-        <?= $total ?> incidencias encontradas Â· PÃ¡gina <?= $pagina ?> de <?= $total_pags ?>
+        <?= $total ?> incidencias encontradas · Página <?= $pagina ?> de <?= $total_pags ?>
       </p>
     <?php endif; ?>
   <?php endif; ?>

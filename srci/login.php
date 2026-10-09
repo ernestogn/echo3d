@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/funciones.php';
@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ingresar â€” SRCI</title>
+  <title>Ingresar — SRCI</title>
   <meta name="description" content="Acceso al Sistema de Reporte Ciudadano de Incidencias.">
   <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010">
 </head>
@@ -53,17 +53,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <div class="login-caja">
 
     <div class="login-logo">
-      <span class="login-logo-icono" aria-hidden="true">ðŸ—ºï¸</span>
+      <span class="login-logo-icono" aria-hidden="true">🗺️</span>
       <span class="login-logo-nombre">SRCI</span>
       <span class="login-logo-subtitulo">Sistema de Reporte Ciudadano</span>
     </div>
 
     <div class="tarjeta">
-      <h1 style="font-size:1.25rem;margin-bottom:var(--espacio-lg);">IngresÃ¡ a tu cuenta</h1>
+      <h1 style="font-size:1.25rem;margin-bottom:var(--espacio-lg);">Ingresá a tu cuenta</h1>
 
       <?php if ($error !== ''): ?>
         <div class="mensaje mensaje-error" role="alert" style="margin-bottom:var(--espacio-lg);">
-          <span>âš ï¸</span>
+          <span>⚠️</span>
           <span><?= esc($error) ?></span>
         </div>
       <?php endif; ?>
@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <!-- Display del PIN como puntos -->
         <div class="campo" style="margin-bottom:var(--espacio-sm);">
-          <label>PIN (4 dÃ­gitos)</label>
+          <label>PIN (4 dígitos)</label>
           <div class="pin-display" id="pin-display" aria-label="PIN ingresado" aria-live="polite">
             <div class="pin-punto" id="pt0"></div>
             <div class="pin-punto" id="pt1"></div>
@@ -96,8 +96,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </div>
         </div>
 
-        <!-- Teclado numÃ©rico -->
-        <div class="pin-teclado" id="pin-teclado" role="group" aria-label="Teclado numÃ©rico">
+        <!-- Teclado numérico -->
+        <div class="pin-teclado" id="pin-teclado" role="group" aria-label="Teclado numérico">
           <button type="button" class="pin-digito" data-digito="1" aria-label="1">1</button>
           <button type="button" class="pin-digito" data-digito="2" aria-label="2">2</button>
           <button type="button" class="pin-digito" data-digito="3" aria-label="3">3</button>
@@ -107,9 +107,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <button type="button" class="pin-digito" data-digito="7" aria-label="7">7</button>
           <button type="button" class="pin-digito" data-digito="8" aria-label="8">8</button>
           <button type="button" class="pin-digito" data-digito="9" aria-label="9">9</button>
-          <button type="button" class="pin-digito" id="btn-borrar" aria-label="Borrar Ãºltimo dÃ­gito">âŒ«</button>
+          <button type="button" class="pin-digito" id="btn-borrar" aria-label="Borrar último dígito">⌫</button>
           <button type="button" class="pin-digito" data-digito="0" aria-label="0">0</button>
-          <button type="submit" class="pin-digito boton-primario" id="btn-enviar" disabled aria-label="Ingresar">âœ“</button>
+          <button type="submit" class="pin-digito boton-primario" id="btn-enviar" disabled aria-label="Ingresar">✓</button>
         </div>
       </form>
     </div>

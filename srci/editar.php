@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/funciones.php';
@@ -10,7 +10,7 @@ if ($id === 0) { header('Location: /srci/incidencias.php'); exit; }
 
 $gravedades_validas   = ['baja', 'media', 'alta', 'critica'];
 $servicios_validos    = ['Ninguno', 'Luz', 'Agua', 'Luz y agua', 'Vialidad', 'Otro'];
-$responsables_validos = ['Cooperativa elÃ©ctrica', 'Defensa Civil', 'Municipio', 'Provincia', 'Otro'];
+$responsables_validos = ['Cooperativa eléctrica', 'Defensa Civil', 'Municipio', 'Provincia', 'Otro'];
 
 $mensaje  = '';
 $tipo_msg = '';
@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $notas              = trim($_POST['notas'] ?? '');
 
   if ($tipo_id === 0 || $barrio_id === 0 || $latitud === 0.0 || $longitud === 0.0 || $direccion === '' || !in_array($gravedad, $gravedades_validas, true)) {
-    $mensaje  = 'Faltan datos obligatorios (tipo, barrio, coordenadas, direcciÃ³n y gravedad).';
+    $mensaje  = 'Faltan datos obligatorios (tipo, barrio, coordenadas, dirección y gravedad).';
     $tipo_msg = 'error';
   } elseif ($servicio !== '' && !in_array($servicio, $servicios_validos, true)) {
     $mensaje  = 'Servicio afectado no valido.';
@@ -95,14 +95,14 @@ $csrf          = csrf_token();
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Editar incidencia #<?= $id ?> â€” SRCI</title>
+  <title>Editar incidencia #<?= $id ?> — SRCI</title>
   <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010">
 </head>
 <body>
 
 <nav class="nav-principal">
   <div class="nav-contenido">
-    <a href="/srci/index.php" class="nav-logo"><span class="nav-logo-icono">ðŸ—ºï¸</span>SRCI</a>
+    <a href="/srci/index.php" class="nav-logo"><span class="nav-logo-icono">🗺️</span>SRCI</a>
     <div class="nav-enlaces">
       <a href="/srci/index.php"       class="nav-enlace">Mapa</a>
       <a href="/srci/incidencias.php" class="nav-enlace">Listado</a>
@@ -118,8 +118,8 @@ $csrf          = csrf_token();
 
 <main class="pagina-contenedor" style="max-width:800px;">
   <div style="margin-bottom:var(--espacio-lg);display:flex;justify-content:space-between;flex-wrap:wrap;gap:var(--espacio-md);">
-    <a href="/srci/incidencias.php" style="color:var(--color-texto-suave);font-size:.9rem;">â† Volver al listado</a>
-    <a href="/srci/detalle.php?id=<?= $id ?>" style="color:var(--color-texto-suave);font-size:.9rem;">Ver detalle y fotos â†’</a>
+    <a href="/srci/incidencias.php" style="color:var(--color-texto-suave);font-size:.9rem;">← Volver al listado</a>
+    <a href="/srci/detalle.php?id=<?= $id ?>" style="color:var(--color-texto-suave);font-size:.9rem;">Ver detalle y fotos →</a>
   </div>
 
   <div class="pagina-encabezado" style="margin-bottom:var(--espacio-lg);">
@@ -129,7 +129,7 @@ $csrf          = csrf_token();
 
   <?php if ($mensaje !== ''): ?>
     <div class="mensaje mensaje-<?= esc($tipo_msg) ?>" style="margin-bottom:var(--espacio-xl);">
-      <span><?= $tipo_msg === 'exito' ? 'âœ“' : 'âš ï¸' ?></span>
+      <span><?= $tipo_msg === 'exito' ? '✓' : '⚠️' ?></span>
       <span><?= esc($mensaje) ?></span>
     </div>
   <?php endif; ?>
@@ -139,7 +139,7 @@ $csrf          = csrf_token();
       <dt style="font-weight:600;">Relevado por</dt><dd><?= esc($inc['usuario_nombre']) ?></dd>
       <dt style="font-weight:600;">Fecha del reporte</dt><dd><?= esc(fecha_legible($inc['fecha_hora'])) ?></dd>
       <?php if ($inc['fecha_resolucion']): ?>
-        <dt style="font-weight:600;">Fecha de resoluciÃ³n</dt><dd><?= esc(fecha_legible($inc['fecha_resolucion'])) ?></dd>
+        <dt style="font-weight:600;">Fecha de resolución</dt><dd><?= esc(fecha_legible($inc['fecha_resolucion'])) ?></dd>
       <?php endif; ?>
     </dl>
 
@@ -148,7 +148,7 @@ $csrf          = csrf_token();
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--espacio-md);">
         <div class="campo">
-          <label for="e-tipo">Tipo de situaciÃ³n *</label>
+          <label for="e-tipo">Tipo de situación *</label>
           <select id="e-tipo" name="tipo_id" required>
             <?php foreach ($tipos_lista as $t): ?>
               <option value="<?= (int)$t['id'] ?>" <?= $inc['tipo_id'] === (int)$t['id'] ? 'selected' : '' ?>>
@@ -170,7 +170,7 @@ $csrf          = csrf_token();
         </div>
 
         <div class="campo">
-          <label for="e-direccion">DirecciÃ³n / calle y altura *</label>
+          <label for="e-direccion">Dirección / calle y altura *</label>
           <input type="text" id="e-direccion" name="direccion" required maxlength="255" value="<?= esc($inc['direccion'] ?? '') ?>">
         </div>
 
@@ -180,7 +180,7 @@ $csrf          = csrf_token();
             <option value="baja"    <?= $inc['gravedad'] === 'baja'    ? 'selected' : '' ?>>Baja</option>
             <option value="media"   <?= $inc['gravedad'] === 'media'   ? 'selected' : '' ?>>Media</option>
             <option value="alta"    <?= $inc['gravedad'] === 'alta'    ? 'selected' : '' ?>>Alta</option>
-            <option value="critica" <?= $inc['gravedad'] === 'critica' ? 'selected' : '' ?>>CrÃ­tica</option>
+            <option value="critica" <?= $inc['gravedad'] === 'critica' ? 'selected' : '' ?>>Crítica</option>
           </select>
         </div>
 
@@ -200,7 +200,7 @@ $csrf          = csrf_token();
         </div>
 
         <div class="campo">
-          <label for="e-responsable">Responsable / Ã¡rea</label>
+          <label for="e-responsable">Responsable / área</label>
           <select id="e-responsable" name="responsable_area">
             <option value="">Sin dato</option>
             <?php foreach ($responsables_validos as $r): ?>
@@ -224,7 +224,7 @@ $csrf          = csrf_token();
           <input type="number" id="e-longitud" name="longitud" step="0.000001" min="-180" max="180" required value="<?= esc($inc['longitud']) ?>">
         </div>
 
-        <div class="campo campo-ancho" style="grid-column:1 / -1;">
+        <div class="campo" style="grid-column:1 / -1;">
           <label class="check-linea">
             <input type="checkbox" id="e-calle" name="calle_intransitable" value="1" <?= $inc['calle_intransitable'] ? 'checked' : '' ?>>
             Calle intransitable

@@ -33,7 +33,7 @@ function nombre_estado(string $estado): string
 {
   return match($estado) {
     'pendiente'  => 'Pendiente',
-    'en_proceso' => 'En proceso',
+    'en_proceso' => 'En gestión',
     'resuelto'   => 'Resuelto',
     default      => 'Desconocido',
   };
@@ -47,6 +47,30 @@ function clase_estado(string $estado): string
     'en_proceso' => 'estado-en-proceso',
     'resuelto'   => 'estado-resuelto',
     default      => '',
+  };
+}
+
+// Devuelve el nombre legible de la gravedad
+function nombre_gravedad(?string $gravedad): string
+{
+  return match($gravedad) {
+    'baja'    => 'Baja',
+    'media'   => 'Media',
+    'alta'    => 'Alta',
+    'critica' => 'Crítica',
+    default   => 'Sin dato',
+  };
+}
+
+// Devuelve clase CSS segun gravedad
+function clase_gravedad(?string $gravedad): string
+{
+  return match($gravedad) {
+    'baja'    => 'gravedad-baja',
+    'media'   => 'gravedad-media',
+    'alta'    => 'gravedad-alta',
+    'critica' => 'gravedad-critica',
+    default   => '',
   };
 }
 
