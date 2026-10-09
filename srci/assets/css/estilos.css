@@ -167,7 +167,7 @@ h3 { font-size: 1.125rem; font-weight: 600; }
   border-color: var(--color-acento);
   box-shadow: 0 0 0 3px rgba(79,142,247,.2);
 }
-.campo textarea { resize: vertical; min-height: 100px; }
+.campo textarea { resize: vertical; min-height: 64px; }
 
 /* ============================================================
    Navegacion principal
@@ -367,9 +367,9 @@ h3 { font-size: 1.125rem; font-weight: 600; }
   border-radius: var(--radio-lg) var(--radio-lg) 0 0;
   width: 100%;
   max-width: 560px;
-  max-height: 86vh;
+  max-height: 88vh;
   overflow-y: auto;
-  padding: var(--espacio-xl);
+  padding: var(--espacio-lg);
   transform: translateY(100%);
   transition: transform 0.3s cubic-bezier(.4,0,.2,1);
   box-shadow: var(--sombra-lg);
@@ -387,8 +387,8 @@ h3 { font-size: 1.125rem; font-weight: 600; }
 }
 .modal-caja .modal-encabezado {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  margin: calc(var(--espacio-xl) * -1) calc(var(--espacio-xl) * -1) var(--espacio-lg);
-  padding: var(--espacio-lg) var(--espacio-xl);
+  margin: calc(var(--espacio-lg) * -1) calc(var(--espacio-lg) * -1) var(--espacio-lg);
+  padding: var(--espacio-md) var(--espacio-lg);
   border-radius: var(--radio-lg) var(--radio-lg) 0 0;
 }
 .modal-caja .modal-encabezado h2 {
@@ -487,14 +487,14 @@ h3 { font-size: 1.125rem; font-weight: 600; }
 .grilla-tipos {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--espacio-md);
-  margin: var(--espacio-lg) 0;
+  gap: var(--espacio-sm);
+  margin: var(--espacio-md) 0;
 }
 .tipo-tarjeta {
   background: var(--color-fondo);
   border: 2px solid var(--color-borde);
   border-radius: var(--radio-md);
-  padding: var(--espacio-md);
+  padding: var(--espacio-sm) var(--espacio-md);
   cursor: pointer;
   text-align: center;
   transition: border-color var(--transicion), background var(--transicion), transform var(--transicion);
@@ -529,7 +529,7 @@ h3 { font-size: 1.125rem; font-weight: 600; }
 .zona-foto {
   border: 2px dashed var(--color-borde);
   border-radius: var(--radio-md);
-  padding: var(--espacio-xl);
+  padding: var(--espacio-md);
   text-align: center;
   cursor: pointer;
   transition: border-color var(--transicion), background var(--transicion);
@@ -729,3 +729,26 @@ h3 { font-size: 1.125rem; font-weight: 600; }
   .tarjeta          { padding: var(--espacio-lg); }
   .grilla-tipos     { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ============================================================
+   Modal compacto en pantallas anchas (FullHD):
+   detalles en 2 columnas para que no haga scroll
+   ============================================================ */
+@media (min-width: 900px) {
+  .modal-caja { max-width: 760px; }
+  #paso-detalles {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: var(--espacio-lg);
+    align-items: start;
+  }
+  #paso-detalles > #btn-volver,
+  #paso-detalles > #info-tipo-seleccionado,
+  #paso-detalles > .campo:nth-of-type(2),
+  #paso-detalles > #btn-enviar-reporte,
+  #paso-detalles > #mensaje-reporte {
+    grid-column: 1 / -1;
+  }
+  #paso-detalles > #btn-enviar-reporte { margin-top: var(--espacio-sm); }
+}
+

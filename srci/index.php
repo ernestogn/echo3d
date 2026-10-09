@@ -13,7 +13,7 @@ $es_admin       = es_admin();
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mapa de Incidencias — SRCI</title>
   <meta name="description" content="Reporta incidencias urbanas en el mapa.">
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261009b">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="manifest" href="/srci/manifest.json">
 </head>
@@ -72,31 +72,31 @@ $es_admin       = es_admin();
 
     <!-- Paso 2: ubicacion y detalles -->
     <div id="paso-detalles" style="display:none;">
-      <button type="button" class="boton boton-secundario boton-sm" id="btn-volver" style="margin-bottom:var(--espacio-lg);">
+      <button type="button" class="boton boton-secundario boton-sm" id="btn-volver" style="margin-bottom:var(--espacio-md);">
         ← Volver
       </button>
 
-      <div id="info-tipo-seleccionado" style="margin-bottom:var(--espacio-lg);padding:var(--espacio-md);background:rgba(79,142,247,.1);border-radius:var(--radio-md);font-weight:600;"></div>
+      <div id="info-tipo-seleccionado" style="margin-bottom:var(--espacio-md);padding:var(--espacio-sm) var(--espacio-md);background:rgba(79,142,247,.1);border-radius:var(--radio-md);font-weight:600;"></div>
 
-      <div class="campo" style="margin-bottom:var(--espacio-lg);">
+      <div class="campo" style="margin-bottom:var(--espacio-md);">
         <label>Ubicación del problema</label>
-        <div id="mini-mapa" style="height:200px;border-radius:var(--radio-md);overflow:hidden;border:1.5px solid var(--color-borde);"></div>
+        <div id="mini-mapa" style="height:150px;border-radius:var(--radio-md);overflow:hidden;border:1.5px solid var(--color-borde);"></div>
         <p id="coord-texto" style="font-size:.8rem;color:var(--color-texto-suave);margin-top:4px;">
           Tocá el mapa para marcar el lugar exacto
         </p>
       </div>
 
-      <div class="campo" style="margin-bottom:var(--espacio-lg);">
+      <div class="campo" style="margin-bottom:var(--espacio-md);">
         <label for="notas-reporte">Descripción opcional</label>
         <textarea id="notas-reporte" placeholder="Contá algo más sobre el problema..." maxlength="1000"></textarea>
       </div>
 
-      <div class="campo" style="margin-bottom:var(--espacio-lg);">
+      <div class="campo" style="margin-bottom:var(--espacio-md);">
         <label>Foto (opcional)</label>
         <div class="zona-foto" id="zona-foto">
           <input type="file" id="foto-input" accept="image/jpeg,image/png,image/webp" aria-label="Seleccionar foto">
           <div class="zona-foto-texto">
-            <span style="font-size:2rem;">📷</span><br>
+            <span style="font-size:1.5rem;">📷</span>
             Tocá para agregar una foto
           </div>
           <img id="vista-previa-foto" class="vista-previa-foto" alt="Vista previa de la foto seleccionada">
