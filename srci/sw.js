@@ -1,34 +1,52 @@
-// Service Worker SRCI - cache basico para uso offline
-const CACHE_VERSION = 'srci-v1';
-const RECURSOS_ESTATICOS = [
+// sw.js - Service Worker SRCI
+// Estrategia: network-first para recursos propios (siempre trae lo ultimo),
+// con fallback a cache cuando no hay conexion (soporte offline basico).
+
+const CACHE = 'srci-v2';
+
+const APP_SHELL = [
+  '/srci/index.php',
   '/srci/assets/css/estilos.css',
   '/srci/assets/js/mapa.js',
   '/srci/assets/js/reporte.js',
   '/srci/assets/js/login.js',
-  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
-  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
 ];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE_VERSION).then((cache) => cache.addAll(RECURSOS_ESTATICOS))
+    caches.open(CACHE).then((c) => c.addAll(APP_SHELL)).then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k)))
-    )
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (e) => {
-  // Solo cachear GET de recursos estaticos
-  if (e.request.method !== 'GET') return;
+  const req = e.request;
+  if (req.method !== 'GET') return;
+
+  const url = new URL(req.url);
+
+  // No interceptar CDN / tiles / fuentes externas
+  if (url.origin !== self.location.origin) return;
+
+  // La API siempre va a la red (datos vivos)
+  if (url.pathname.startsWith('/srci/api/')) return;
+
+  // Network-first: intenta la red, cachea la respuesta y actualiza el cache.
+  // Si falla (offline), usa lo cacheado.
   e.respondWith(
-    caches.match(e.request).then((cached) => cached || fetch(e.request))
+    fetch(req)
+      .then((res) => {
+        const copia = res.clone();
+        caches.open(CACHE).then((c) => c.put(req, copia));
+        return res;
+      })
+      .catch(() => caches.match(req))
   );
 });

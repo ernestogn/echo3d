@@ -320,6 +320,14 @@ El agente corre en PowerShell 5.1 (Windows) y **NO soporta bien las comillas ani
 - **PHP CLI en el server:** pasar el código como archivo (scp), nunca `php -r` inline.
 - Credenciales de prod viven en `includes/config.local.php` (no en git).
 
+### 11.2 Pitfall del Service Worker (cache viejo)
+
+`sw.js` registra un Service Worker en `index.php`. Si cambias CSS/JS y el navegador sigue mostrando lo viejo, es porque el SW previo servia desde cache con una version fija. Reglas:
+
+- La estrategia es **network-first** (trae lo ultimo y actualiza el cache; usa cache solo offline).
+- Si cambias la lista `APP_SHELL` o la estrategia, **subi `CACHE`** (ej: `srci-v2` → `srci-v3`) para purgar el cache anterior.
+- Los `<script>` de `index.php` llevan `?v=YYYYMMDD` para forzar el refresco inmediato aunque el SW viejo siga activo (bumpear al cambiar esos JS).
+
 ---
 
 ## 12. Que NO hacer
