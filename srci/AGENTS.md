@@ -3,7 +3,7 @@
 **Proyecto:** Sistema de Reporte Ciudadano de Incidencias (SRCI)
 **Raiz en repositorio:** `d:\WEB\echo3d\srci\` (local) / `/home/*/public_html/srci/` (produccion VPS)
 **Implementado por:** Antigravity (sesion 12020e07-ddf7-4cdc-bc2c-b4f88b7e4065) — Octubre 2026
-**Estado:** Implementacion inicial completa. Pendiente: deploy en VPS, iconos PWA, configuracion de credenciales de produccion.
+**Estado:** Implementacion inicial completa + deploy en produccion (https://echo3dlaser.com.ar/srci). Pendiente: iconos PWA y ajuste del From del email de produccion.
 
 ---
 
