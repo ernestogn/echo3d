@@ -123,7 +123,7 @@ $csrf          = csrf_token();
   </div>
 
   <div class="pagina-encabezado" style="margin-bottom:var(--espacio-lg);">
-    <h1 style="font-size:1.375rem;"><?= esc($inc['tipo_icono']) ?> Editar incidencia #<?= (int)$inc['id'] ?></h1>
+    <h1 style="font-size:1.375rem;"><?= esc($inc['tipo_icono'] ?? '') ?> Editar incidencia #<?= (int)$inc['id'] ?></h1>
     <span class="estado-badge <?= clase_estado($inc['estado']) ?>"><?= esc(nombre_estado($inc['estado'])) ?></span>
   </div>
 
@@ -152,7 +152,7 @@ $csrf          = csrf_token();
           <select id="e-tipo" name="tipo_id" required>
             <?php foreach ($tipos_lista as $t): ?>
               <option value="<?= (int)$t['id'] ?>" <?= $inc['tipo_id'] === (int)$t['id'] ? 'selected' : '' ?>>
-                <?= esc($t['icono']) ?> <?= esc($t['nombre']) ?>
+                <?= esc($t['icono'] ?? '') ?> <?= esc($t['nombre']) ?>
               </option>
             <?php endforeach; ?>
           </select>
