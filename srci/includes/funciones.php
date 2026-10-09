@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 declare(strict_types=1);
 
 define('MAX_FOTO_BYTES', 5 * 1024 * 1024); // 5 MB

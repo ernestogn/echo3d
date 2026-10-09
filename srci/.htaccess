@@ -1,4 +1,4 @@
-﻿# SRCI - Proteccion de directorios sensibles
+# SRCI - Proteccion de directorios sensibles
 Options -Indexes
 
 # Bloquear acceso directo a includes/

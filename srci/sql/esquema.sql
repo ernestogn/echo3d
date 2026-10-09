@@ -1,4 +1,4 @@
-﻿-- ============================================================
+-- ============================================================
 -- SRCI - Sistema de Reporte Ciudadano de Incidencias
 -- Esquema de base de datos
 -- Motor: InnoDB | Charset: utf8mb4_unicode_ci

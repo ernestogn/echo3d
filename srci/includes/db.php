@@ -1,16 +1,16 @@
-﻿<?php
+<?php
 declare(strict_types=1);
 
-// Credenciales de conexion al SRCI - ajustar en produccion
-define('SRCI_DB_HOST', 'localhost');
-define('SRCI_DB_NAME', 'srci');
-define('SRCI_DB_USER', 'srci_user');
-define('SRCI_DB_PASS', 'srci_pass');
-
-// Cargar configuracion local si existe (sobreescribe las constantes de arriba)
+// Cargar configuracion local si existe (tiene prioridad sobre los defaults)
 if (is_file(__DIR__ . '/config.local.php')) {
   require __DIR__ . '/config.local.php';
 }
+
+// Credenciales de conexion por defecto (desarrollo)
+if (!defined('SRCI_DB_HOST')) define('SRCI_DB_HOST', 'localhost');
+if (!defined('SRCI_DB_NAME')) define('SRCI_DB_NAME', 'srci');
+if (!defined('SRCI_DB_USER')) define('SRCI_DB_USER', 'srci_user');
+if (!defined('SRCI_DB_PASS')) define('SRCI_DB_PASS', 'srci_pass');
 
 function db(): PDO
 {

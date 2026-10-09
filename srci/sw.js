@@ -1,4 +1,4 @@
-﻿// Service Worker SRCI - cache basico para uso offline
+// Service Worker SRCI - cache basico para uso offline
 const CACHE_VERSION = 'srci-v1';
 const RECURSOS_ESTATICOS = [
   '/srci/assets/css/estilos.css',

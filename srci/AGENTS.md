@@ -1,4 +1,4 @@
-﻿# AGENTS.md — Documentacion tecnica del SRCI para agentes IA
+# AGENTS.md — Documentacion tecnica del SRCI para agentes IA
 
 **Proyecto:** Sistema de Reporte Ciudadano de Incidencias (SRCI)
 **Raiz en repositorio:** `d:\WEB\echo3d\srci\` (local) / `/home/*/public_html/srci/` (produccion VPS)

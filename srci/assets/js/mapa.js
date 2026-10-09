@@ -1,4 +1,4 @@
-﻿// mapa.js - Mapa Leaflet principal con marcadores de incidencias
+// mapa.js - Mapa Leaflet principal con marcadores de incidencias
 
 const ICONOS_COLOR = {
   pendiente:  '#f59e0b',

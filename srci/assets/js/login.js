@@ -1,4 +1,4 @@
-﻿// Logica del teclado numerico de PIN
+// Logica del teclado numerico de PIN
 const pin = [];
 const MAX_PIN = 4;
 

@@ -1,4 +1,4 @@
-﻿// reporte.js - Logica del modal de reporte de nueva incidencia
+// reporte.js - Logica del modal de reporte de nueva incidencia
 
 let tipoSeleccionado = null;
 let coordSeleccionada = null;
