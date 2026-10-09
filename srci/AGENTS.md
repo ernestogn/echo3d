@@ -34,8 +34,9 @@ Aplicacion web para que ciudadanos reporten incidencias urbanas geolocalizadas (
 ```
 srci/
 ├── index.php              Mapa principal (Leaflet + modal de reporte en 2 pasos)
-├── incidencias.php        Listado tabular con filtros, paginacion, exportacion CSV/GeoJSON
+├── incidencias.php        Listado tabular con filtros, paginacion, filas expandibles (todos los campos), exportacion CSV/GeoJSON
 ├── detalle.php            Detalle de una incidencia + cambio de estado para admin
+├── editar.php             Edicion completa de una incidencia (todos los campos, con CSRF)
 ├── login.php              Autenticacion por nombre + PIN de 4 digitos (teclado virtual)
 ├── logout.php             Destruye la sesion y redirige a login.php
 ├── error403.php           Pagina de error para acceso denegado (incluida por auth.php)
@@ -243,19 +244,19 @@ Los marcadores usan SVG inline con color segun estado: amarillo=pendiente, azul=
 
 ## 8. Sistema de diseno CSS
 
-Archivo: `assets/css/estilos.css` — Dark mode por defecto, sin frameworks.
+Archivo: `assets/css/estilos.css` — Tema claro (sin dark mode, sin frameworks). El modal del reporte siempre es blanco (mismo tema).
 
 ### Variables en :root (las mas importantes)
 
 ```css
---color-acento:      #4f8ef7   /* azul principal */
---color-fondo:       #0f1117   /* fondo de pagina */
---color-superficie:  #1a1d27   /* tarjetas, nav */
---color-borde:       #2a2d3a
---color-texto:       #e2e8f0
---color-pendiente:   #f59e0b
---color-en-proceso:  #4f8ef7
---color-resuelto:    #22c55e
+--color-acento:      #4f46e5   /* indigo principal */
+--color-fondo:       #f8fafc   /* fondo de pagina */
+--color-superficie:  #ffffff   /* tarjetas, nav */
+--color-borde:       #e2e8f0
+--color-texto:       #1e293b
+--color-pendiente:   #d97706
+--color-en-proceso:  #2563eb
+--color-resuelto:    #16a34a
 ```
 
 ### Clases clave
@@ -270,6 +271,7 @@ Archivo: `assets/css/estilos.css` — Dark mode por defecto, sin frameworks.
 | `.campo` | Wrapper de label + input |
 | `.tarjeta` | Panel con borde y padding |
 | `.tabla-incidencias` | Tabla de datos |
+| `.fila-expandida` | Fila expandible de la tabla con todos los campos |
 | `.estado-badge .estado-{estado}` | Badge de estado coloreado |
 | `.gravedad-badge .gravedad-{nivel}` | Badge de gravedad (baja=verde, media=ámbar, alta=naranja, crítica=rojo) |
 | `.mensaje .mensaje-{tipo}` | Feedback: exito, error, info |

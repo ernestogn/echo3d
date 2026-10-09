@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/funciones.php';
@@ -80,7 +80,7 @@ if ($exportar === 'csv' || $exportar === 'geojson') {
     header('Content-Disposition: attachment; filename="incidencias_' . date('Y-m-d') . '.csv"');
     $salida = fopen('php://output', 'w');
     // Columnas alineadas con Planilla_relevamiento_barrios.xlsx
-    fputcsv($salida, ['N°','Fecha','Hora','Barrio','Dirección / calle y altura','Tipo de situación','Gravedad','Familias afectadas','Servicio afectado','Calle intransitable','Estado','Responsable / área','Fecha de resolución','Días abiertos','Relevado por','Contacto vecino / referente','Observaciones','Latitud','Longitud','Foto'], ';');
+    fputcsv($salida, ['NÂ°','Fecha','Hora','Barrio','DirecciÃ³n / calle y altura','Tipo de situaciÃ³n','Gravedad','Familias afectadas','Servicio afectado','Calle intransitable','Estado','Responsable / Ã¡rea','Fecha de resoluciÃ³n','DÃ­as abiertos','Relevado por','Contacto vecino / referente','Observaciones','Latitud','Longitud','Foto'], ';');
     foreach ($filas as $f) {
       fputcsv($salida, [
         $f['id'],
@@ -92,7 +92,7 @@ if ($exportar === 'csv' || $exportar === 'geojson') {
         nombre_gravedad($f['gravedad']),
         $f['familias_afectadas'] ?? '',
         $f['servicio_afectado'] ?? '',
-        $f['calle_intransitable'] === null ? '' : ($f['calle_intransitable'] ? 'Sí' : 'No'),
+        $f['calle_intransitable'] === null ? '' : ($f['calle_intransitable'] ? 'SÃ­' : 'No'),
         nombre_estado($f['estado']),
         $f['responsable_area'] ?? '',
         $f['fecha_resolucion'] ?? '',
@@ -140,8 +140,10 @@ $total       = (int)$stmt_count->fetchColumn();
 $total_pags  = (int)ceil($total / $por_pagina);
 
 // Consulta paginada
-$sql = "SELECT i.id, i.latitud, i.longitud, i.estado, i.fecha_hora, i.notas,
-               i.direccion, i.gravedad, b.nombre AS barrio_nombre,
+$sql = "SELECT i.id, i.latitud, i.longitud, i.estado, i.fecha_hora, i.fecha_resolucion, i.notas,
+               i.direccion, i.gravedad, i.familias_afectadas, i.servicio_afectado,
+               i.calle_intransitable, i.responsable_area, i.contacto_vecino,
+               b.nombre AS barrio_nombre,
                t.nombre AS tipo_nombre, t.icono AS tipo_icono,
                u.nombre AS usuario_nombre
         FROM incidencias i
@@ -173,16 +175,16 @@ function url_filtros(array $extras = []): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Listado de Incidencias — SRCI</title>
+  <title>Listado de Incidencias â€” SRCI</title>
   <meta name="description" content="Listado completo de incidencias reportadas por los ciudadanos.">
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010">
 </head>
 <body>
 
 <nav class="nav-principal" role="navigation">
   <div class="nav-contenido">
     <a href="/srci/index.php" class="nav-logo">
-      <span class="nav-logo-icono" aria-hidden="true">🗺️</span>
+      <span class="nav-logo-icono" aria-hidden="true">ðŸ—ºï¸</span>
       SRCI
     </a>
     <div class="nav-enlaces">
@@ -193,7 +195,7 @@ function url_filtros(array $extras = []): string {
       <?php endif; ?>
     </div>
     <div class="nav-usuario">
-      <span>👤 <?= $nombre_usuario ?></span>
+      <span>ðŸ‘¤ <?= $nombre_usuario ?></span>
       <a href="/srci/logout.php" class="boton boton-secundario boton-sm">Salir</a>
     </div>
   </div>
@@ -203,8 +205,8 @@ function url_filtros(array $extras = []): string {
   <div class="pagina-encabezado">
     <h1>Incidencias reportadas</h1>
     <div style="display:flex;gap:var(--espacio-sm);flex-wrap:wrap;">
-      <a href="<?= url_filtros(['exportar' => 'csv']) ?>" class="boton boton-secundario boton-sm">⬇ CSV</a>
-      <a href="<?= url_filtros(['exportar' => 'geojson']) ?>" class="boton boton-secundario boton-sm">⬇ GeoJSON</a>
+      <a href="<?= url_filtros(['exportar' => 'csv']) ?>" class="boton boton-secundario boton-sm">â¬‡ CSV</a>
+      <a href="<?= url_filtros(['exportar' => 'geojson']) ?>" class="boton boton-secundario boton-sm">â¬‡ GeoJSON</a>
     </div>
   </div>
 
@@ -239,7 +241,7 @@ function url_filtros(array $extras = []): string {
         <option value="baja"    <?= $gravedad === 'baja'    ? 'selected' : '' ?>>Baja</option>
         <option value="media"   <?= $gravedad === 'media'   ? 'selected' : '' ?>>Media</option>
         <option value="alta"    <?= $gravedad === 'alta'    ? 'selected' : '' ?>>Alta</option>
-        <option value="critica" <?= $gravedad === 'critica' ? 'selected' : '' ?>>Crítica</option>
+        <option value="critica" <?= $gravedad === 'critica' ? 'selected' : '' ?>>CrÃ­tica</option>
       </select>
     </div>
     <div class="campo">
@@ -247,7 +249,7 @@ function url_filtros(array $extras = []): string {
       <select id="f-estado" name="estado">
         <option value="">Todos los estados</option>
         <option value="pendiente"  <?= $estado === 'pendiente'  ? 'selected' : '' ?>>Pendiente</option>
-        <option value="en_proceso" <?= $estado === 'en_proceso' ? 'selected' : '' ?>>En gestión</option>
+        <option value="en_proceso" <?= $estado === 'en_proceso' ? 'selected' : '' ?>>En gestiÃ³n</option>
         <option value="resuelto"   <?= $estado === 'resuelto'   ? 'selected' : '' ?>>Resuelto</option>
       </select>
     </div>
@@ -268,7 +270,7 @@ function url_filtros(array $extras = []): string {
   <!-- Tabla -->
   <?php if (empty($incidencias)): ?>
     <div class="mensaje mensaje-info">
-      <span>ℹ️</span>
+      <span>â„¹ï¸</span>
       <span>No hay incidencias que coincidan con los filtros seleccionados.</span>
     </div>
   <?php else: ?>
@@ -284,11 +286,15 @@ function url_filtros(array $extras = []): string {
             <th>Fecha</th>
             <th>Usuario</th>
             <th>Notas</th>
-            <th>Acción</th>
+            <th>AcciÃ³n</th>
           </tr>
         </thead>
         <tbody>
-          <?php foreach ($incidencias as $inc): ?>
+          <?php foreach ($incidencias as $inc):
+            $inicio = new DateTime($inc['fecha_hora']);
+            $fin    = !empty($inc['fecha_resolucion']) ? new DateTime($inc['fecha_resolucion']) : new DateTime('now');
+            $dias   = (int)$inicio->diff($fin)->days;
+          ?>
             <tr>
               <td><?= (int)$inc['id'] ?></td>
               <td><?= esc($inc['tipo_icono'] ?? '') ?> <?= esc($inc['tipo_nombre']) ?></td>
@@ -298,7 +304,46 @@ function url_filtros(array $extras = []): string {
               <td style="white-space:nowrap;"><?= esc(fecha_legible($inc['fecha_hora'])) ?></td>
               <td><?= esc($inc['usuario_nombre']) ?></td>
               <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<?= esc($inc['notas'] ?? '') ?>"><?= esc(substr($inc['notas'] ?? '', 0, 60)) ?></td>
-              <td><a href="/srci/detalle.php?id=<?= (int)$inc['id'] ?>" class="boton boton-secundario boton-sm">Ver</a></td>
+              <td>
+                <div style="display:flex;gap:4px;">
+                  <button type="button" class="boton boton-secundario boton-sm" onclick="toggleFila(<?= (int)$inc['id'] ?>)" aria-expanded="false" title="Ver todos los campos">▾</button>
+                  <a href="/srci/editar.php?id=<?= (int)$inc['id'] ?>" class="boton boton-primario boton-sm">Editar</a>
+                </div>
+              </td>
+            </tr>
+            <tr class="fila-expandida" id="expandida-<?= (int)$inc['id'] ?>" style="display:none;">
+              <td colspan="9">
+                <dl style="display:grid;grid-template-columns:170px 1fr;gap:6px var(--espacio-lg);font-size:.85rem;">
+                  <dt style="color:var(--color-texto-suave);font-weight:600;">Dirección</dt>
+                  <dd><?= esc($inc['direccion'] ?? '—') ?></dd>
+                  <dt style="color:var(--color-texto-suave);font-weight:600;">Barrio</dt>
+                  <dd><?= esc($inc['barrio_nombre'] ?? '—') ?></dd>
+                  <dt style="color:var(--color-texto-suave);font-weight:600;">Gravedad</dt>
+                  <dd><span class="gravedad-badge <?= clase_gravedad($inc['gravedad']) ?>"><?= esc(nombre_gravedad($inc['gravedad'])) ?></span></dd>
+                  <dt style="color:var(--color-texto-suave);font-weight:600;">Familias afectadas</dt>
+                  <dd><?= $inc['familias_afectadas'] !== null ? (int)$inc['familias_afectadas'] : '—' ?></dd>
+                  <dt style="color:var(--color-texto-suave);font-weight:600;">Servicio afectado</dt>
+                  <dd><?= esc($inc['servicio_afectado'] ?? '—') ?></dd>
+                  <dt style="color:var(--color-texto-suave);font-weight:600;">Calle intransitable</dt>
+                  <dd><?= $inc['calle_intransitable'] === null ? '—' : ($inc['calle_intransitable'] ? 'Sí' : 'No') ?></dd>
+                  <dt style="color:var(--color-texto-suave);font-weight:600;">Responsable / área</dt>
+                  <dd><?= esc($inc['responsable_area'] ?? '—') ?></dd>
+                  <dt style="color:var(--color-texto-suave);font-weight:600;">Contacto vecino</dt>
+                  <dd><?= esc($inc['contacto_vecino'] ?? '—') ?></dd>
+                  <dt style="color:var(--color-texto-suave);font-weight:600;">Coordenadas</dt>
+                  <dd><?= esc($inc['latitud']) ?>, <?= esc($inc['longitud']) ?></dd>
+                  <dt style="color:var(--color-texto-suave);font-weight:600;">Fecha de resolución</dt>
+                  <dd><?= $inc['fecha_resolucion'] ? esc(fecha_legible($inc['fecha_resolucion'])) : '—' ?></dd>
+                  <dt style="color:var(--color-texto-suave);font-weight:600;">Días abiertos</dt>
+                  <dd><?= $dias ?></dd>
+                  <dt style="color:var(--color-texto-suave);font-weight:600;">Observaciones</dt>
+                  <dd><?= $inc['notas'] ? esc($inc['notas']) : '—' ?></dd>
+                </dl>
+                <div style="margin-top:var(--espacio-md);display:flex;gap:var(--espacio-sm);">
+                  <a href="/srci/detalle.php?id=<?= (int)$inc['id'] ?>" class="boton boton-secundario boton-sm">Ver detalle y fotos</a>
+                  <a href="/srci/editar.php?id=<?= (int)$inc['id'] ?>" class="boton boton-primario boton-sm">Editar incidencia</a>
+                </div>
+              </td>
             </tr>
           <?php endforeach; ?>
         </tbody>
@@ -309,21 +354,29 @@ function url_filtros(array $extras = []): string {
     <?php if ($total_pags > 1): ?>
       <nav class="paginacion" aria-label="Paginacion">
         <?php if ($pagina > 1): ?>
-          <a href="<?= url_filtros(['pagina' => $pagina - 1]) ?>" class="pagina-enlace" aria-label="Pagina anterior">‹</a>
+          <a href="<?= url_filtros(['pagina' => $pagina - 1]) ?>" class="pagina-enlace" aria-label="Pagina anterior">â€¹</a>
         <?php endif; ?>
         <?php for ($p = max(1, $pagina - 2); $p <= min($total_pags, $pagina + 2); $p++): ?>
           <a href="<?= url_filtros(['pagina' => $p]) ?>" class="pagina-enlace <?= $p === $pagina ? 'activa' : '' ?>" aria-current="<?= $p === $pagina ? 'page' : 'false' ?>"><?= $p ?></a>
         <?php endfor; ?>
         <?php if ($pagina < $total_pags): ?>
-          <a href="<?= url_filtros(['pagina' => $pagina + 1]) ?>" class="pagina-enlace" aria-label="Pagina siguiente">›</a>
+          <a href="<?= url_filtros(['pagina' => $pagina + 1]) ?>" class="pagina-enlace" aria-label="Pagina siguiente">â€º</a>
         <?php endif; ?>
       </nav>
       <p style="text-align:center;color:var(--color-texto-suave);font-size:.875rem;margin-top:var(--espacio-sm);">
-        <?= $total ?> incidencias encontradas · Página <?= $pagina ?> de <?= $total_pags ?>
+        <?= $total ?> incidencias encontradas Â· PÃ¡gina <?= $pagina ?> de <?= $total_pags ?>
       </p>
     <?php endif; ?>
   <?php endif; ?>
 </main>
+
+<script>
+  function toggleFila(id) {
+    const fila = document.getElementById('expandida-' + id);
+    const visible = fila.style.display !== 'none';
+    fila.style.display = visible ? 'none' : '';
+  }
+</script>
 
 </body>
 </html>

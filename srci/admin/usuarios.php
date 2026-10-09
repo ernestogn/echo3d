@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/funciones.php';
@@ -87,13 +87,13 @@ $csrf = csrf_token();
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin — Usuarios · SRCI</title>
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css">
+  <title>Admin â€” Usuarios Â· SRCI</title>
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010">
 </head>
 <body>
 <nav class="nav-principal">
   <div class="nav-contenido">
-    <a href="/srci/index.php" class="nav-logo"><span class="nav-logo-icono">🗺️</span>SRCI</a>
+    <a href="/srci/index.php" class="nav-logo"><span class="nav-logo-icono">ðŸ—ºï¸</span>SRCI</a>
     <div class="nav-enlaces">
       <a href="/srci/index.php"          class="nav-enlace">Mapa</a>
       <a href="/srci/incidencias.php"    class="nav-enlace">Listado</a>
@@ -107,21 +107,21 @@ $csrf = csrf_token();
 
 <div class="admin-layout">
   <aside class="admin-sidebar">
-    <div class="admin-sidebar-titulo">Panel de administración</div>
-    <a href="/srci/admin/reportes.php" class="admin-nav-item">📋 Reportes</a>
-    <a href="/srci/admin/usuarios.php" class="admin-nav-item activo">👥 Usuarios</a>
-    <a href="/srci/admin/tipos.php"    class="admin-nav-item">🏷️ Tipos</a>
-    <a href="/srci/admin/barrios.php"  class="admin-nav-item">🏙️ Barrios</a>
+    <div class="admin-sidebar-titulo">Panel de administraciÃ³n</div>
+    <a href="/srci/admin/reportes.php" class="admin-nav-item">ðŸ“‹ Reportes</a>
+    <a href="/srci/admin/usuarios.php" class="admin-nav-item activo">ðŸ‘¥ Usuarios</a>
+    <a href="/srci/admin/tipos.php"    class="admin-nav-item">ðŸ·ï¸ Tipos</a>
+    <a href="/srci/admin/barrios.php"  class="admin-nav-item">ðŸ™ï¸ Barrios</a>
   </aside>
 
   <main class="admin-main">
     <div class="pagina-encabezado">
-      <h1>Gestión de usuarios</h1>
+      <h1>GestiÃ³n de usuarios</h1>
     </div>
 
     <?php if ($mensaje !== ''): ?>
       <div class="mensaje mensaje-<?= esc($tipo_msg) ?>" style="margin-bottom:var(--espacio-xl);" role="alert">
-        <span><?= $tipo_msg === 'exito' ? '✓' : '⚠️' ?></span>
+        <span><?= $tipo_msg === 'exito' ? 'âœ“' : 'âš ï¸' ?></span>
         <span><?= esc($mensaje) ?></span>
       </div>
     <?php endif; ?>
@@ -135,7 +135,7 @@ $csrf = csrf_token();
         <div style="display:grid;grid-template-columns:1fr 1fr 140px auto;gap:var(--espacio-md);align-items:flex-end;flex-wrap:wrap;">
           <div class="campo">
             <label for="nuevo-nombre">Nombre</label>
-            <input type="text" id="nuevo-nombre" name="nombre" required placeholder="ej: Juan Pérez">
+            <input type="text" id="nuevo-nombre" name="nombre" required placeholder="ej: Juan PÃ©rez">
           </div>
           <div class="campo">
             <label for="nuevo-email">Email (para enviar PIN)</label>
@@ -164,7 +164,7 @@ $csrf = csrf_token();
             <tr>
               <td><?= (int)$u['id'] ?></td>
               <td><strong><?= esc($u['nombre']) ?></strong></td>
-              <td><?= esc($u['email'] ?? '—') ?></td>
+              <td><?= esc($u['email'] ?? 'â€”') ?></td>
               <td><span style="text-transform:capitalize;"><?= esc($u['rol']) ?></span></td>
               <td>
                 <span class="estado-badge" style="<?= $u['activo'] ? 'background:rgba(34,197,94,.15);color:var(--color-verde)' : 'background:rgba(239,68,68,.15);color:var(--color-rojo)' ?>">
@@ -180,8 +180,8 @@ $csrf = csrf_token();
                     <input type="hidden" name="accion"      value="nuevo_pin">
                     <input type="hidden" name="usuario_id"  value="<?= (int)$u['id'] ?>">
                     <button type="submit" class="boton boton-secundario boton-sm"
-                            onclick="return confirm('¿Generar nuevo PIN para <?= esc(addslashes($u['nombre'])) ?>?')">
-                      🔑 Nuevo PIN
+                            onclick="return confirm('Â¿Generar nuevo PIN para <?= esc(addslashes($u['nombre'])) ?>?')">
+                      ðŸ”‘ Nuevo PIN
                     </button>
                   </form>
                   <!-- Activar/Desactivar (no afecta al admin en sesion) -->

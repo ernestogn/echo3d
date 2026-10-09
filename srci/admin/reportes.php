@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/funciones.php';
@@ -50,13 +50,13 @@ $csrf  = csrf_token();
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin — Reportes · SRCI</title>
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css">
+  <title>Admin â€” Reportes Â· SRCI</title>
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010">
 </head>
 <body>
 <nav class="nav-principal">
   <div class="nav-contenido">
-    <a href="/srci/index.php" class="nav-logo"><span class="nav-logo-icono">🗺️</span>SRCI</a>
+    <a href="/srci/index.php" class="nav-logo"><span class="nav-logo-icono">ðŸ—ºï¸</span>SRCI</a>
     <div class="nav-enlaces">
       <a href="/srci/index.php"       class="nav-enlace">Mapa</a>
       <a href="/srci/incidencias.php" class="nav-enlace">Listado</a>
@@ -70,16 +70,16 @@ $csrf  = csrf_token();
 
 <div class="admin-layout">
   <aside class="admin-sidebar">
-    <div class="admin-sidebar-titulo">Panel de administración</div>
-    <a href="/srci/admin/reportes.php" class="admin-nav-item activo">📋 Reportes</a>
-    <a href="/srci/admin/usuarios.php" class="admin-nav-item">👥 Usuarios</a>
-    <a href="/srci/admin/tipos.php"    class="admin-nav-item">🏷️ Tipos</a>
-    <a href="/srci/admin/barrios.php"  class="admin-nav-item">🏙️ Barrios</a>
+    <div class="admin-sidebar-titulo">Panel de administraciÃ³n</div>
+    <a href="/srci/admin/reportes.php" class="admin-nav-item activo">ðŸ“‹ Reportes</a>
+    <a href="/srci/admin/usuarios.php" class="admin-nav-item">ðŸ‘¥ Usuarios</a>
+    <a href="/srci/admin/tipos.php"    class="admin-nav-item">ðŸ·ï¸ Tipos</a>
+    <a href="/srci/admin/barrios.php"  class="admin-nav-item">ðŸ™ï¸ Barrios</a>
   </aside>
 
   <main class="admin-main">
     <div class="pagina-encabezado">
-      <h1>Gestión de reportes</h1>
+      <h1>GestiÃ³n de reportes</h1>
       <span style="color:var(--color-texto-suave);font-size:.9rem;"><?= $total ?> incidencias totales</span>
     </div>
 
@@ -87,7 +87,7 @@ $csrf  = csrf_token();
       <table class="tabla-incidencias">
         <thead>
           <tr>
-            <th>#</th><th>Tipo</th><th>Barrio</th><th>Dirección</th><th>Gravedad</th><th>Usuario</th><th>Fecha</th><th>Estado</th><th>Cambiar estado</th><th>Ver</th>
+            <th>#</th><th>Tipo</th><th>Barrio</th><th>DirecciÃ³n</th><th>Gravedad</th><th>Usuario</th><th>Fecha</th><th>Estado</th><th>Cambiar estado</th><th>Ver</th>
           </tr>
         </thead>
         <tbody>
@@ -95,8 +95,8 @@ $csrf  = csrf_token();
             <tr>
               <td><?= (int)$f['id'] ?></td>
               <td><?= esc($f['tipo']) ?></td>
-              <td><?= esc($f['barrio'] ?? '—') ?></td>
-              <td><?= esc($f['direccion'] ?? '—') ?></td>
+              <td><?= esc($f['barrio'] ?? 'â€”') ?></td>
+              <td><?= esc($f['direccion'] ?? 'â€”') ?></td>
               <td><span class="gravedad-badge <?= clase_gravedad($f['gravedad']) ?>"><?= esc(nombre_gravedad($f['gravedad'])) ?></span></td>
               <td><?= esc($f['usuario']) ?></td>
               <td style="white-space:nowrap;"><?= esc(fecha_legible($f['fecha_hora'])) ?></td>
@@ -107,7 +107,7 @@ $csrf  = csrf_token();
                   <input type="hidden" name="incidencia_id" value="<?= (int)$f['id'] ?>">
                   <select name="estado" aria-label="Nuevo estado" style="padding:4px 8px;background:var(--color-fondo);border:1px solid var(--color-borde);border-radius:6px;color:var(--color-texto);font-size:.85rem;">
                     <option value="pendiente"  <?= $f['estado']==='pendiente'  ? 'selected':'' ?>>Pendiente</option>
-                    <option value="en_proceso" <?= $f['estado']==='en_proceso' ? 'selected':'' ?>>En gestión</option>
+                    <option value="en_proceso" <?= $f['estado']==='en_proceso' ? 'selected':'' ?>>En gestiÃ³n</option>
                     <option value="resuelto"   <?= $f['estado']==='resuelto'   ? 'selected':'' ?>>Resuelto</option>
                   </select>
                   <button type="submit" class="boton boton-primario boton-sm">Guardar</button>

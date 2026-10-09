@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/funciones.php';
@@ -34,15 +34,15 @@ $fotos = $fotos->fetchAll();
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Incidencia #<?= $id ?> — SRCI</title>
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css">
+  <title>Incidencia #<?= $id ?> â€” SRCI</title>
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
 
 <nav class="nav-principal">
   <div class="nav-contenido">
-    <a href="/srci/index.php" class="nav-logo"><span class="nav-logo-icono">🗺️</span>SRCI</a>
+    <a href="/srci/index.php" class="nav-logo"><span class="nav-logo-icono">ðŸ—ºï¸</span>SRCI</a>
     <div class="nav-enlaces">
       <a href="/srci/index.php"       class="nav-enlace">Mapa</a>
       <a href="/srci/incidencias.php" class="nav-enlace">Listado</a>
@@ -54,8 +54,9 @@ $fotos = $fotos->fetchAll();
 </nav>
 
 <main class="pagina-contenedor" style="max-width:800px;">
-  <div style="margin-bottom:var(--espacio-lg);">
+  <div style="margin-bottom:var(--espacio-lg);display:flex;justify-content:space-between;flex-wrap:wrap;gap:var(--espacio-md);">
     <a href="/srci/incidencias.php" style="color:var(--color-texto-suave);font-size:.9rem;">← Volver al listado</a>
+    <a href="/srci/editar.php?id=<?= $id ?>" style="color:var(--color-texto-suave);font-size:.9rem;">Editar incidencia →</a>
   </div>
 
   <div class="tarjeta" style="margin-bottom:var(--espacio-lg);">
@@ -79,7 +80,7 @@ $fotos = $fotos->fetchAll();
         <dd><?= esc($inc['barrio_nombre']) ?></dd>
       <?php endif; ?>
       <?php if (!empty($inc['direccion'])): ?>
-        <dt style="color:var(--color-texto-suave);font-weight:600;">Dirección</dt>
+        <dt style="color:var(--color-texto-suave);font-weight:600;">DirecciÃ³n</dt>
         <dd><?= esc($inc['direccion']) ?></dd>
       <?php endif; ?>
       <dt style="color:var(--color-texto-suave);font-weight:600;">Gravedad</dt>
@@ -94,10 +95,10 @@ $fotos = $fotos->fetchAll();
       <?php endif; ?>
       <?php if ($inc['calle_intransitable'] !== null && $inc['calle_intransitable'] !== ''): ?>
         <dt style="color:var(--color-texto-suave);font-weight:600;">Calle intransitable</dt>
-        <dd><?= $inc['calle_intransitable'] ? 'Sí' : 'No' ?></dd>
+        <dd><?= $inc['calle_intransitable'] ? 'SÃ­' : 'No' ?></dd>
       <?php endif; ?>
       <?php if (!empty($inc['responsable_area'])): ?>
-        <dt style="color:var(--color-texto-suave);font-weight:600;">Responsable / área</dt>
+        <dt style="color:var(--color-texto-suave);font-weight:600;">Responsable / Ã¡rea</dt>
         <dd><?= esc($inc['responsable_area']) ?></dd>
       <?php endif; ?>
       <?php if (!empty($inc['contacto_vecino'])): ?>
@@ -107,13 +108,13 @@ $fotos = $fotos->fetchAll();
       <dt style="color:var(--color-texto-suave);font-weight:600;">Coordenadas</dt>
       <dd><?= esc($inc['latitud']) ?>, <?= esc($inc['longitud']) ?></dd>
       <?php if ($inc['fecha_resolucion']): ?>
-        <dt style="color:var(--color-texto-suave);font-weight:600;">Fecha de resolución</dt>
+        <dt style="color:var(--color-texto-suave);font-weight:600;">Fecha de resoluciÃ³n</dt>
         <dd><?= esc(fecha_legible($inc['fecha_resolucion'])) ?></dd>
       <?php endif; ?>
-      <dt style="color:var(--color-texto-suave);font-weight:600;">Días abiertos</dt>
+      <dt style="color:var(--color-texto-suave);font-weight:600;">DÃ­as abiertos</dt>
       <dd><?= $dias_abiertos ?></dd>
       <?php if ($inc['notas']): ?>
-        <dt style="color:var(--color-texto-suave);font-weight:600;">Descripción</dt>
+        <dt style="color:var(--color-texto-suave);font-weight:600;">DescripciÃ³n</dt>
         <dd><?= esc($inc['notas']) ?></dd>
       <?php endif; ?>
     </dl>
@@ -138,7 +139,7 @@ $fotos = $fotos->fetchAll();
 
   <!-- Mapa del detalle -->
   <div class="tarjeta tarjeta-sm" style="margin-bottom:var(--espacio-lg);">
-    <h2 style="margin-bottom:var(--espacio-md);">Ubicación</h2>
+    <h2 style="margin-bottom:var(--espacio-md);">UbicaciÃ³n</h2>
     <div id="mapa-detalle" style="height:300px;border-radius:var(--radio-md);overflow:hidden;"></div>
   </div>
 
@@ -167,7 +168,7 @@ $fotos = $fotos->fetchAll();
   const lng = <?= (float)$inc['longitud'] ?>;
   const mapaDetalle = L.map('mapa-detalle').setView([lat, lng], 16);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap', maxZoom: 19
+    attribution: 'Â© OpenStreetMap', maxZoom: 19
   }).addTo(mapaDetalle);
   L.marker([lat, lng]).addTo(mapaDetalle)
    .bindPopup('<?= esc(addslashes($inc['tipo_nombre'])) ?>').openPopup();
