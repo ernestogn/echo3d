@@ -59,7 +59,33 @@ async function cargarIncidencias() {
   }
 }
 
+// Icono del punto elegido con click en el mapa
+function crearIconoSeleccion() {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
+    <circle cx="22" cy="22" r="17" fill="none" stroke="#4f46e5" stroke-width="3" opacity=".85"/>
+    <circle cx="22" cy="22" r="7"  fill="#4f46e5"/>
+    <circle cx="22" cy="22" r="3"  fill="#ffffff"/>
+  </svg>`;
+  return L.divIcon({ html: svg, className: '', iconSize: [44, 44], iconAnchor: [22, 22] });
+}
+
+let marcadorSeleccion = null;
+
+// Click sobre el mapa: abrir reporte con esa ubicacion precargada
+mapa.on('click', (e) => {
+  if (marcadorSeleccion) marcadorSeleccion.remove();
+  marcadorSeleccion = L.marker(e.latlng, { icon: crearIconoSeleccion() }).addTo(mapa);
+  if (typeof window.abrirReporteConCoordenada === 'function') {
+    window.abrirReporteConCoordenada(e.latlng);
+  }
+});
+
+function removerMarcadorSeleccion() {
+  if (marcadorSeleccion) { marcadorSeleccion.remove(); marcadorSeleccion = null; }
+}
+
 cargarIncidencias();
 
 // Exponer mapa globalmente para que reporte.js lo use
 window.mapaLeaflet = mapa;
+window.removerMarcadorSeleccion = removerMarcadorSeleccion;

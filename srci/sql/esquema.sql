@@ -50,14 +50,14 @@ CREATE TABLE IF NOT EXISTS fotos (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO tipos_incidencia (clave, nombre, icono) VALUES
-  ('arbol_caido',       'Arbol caido / en riesgo',           'tree'),
-  ('alcantarilla',      'Alcantarilla tapada / obstruida',   'drain'),
-  ('vivienda_precaria', 'Vivienda precaria',                 'house'),
-  ('techo_riesgo',      'Techo dudoso / en riesgo',          'roof'),
-  ('cableado',          'Cableado peligroso',                'cable'),
-  ('fuga_agua',         'Fuga de agua',                      'water'),
-  ('basural',           'Basural / acumulacion de residuos', 'trash'),
-  ('otro',              'Otro',                              'other');
+  ('arbol_caido',       'Arbol caido / en riesgo',           '🌳'),
+  ('alcantarilla',      'Alcantarilla tapada / obstruida',   '🕳️'),
+  ('vivienda_precaria', 'Vivienda precaria',                 '🏚️'),
+  ('techo_riesgo',      'Techo dudoso / en riesgo',          '🏠'),
+  ('cableado',          'Cableado peligroso',                '⚡'),
+  ('fuga_agua',         'Fuga de agua',                      '💧'),
+  ('basural',           'Basural / acumulacion de residuos', '🗑️'),
+  ('otro',              'Otro',                              '📋');
 
 -- PIN por defecto del admin: 0000
 -- Cambiar en primer uso desde el panel admin

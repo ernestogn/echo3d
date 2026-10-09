@@ -69,9 +69,19 @@ function abrirModal() {
   document.body.style.overflow = 'hidden';
 }
 
+// Abrir el modal con una ubicacion ya marcada (click en el mapa principal)
+function abrirConCoordenada(latlng) {
+  abrirModal();
+  coordSeleccionada = latlng;
+}
+window.abrirReporteConCoordenada = abrirConCoordenada;
+
 function cerrarModal() {
   modalFondo.classList.remove('visible');
   document.body.style.overflow = '';
+  if (typeof window.removerMarcadorSeleccion === 'function') {
+    window.removerMarcadorSeleccion();
+  }
 }
 
 function resetearModal() {
@@ -113,6 +123,13 @@ function mostrarPasoDetalles() {
       if (miniMarcador) miniMarcador.remove();
       miniMarcador = L.marker(e.latlng).addTo(miniMapa);
     });
+
+    // Si el usuario hizo click en el mapa principal, precargar ese punto
+    if (coordSeleccionada) {
+      miniMapa.setView(coordSeleccionada, 16);
+      miniMarcador = L.marker(coordSeleccionada).addTo(miniMapa);
+      coordTexto.textContent = `Lat: ${coordSeleccionada.lat.toFixed(6)}, Lng: ${coordSeleccionada.lng.toFixed(6)}`;
+    }
   } else {
     // Refrescar layout del mapa al mostrarlo
     setTimeout(() => miniMapa.invalidateSize(), 100);

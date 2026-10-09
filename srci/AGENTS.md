@@ -104,7 +104,7 @@ fotos             id, incidencia_id(FK CASCADE), ruta_archivo, fecha_subida
 
 ### Datos semilla (ya aplicados)
 
-8 tipos de incidencia: `arbol_caido`, `alcantarilla`, `vivienda_precaria`, `techo_riesgo`, `cableado`, `fuga_agua`, `basural`, `otro`.  
+8 tipos de incidencia con `icono` emoji (español): `🌳` arbol_caido, `🕳️` alcantarilla, `🏚️` vivienda_precaria, `🏠` techo_riesgo, `⚡` cableado, `💧` fuga_agua, `🗑️` basural, `📋` otro.  
 Usuario admin inicial: nombre=`admin`, PIN=`0000` (password_hash de PASSWORD_DEFAULT).
 
 ---
@@ -216,6 +216,8 @@ El modal en `index.php` tiene 2 pasos gestionados por `reporte.js`:
 1. **Paso 1** (`#paso-tipo`): grilla de tipos cargada desde `/api/tipos.php`. El usuario selecciona uno.
 2. **Paso 2** (`#paso-detalles`): mini-mapa Leaflet para marcar coordenadas, textarea de notas, zona de foto.
 3. Al enviar: primero POST a `/api/reportes.php`, luego (si hay foto) POST a `/api/subir_foto.php`.
+
+**Reporte por click en el mapa:** al hacer click sobre el mapa principal (`mapa.js`), se coloca un marcador de selección (`crearIconoSeleccion`, anillo indigo) y se abre el modal con esas coordenadas precargadas via `window.abrirReporteConCoordenada(latlng)` (expuesta por `reporte.js`). En el paso 2 el mini-mapa ya queda centrado en ese punto con su marcador; el usuario puede ajustarlo tocando el mini-mapa. Al cerrar el modal, `cerrarModal()` limpia el marcador del mapa principal via `window.removerMarcadorSeleccion()`.
 
 El mapa principal en `mapa.js` expone `window.mapaLeaflet` para que `reporte.js` pueda leer el centro actual al inicializar el mini-mapa.
 
