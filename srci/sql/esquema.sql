@@ -62,4 +62,4 @@ INSERT INTO tipos_incidencia (clave, nombre, icono) VALUES
 -- PIN por defecto del admin: 0000
 -- Cambiar en primer uso desde el panel admin
 INSERT INTO usuarios (nombre, email, pin_hash, rol) VALUES
-  ('admin', 'admin@srci.local', '.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin');
+  ('admin', 'admin@srci.local', '$2y$10$Ix/rSyr5dsAvbGllm1ajVe/yU5FnJjITlCH6tmqgfVrBgmUs.JWKm', 'admin');
