@@ -44,7 +44,8 @@ srci/
 ├── .htaccess              Bloquea listado de directorio y acceso a /includes/
 │
 ├── sql/
-│   └── esquema.sql        Esquema completo de DB + datos semilla de tipos + usuario admin
+│   ├── esquema.sql        Esquema completo de DB + datos semilla de tipos, barrios y usuario admin
+│   └── migracion_planilla.sql  Migracion: tabla barrios + campos nuevos en incidencias + 3 tipos nuevos
 │
 ├── includes/
 │   ├── db.php             Conexion PDO singleton (funcion db()), respuesta_json()
@@ -53,6 +54,7 @@ srci/
 │
 ├── api/
 │   ├── tipos.php          GET  /srci/api/tipos.php      — lista tipos activos (JSON)
+│   ├── barrios.php        GET  /srci/api/barrios.php    — lista barrios activos (JSON)
 │   ├── reportes.php       GET  /srci/api/reportes.php   — lista incidencias con filtros opcionales
 │                          POST /srci/api/reportes.php   — crea nueva incidencia (JSON body)
 │   ├── subir_foto.php     POST /srci/api/subir_foto.php — sube foto (multipart/form-data)
@@ -61,7 +63,8 @@ srci/
 ├── admin/
 │   ├── reportes.php       Panel admin: listado de reportes + cambio de estado via form POST
 │   ├── usuarios.php       Panel admin: crear usuarios, regenerar PIN, activar/desactivar
-│   └── tipos.php          Panel admin: crear tipos de incidencia, activar/desactivar
+│   ├── tipos.php          Panel admin: crear tipos de incidencia, activar/desactivar
+│   └── barrios.php        Panel admin: crear barrios, activar/desactivar
 │
 ├── assets/
 │   ├── css/estilos.css    Sistema de diseno completo (variables CSS, dark mode, responsive)
@@ -96,7 +99,11 @@ define('SRCI_DB_PASS', 'contrasena_real');
 ```sql
 usuarios          id, nombre(UNIQUE), email, pin_hash, rol(usuario|admin), activo, creado_en
 tipos_incidencia  id, clave(UNIQUE), nombre, icono, activo
-incidencias       id, usuario_id(FK), tipo_id(FK), latitud, longitud, notas, fecha_hora, estado(pendiente|en_proceso|resuelto)
+barrios           id, nombre(UNIQUE), activo, creado_en
+incidencias       id, usuario_id(FK), tipo_id(FK), latitud, longitud, barrio_id(FK barrios, NULL),
+                  direccion, gravedad(baja|media|alta|critica), familias_afectadas,
+                  servicio_afectado, calle_intransitable, responsable_area, contacto_vecino,
+                  notas, fecha_hora, estado(pendiente|en_proceso|resuelto), fecha_resolucion
 fotos             id, incidencia_id(FK CASCADE), ruta_archivo, fecha_subida
 ```
 
@@ -104,8 +111,11 @@ fotos             id, incidencia_id(FK CASCADE), ruta_archivo, fecha_subida
 
 ### Datos semilla (ya aplicados)
 
-8 tipos de incidencia con `icono` emoji (español): `🌳` arbol_caido, `🕳️` alcantarilla, `🏚️` vivienda_precaria, `🏠` techo_riesgo, `⚡` cableado, `💧` fuga_agua, `🗑️` basural, `📋` otro.  
+11 tipos de incidencia con `icono` emoji (español): `🌳` arbol_caido, `🕳️` alcantarilla, `🏚️` vivienda_precaria, `🏠` techo_riesgo, `⚡` cableado, `💧` fuga_agua, `🗑️` basural, `📋` otro, `💡` caida_poste, `🌧️` anegamiento, `🌊` inundacion.  
+Barrio inicial: `Otro` (el admin carga el resto — barrios reales, informales y asentamientos — desde `/srci/admin/barrios.php`).  
 Usuario admin inicial: nombre=`admin`, PIN=`0000` (password_hash de PASSWORD_DEFAULT).
+
+**Alineacion con la planilla de relevamiento** (`Planilla_relevamiento_barrios.xlsx`): el formulario pide Barrio, Direccion/calle y altura, Gravedad (obligatorios) y Familias afectadas, Servicio afectado, Calle intransitable, Responsable/area, Contacto vecino (opcionales). "Dias abiertos" se calcula (fecha_hora → fecha_resolucion o hoy). Estado: "En gestion" = `en_proceso`.
 
 ---
 
@@ -183,17 +193,22 @@ echo $variable;                // PROHIBIDO
 **Auth:** sesion activa  
 **Response:** `[{id, clave, nombre, icono}, ...]` — solo tipos activos
 
+### GET /srci/api/barrios.php
+**Auth:** sesion activa  
+**Response:** `[{id, nombre}, ...]` — solo barrios activos, orden por nombre
+
 ### GET /srci/api/reportes.php
 **Auth:** sesion activa  
-**Params opcionales:** `tipo_id`, `estado`, `fecha_desde` (YYYY-MM-DD), `fecha_hasta` (YYYY-MM-DD)  
-**Response:** array de incidencias con joins (tipo_nombre, tipo_icono, usuario_nombre, foto)  
+**Params opcionales:** `tipo_id`, `estado`, `barrio_id`, `gravedad` (baja|media|alta|critica), `fecha_desde` (YYYY-MM-DD), `fecha_hasta` (YYYY-MM-DD)  
+**Response:** array de incidencias con joins (tipo_nombre, tipo_icono, tipo_clave, barrio_nombre, usuario_nombre, foto y campos nuevos: direccion, gravedad, familias_afectadas, servicio_afectado, calle_intransitable, responsable_area, contacto_vecino, fecha_resolucion)  
 **Limite:** 1000 registros (sin paginacion — para el mapa)
 
 ### POST /srci/api/reportes.php
 **Auth:** sesion activa  
-**Body JSON:** `{tipo_id: int, latitud: float, longitud: float, notas?: string}`  
+**Body JSON:** `{tipo_id: int, latitud: float, longitud: float, barrio_id: int, direccion: string, gravedad: "baja"|"media"|"alta"|"critica", familias_afectadas?: int, servicio_afectado?: string, calle_intransitable?: 0|1, responsable_area?: string, contacto_vecino?: string, notas?: string}`  
+**Obligatorios:** tipo_id, latitud, longitud, barrio_id, direccion, gravedad  
 **Response exito:** `{ok: true, id: int}` HTTP 201  
-**Response error:** `{error: string}` HTTP 400 | 422
+**Response error:** `{error: string}` HTTP 400 | 401 (relogin) | 422
 
 ### POST /srci/api/subir_foto.php
 **Auth:** sesion activa + propietario de la incidencia (o admin)  
@@ -205,6 +220,7 @@ echo $variable;                // PROHIBIDO
 ### POST /srci/api/estado.php
 **Auth:** solo admin  
 **Body JSON:** `{incidencia_id: int, estado: "pendiente"|"en_proceso"|"resuelto"}`  
+**Comportamiento:** al pasar a `resuelto` setea `fecha_resolucion = NOW()`; al salir de `resuelto` la limpia  
 **Response:** `{ok: true}` | `{error: string}`
 
 ---
@@ -214,8 +230,8 @@ echo $variable;                // PROHIBIDO
 El modal en `index.php` tiene 2 pasos gestionados por `reporte.js`:
 
 1. **Paso 1** (`#paso-tipo`): grilla de tipos cargada desde `/api/tipos.php`. El usuario selecciona uno.
-2. **Paso 2** (`#paso-detalles`): mini-mapa Leaflet para marcar coordenadas, textarea de notas, zona de foto.
-3. Al enviar: primero POST a `/api/reportes.php`, luego (si hay foto) POST a `/api/subir_foto.php`.
+2. **Paso 2** (`#paso-detalles`): grid 2 columnas en desktop (FullHD sin scroll) — barrio (select de `/api/barrios.php`), direccion, gravedad, familias afectadas, servicio afectado, responsable/area, calle intransitable (checkbox), contacto vecino — mas mini-mapa Leaflet para marcar coordenadas, textarea de notas, zona de foto. En movil: una columna.
+3. Al enviar: primero POST a `/api/reportes.php`, luego (si hay foto) POST a `/api/subir_foto.php`. Validacion cliente: barrio, direccion y gravedad obligatorios.
 
 **Reporte por click en el mapa:** al hacer click sobre el mapa principal (`mapa.js`), se coloca un marcador de selección (`crearIconoSeleccion`, anillo indigo) y se abre el modal con esas coordenadas precargadas via `window.abrirReporteConCoordenada(latlng)` (expuesta por `reporte.js`). En el paso 2 el mini-mapa ya queda centrado en ese punto con su marcador; el usuario puede ajustarlo tocando el mini-mapa. Al cerrar el modal, `cerrarModal()` limpia el marcador del mapa principal via `window.removerMarcadorSeleccion()`.
 
@@ -255,6 +271,7 @@ Archivo: `assets/css/estilos.css` — Dark mode por defecto, sin frameworks.
 | `.tarjeta` | Panel con borde y padding |
 | `.tabla-incidencias` | Tabla de datos |
 | `.estado-badge .estado-{estado}` | Badge de estado coloreado |
+| `.gravedad-badge .gravedad-{nivel}` | Badge de gravedad (baja=verde, media=ámbar, alta=naranja, crítica=rojo) |
 | `.mensaje .mensaje-{tipo}` | Feedback: exito, error, info |
 | `.spinner` | Indicador de carga animado |
 | `.modal-fondo .visible` | Modal deslizante desde abajo |

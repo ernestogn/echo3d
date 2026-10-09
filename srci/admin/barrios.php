@@ -13,44 +13,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $accion = $_POST['accion'] ?? '';
 
   if ($accion === 'crear') {
-    $clave  = trim($_POST['clave']  ?? '');
     $nombre = trim($_POST['nombre'] ?? '');
-    $icono  = trim($_POST['icono']  ?? '');
-    if ($clave === '' || $nombre === '') {
-      $mensaje  = 'La clave y el nombre son obligatorios.';
+    if ($nombre === '') {
+      $mensaje  = 'El nombre del barrio es obligatorio.';
       $tipo_msg = 'error';
     } else {
       try {
-        $stmt = db()->prepare('INSERT INTO tipos_incidencia (clave, nombre, icono) VALUES (:c, :n, :i)');
-        $stmt->execute([':c' => $clave, ':n' => $nombre, ':i' => $icono !== '' ? $icono : null]);
-        $mensaje  = "Tipo '{$nombre}' creado.";
+        $stmt = db()->prepare('INSERT INTO barrios (nombre) VALUES (:n)');
+        $stmt->execute([':n' => $nombre]);
+        $mensaje  = "Barrio '{$nombre}' creado.";
         $tipo_msg = 'exito';
       } catch (PDOException $e) {
-        $mensaje  = 'La clave ya existe.';
+        $mensaje  = 'Ya existe un barrio con ese nombre.';
         $tipo_msg = 'error';
       }
     }
   }
 
   if ($accion === 'toggle') {
-    $id = (int)($_POST['tipo_id'] ?? 0);
+    $id = (int)($_POST['barrio_id'] ?? 0);
     if ($id > 0) {
-      db()->prepare('UPDATE tipos_incidencia SET activo = 1 - activo WHERE id = :id')->execute([':id' => $id]);
-      $mensaje  = 'Estado del tipo actualizado.';
+      db()->prepare('UPDATE barrios SET activo = 1 - activo WHERE id = :id')->execute([':id' => $id]);
+      $mensaje  = 'Estado del barrio actualizado.';
       $tipo_msg = 'exito';
     }
   }
 }
 
-$tipos = db()->query('SELECT id, clave, nombre, icono, activo FROM tipos_incidencia ORDER BY id')->fetchAll();
-$csrf  = csrf_token();
+$barrios = db()->query('SELECT id, nombre, activo, creado_en FROM barrios ORDER BY nombre')->fetchAll();
+$csrf    = csrf_token();
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin — Tipos · SRCI</title>
+  <title>Admin — Barrios · SRCI</title>
   <link rel="stylesheet" href="/srci/assets/css/estilos.css">
 </head>
 <body>
@@ -73,12 +71,12 @@ $csrf  = csrf_token();
     <div class="admin-sidebar-titulo">Panel de administración</div>
     <a href="/srci/admin/reportes.php" class="admin-nav-item">📋 Reportes</a>
     <a href="/srci/admin/usuarios.php" class="admin-nav-item">👥 Usuarios</a>
-    <a href="/srci/admin/tipos.php"    class="admin-nav-item activo">🏷️ Tipos</a>
-    <a href="/srci/admin/barrios.php"  class="admin-nav-item">🏙️ Barrios</a>
+    <a href="/srci/admin/tipos.php"    class="admin-nav-item">🏷️ Tipos</a>
+    <a href="/srci/admin/barrios.php"  class="admin-nav-item activo">🏙️ Barrios</a>
   </aside>
 
   <main class="admin-main">
-    <div class="pagina-encabezado"><h1>Tipos de incidencia</h1></div>
+    <div class="pagina-encabezado"><h1>Barrios</h1></div>
 
     <?php if ($mensaje !== ''): ?>
       <div class="mensaje mensaje-<?= esc($tipo_msg) ?>" style="margin-bottom:var(--espacio-xl);">
@@ -88,22 +86,14 @@ $csrf  = csrf_token();
     <?php endif; ?>
 
     <div class="tarjeta" style="margin-bottom:var(--espacio-xl);">
-      <h2 style="margin-bottom:var(--espacio-lg);">Agregar tipo</h2>
+      <h2 style="margin-bottom:var(--espacio-lg);">Agregar barrio</h2>
       <form method="POST">
         <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
         <input type="hidden" name="accion"     value="crear">
-        <div style="display:grid;grid-template-columns:1fr 1fr 80px auto;gap:var(--espacio-md);align-items:flex-end;">
+        <div style="display:grid;grid-template-columns:1fr auto;gap:var(--espacio-md);align-items:flex-end;">
           <div class="campo">
-            <label for="t-clave">Clave (única, sin espacios)</label>
-            <input type="text" id="t-clave" name="clave" required placeholder="ej: bache_calle">
-          </div>
-          <div class="campo">
-            <label for="t-nombre">Nombre para mostrar</label>
-            <input type="text" id="t-nombre" name="nombre" required placeholder="ej: Bache en calzada">
-          </div>
-          <div class="campo">
-            <label for="t-icono">Emoji</label>
-            <input type="text" id="t-icono" name="icono" maxlength="10" placeholder="🚧">
+            <label for="b-nombre">Nombre del barrio (también informales y asentamientos)</label>
+            <input type="text" id="b-nombre" name="nombre" required maxlength="100" placeholder="ej: Barrio Los Álamos">
           </div>
           <button type="submit" class="boton boton-primario" style="align-self:flex-end;">Crear</button>
         </div>
@@ -113,27 +103,26 @@ $csrf  = csrf_token();
     <div class="tabla-contenedor">
       <table class="tabla-incidencias">
         <thead>
-          <tr><th>#</th><th>Clave</th><th>Nombre</th><th>Icono</th><th>Estado</th><th>Acción</th></tr>
+          <tr><th>#</th><th>Nombre</th><th>Creado</th><th>Estado</th><th>Acción</th></tr>
         </thead>
         <tbody>
-          <?php foreach ($tipos as $t): ?>
+          <?php foreach ($barrios as $b): ?>
             <tr>
-              <td><?= (int)$t['id'] ?></td>
-              <td><code style="font-size:.85rem;"><?= esc($t['clave']) ?></code></td>
-              <td><?= esc($t['nombre']) ?></td>
-              <td style="font-size:1.5rem;"><?= esc($t['icono'] ?? '—') ?></td>
+              <td><?= (int)$b['id'] ?></td>
+              <td><?= esc($b['nombre']) ?></td>
+              <td><?= esc(fecha_legible($b['creado_en'])) ?></td>
               <td>
-                <span class="estado-badge" style="<?= $t['activo'] ? 'background:rgba(34,197,94,.15);color:var(--color-verde)' : 'background:rgba(239,68,68,.15);color:var(--color-rojo)' ?>">
-                  <?= $t['activo'] ? 'Activo' : 'Inactivo' ?>
+                <span class="estado-badge" style="<?= $b['activo'] ? 'background:rgba(34,197,94,.15);color:var(--color-verde)' : 'background:rgba(239,68,68,.15);color:var(--color-rojo)' ?>">
+                  <?= $b['activo'] ? 'Activo' : 'Inactivo' ?>
                 </span>
               </td>
               <td>
                 <form method="POST" style="display:inline;">
                   <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
                   <input type="hidden" name="accion"     value="toggle">
-                  <input type="hidden" name="tipo_id"    value="<?= (int)$t['id'] ?>">
-                  <button type="submit" class="boton <?= $t['activo'] ? 'boton-peligro' : 'boton-exito' ?> boton-sm">
-                    <?= $t['activo'] ? 'Desactivar' : 'Activar' ?>
+                  <input type="hidden" name="barrio_id"  value="<?= (int)$b['id'] ?>">
+                  <button type="submit" class="boton <?= $b['activo'] ? 'boton-peligro' : 'boton-exito' ?> boton-sm">
+                    <?= $b['activo'] ? 'Desactivar' : 'Activar' ?>
                   </button>
                 </form>
               </td>

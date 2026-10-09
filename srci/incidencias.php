@@ -8,6 +8,8 @@ requiere_sesion();
 // --- Filtros ---
 $tipo_id     = (int)($_GET['tipo_id']     ?? 0);
 $estado      = $_GET['estado']      ?? '';
+$barrio_id   = (int)($_GET['barrio_id']   ?? 0);
+$gravedad    = $_GET['gravedad']    ?? '';
 $fecha_desde = $_GET['fecha_desde'] ?? '';
 $fecha_hasta = $_GET['fecha_hasta'] ?? '';
 $pagina      = max(1, (int)($_GET['pagina'] ?? 1));
@@ -17,6 +19,8 @@ $offset      = ($pagina - 1) * $por_pagina;
 $donde  = [];
 $params = [];
 
+$gravedades_validas = ['baja', 'media', 'alta', 'critica'];
+
 if ($tipo_id > 0) {
   $donde[]            = 'i.tipo_id = :tipo_id';
   $params[':tipo_id'] = $tipo_id;
@@ -25,6 +29,14 @@ $estados_validos = ['pendiente', 'en_proceso', 'resuelto'];
 if ($estado !== '' && in_array($estado, $estados_validos, true)) {
   $donde[]          = 'i.estado = :estado';
   $params[':estado'] = $estado;
+}
+if ($barrio_id > 0) {
+  $donde[]            = 'i.barrio_id = :barrio_id';
+  $params[':barrio_id'] = $barrio_id;
+}
+if ($gravedad !== '' && in_array($gravedad, $gravedades_validas, true)) {
+  $donde[]           = 'i.gravedad = :gravedad';
+  $params[':gravedad'] = $gravedad;
 }
 if ($fecha_desde !== '') {
   $donde[]              = 'i.fecha_hora >= :fecha_desde';
@@ -40,27 +52,56 @@ $clausula_where = $donde ? 'WHERE ' . implode(' AND ', $donde) : '';
 // Exportacion CSV o GeoJSON
 $exportar = $_GET['exportar'] ?? '';
 if ($exportar === 'csv' || $exportar === 'geojson') {
-  $sql = "SELECT i.id, i.latitud, i.longitud, i.estado, i.fecha_hora, i.notas,
-                 t.nombre AS tipo_nombre, u.nombre AS usuario_nombre
+  $sql = "SELECT i.id, i.latitud, i.longitud, i.estado, i.fecha_hora, i.fecha_resolucion, i.notas,
+                 i.direccion, i.gravedad, i.familias_afectadas, i.servicio_afectado,
+                 i.calle_intransitable, i.responsable_area, i.contacto_vecino,
+                 b.nombre AS barrio_nombre,
+                 t.nombre AS tipo_nombre, u.nombre AS usuario_nombre,
+                 (SELECT ruta_archivo FROM fotos WHERE incidencia_id = i.id ORDER BY id LIMIT 1) AS foto
           FROM incidencias i
           JOIN tipos_incidencia t ON t.id = i.tipo_id
           JOIN usuarios u         ON u.id = i.usuario_id
+          LEFT JOIN barrios b     ON b.id = i.barrio_id
           {$clausula_where}
           ORDER BY i.fecha_hora DESC";
   $stmt = db()->prepare($sql);
   $stmt->execute($params);
   $filas = $stmt->fetchAll();
 
+  // Dias abiertos por fila (como la planilla)
+  $dias_fila = function (array $f): int {
+    $inicio = new DateTime($f['fecha_hora']);
+    $fin    = !empty($f['fecha_resolucion']) ? new DateTime($f['fecha_resolucion']) : new DateTime('now');
+    return (int)$inicio->diff($fin)->days;
+  };
+
   if ($exportar === 'csv') {
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="incidencias_' . date('Y-m-d') . '.csv"');
     $salida = fopen('php://output', 'w');
-    fputcsv($salida, ['ID','Tipo','Estado','Latitud','Longitud','Fecha','Usuario','Notas'], ';');
+    // Columnas alineadas con Planilla_relevamiento_barrios.xlsx
+    fputcsv($salida, ['N°','Fecha','Hora','Barrio','Dirección / calle y altura','Tipo de situación','Gravedad','Familias afectadas','Servicio afectado','Calle intransitable','Estado','Responsable / área','Fecha de resolución','Días abiertos','Relevado por','Contacto vecino / referente','Observaciones','Latitud','Longitud','Foto'], ';');
     foreach ($filas as $f) {
       fputcsv($salida, [
-        $f['id'], $f['tipo_nombre'], $f['estado'],
-        $f['latitud'], $f['longitud'], $f['fecha_hora'],
-        $f['usuario_nombre'], $f['notas']
+        $f['id'],
+        date('Y-m-d', strtotime($f['fecha_hora'])),
+        date('H:i',    strtotime($f['fecha_hora'])),
+        $f['barrio_nombre'] ?? '',
+        $f['direccion'] ?? '',
+        $f['tipo_nombre'],
+        nombre_gravedad($f['gravedad']),
+        $f['familias_afectadas'] ?? '',
+        $f['servicio_afectado'] ?? '',
+        $f['calle_intransitable'] === null ? '' : ($f['calle_intransitable'] ? 'Sí' : 'No'),
+        nombre_estado($f['estado']),
+        $f['responsable_area'] ?? '',
+        $f['fecha_resolucion'] ?? '',
+        $dias_fila($f),
+        $f['usuario_nombre'],
+        $f['contacto_vecino'] ?? '',
+        $f['notas'] ?? '',
+        $f['latitud'], $f['longitud'],
+        $f['foto'] ?? '',
       ], ';');
     }
     fclose($salida);
@@ -76,7 +117,15 @@ if ($exportar === 'csv' || $exportar === 'geojson') {
       'properties' => [
         'id'       => $f['id'], 'tipo'    => $f['tipo_nombre'],
         'estado'   => $f['estado'], 'fecha'   => $f['fecha_hora'],
-        'usuario'  => $f['usuario_nombre'], 'notas'   => $f['notas'],
+        'barrio'   => $f['barrio_nombre'] ?? null,
+        'direccion'=> $f['direccion'] ?? null,
+        'gravedad' => $f['gravedad'] ?? null,
+        'familias_afectadas' => $f['familias_afectadas'],
+        'servicio_afectado'  => $f['servicio_afectado'] ?? null,
+        'calle_intransitable'=> $f['calle_intransitable'],
+        'responsable_area'   => $f['responsable_area'] ?? null,
+        'dias_abiertos'=> $dias_fila($f),
+        'usuario'  => $f['usuario_nombre'], 'notas'   => $f['notas'] ?? null,
       ],
     ], $filas);
     echo json_encode(['type' => 'FeatureCollection', 'features' => $features], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
@@ -92,11 +141,13 @@ $total_pags  = (int)ceil($total / $por_pagina);
 
 // Consulta paginada
 $sql = "SELECT i.id, i.latitud, i.longitud, i.estado, i.fecha_hora, i.notas,
+               i.direccion, i.gravedad, b.nombre AS barrio_nombre,
                t.nombre AS tipo_nombre, t.icono AS tipo_icono,
                u.nombre AS usuario_nombre
         FROM incidencias i
         JOIN tipos_incidencia t ON t.id = i.tipo_id
         JOIN usuarios u         ON u.id = i.usuario_id
+        LEFT JOIN barrios b     ON b.id = i.barrio_id
         {$clausula_where}
         ORDER BY i.fecha_hora DESC
         LIMIT {$por_pagina} OFFSET {$offset}";
@@ -104,14 +155,15 @@ $stmt = db()->prepare($sql);
 $stmt->execute($params);
 $incidencias = $stmt->fetchAll();
 
-// Tipos para el select del filtro
-$tipos_lista = db()->query('SELECT id, nombre FROM tipos_incidencia WHERE activo=1 ORDER BY nombre')->fetchAll();
+// Tipos y barrios para los selects de filtro
+$tipos_lista   = db()->query('SELECT id, nombre FROM tipos_incidencia WHERE activo=1 ORDER BY nombre')->fetchAll();
+$barrios_lista = db()->query('SELECT id, nombre FROM barrios WHERE activo=1 ORDER BY nombre')->fetchAll();
 
 $nombre_usuario = esc((string)($_SESSION['nombre'] ?? ''));
 
 // URL base para filtros y paginacion
 function url_filtros(array $extras = []): string {
-  $base = ['tipo_id' => $_GET['tipo_id'] ?? '', 'estado' => $_GET['estado'] ?? '', 'fecha_desde' => $_GET['fecha_desde'] ?? '', 'fecha_hasta' => $_GET['fecha_hasta'] ?? ''];
+  $base = ['tipo_id' => $_GET['tipo_id'] ?? '', 'estado' => $_GET['estado'] ?? '', 'barrio_id' => $_GET['barrio_id'] ?? '', 'gravedad' => $_GET['gravedad'] ?? '', 'fecha_desde' => $_GET['fecha_desde'] ?? '', 'fecha_hasta' => $_GET['fecha_hasta'] ?? ''];
   $merged = array_merge($base, $extras);
   return '/srci/incidencias.php?' . http_build_query(array_filter($merged, fn($v) => $v !== '' && $v !== '0' && $v !== 0));
 }
@@ -170,11 +222,32 @@ function url_filtros(array $extras = []): string {
       </select>
     </div>
     <div class="campo">
+      <label for="f-barrio">Barrio</label>
+      <select id="f-barrio" name="barrio_id">
+        <option value="">Todos los barrios</option>
+        <?php foreach ($barrios_lista as $b): ?>
+          <option value="<?= (int)$b['id'] ?>" <?= $barrio_id === (int)$b['id'] ? 'selected' : '' ?>>
+            <?= esc($b['nombre']) ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+    <div class="campo">
+      <label for="f-gravedad">Gravedad</label>
+      <select id="f-gravedad" name="gravedad">
+        <option value="">Toda gravedad</option>
+        <option value="baja"    <?= $gravedad === 'baja'    ? 'selected' : '' ?>>Baja</option>
+        <option value="media"   <?= $gravedad === 'media'   ? 'selected' : '' ?>>Media</option>
+        <option value="alta"    <?= $gravedad === 'alta'    ? 'selected' : '' ?>>Alta</option>
+        <option value="critica" <?= $gravedad === 'critica' ? 'selected' : '' ?>>Crítica</option>
+      </select>
+    </div>
+    <div class="campo">
       <label for="f-estado">Estado</label>
       <select id="f-estado" name="estado">
         <option value="">Todos los estados</option>
         <option value="pendiente"  <?= $estado === 'pendiente'  ? 'selected' : '' ?>>Pendiente</option>
-        <option value="en_proceso" <?= $estado === 'en_proceso' ? 'selected' : '' ?>>En proceso</option>
+        <option value="en_proceso" <?= $estado === 'en_proceso' ? 'selected' : '' ?>>En gestión</option>
         <option value="resuelto"   <?= $estado === 'resuelto'   ? 'selected' : '' ?>>Resuelto</option>
       </select>
     </div>
@@ -205,6 +278,8 @@ function url_filtros(array $extras = []): string {
           <tr>
             <th>#</th>
             <th>Tipo</th>
+            <th>Barrio</th>
+            <th>Gravedad</th>
             <th>Estado</th>
             <th>Fecha</th>
             <th>Usuario</th>
@@ -217,6 +292,8 @@ function url_filtros(array $extras = []): string {
             <tr>
               <td><?= (int)$inc['id'] ?></td>
               <td><?= esc($inc['tipo_icono'] ?? '') ?> <?= esc($inc['tipo_nombre']) ?></td>
+              <td><?= esc($inc['barrio_nombre'] ?? '—') ?></td>
+              <td><span class="gravedad-badge <?= clase_gravedad($inc['gravedad']) ?>"><?= esc(nombre_gravedad($inc['gravedad'])) ?></span></td>
               <td><span class="estado-badge <?= clase_estado($inc['estado']) ?>"><?= esc(nombre_estado($inc['estado'])) ?></span></td>
               <td style="white-space:nowrap;"><?= esc(fecha_legible($inc['fecha_hora'])) ?></td>
               <td><?= esc($inc['usuario_nombre']) ?></td>

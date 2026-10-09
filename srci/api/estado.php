@@ -18,7 +18,12 @@ if ($incidencia_id === 0 || !in_array($estado, $estados_validos, true)) {
   respuesta_json(['error' => 'Datos invalidos.'], 400);
 }
 
-$stmt = db()->prepare('UPDATE incidencias SET estado = :estado WHERE id = :id');
+// Al resolver se guarda la fecha de resolucion; al volver a otro estado se limpia
+$sql = $estado === 'resuelto'
+  ? 'UPDATE incidencias SET estado = :estado, fecha_resolucion = NOW() WHERE id = :id'
+  : 'UPDATE incidencias SET estado = :estado, fecha_resolucion = NULL WHERE id = :id';
+
+$stmt = db()->prepare($sql);
 $stmt->execute([':estado' => $estado, ':id' => $incidencia_id]);
 
 respuesta_json(['ok' => true]);

@@ -12,7 +12,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $estado  = $_POST['estado'] ?? '';
   $estados = ['pendiente','en_proceso','resuelto'];
   if ($id_inc > 0 && in_array($estado, $estados, true)) {
-    $stmt = db()->prepare('UPDATE incidencias SET estado = :estado WHERE id = :id');
+    $sql = $estado === 'resuelto'
+      ? 'UPDATE incidencias SET estado = :estado, fecha_resolucion = NOW() WHERE id = :id'
+      : 'UPDATE incidencias SET estado = :estado, fecha_resolucion = NULL WHERE id = :id';
+    $stmt = db()->prepare($sql);
     $stmt->execute([':estado' => $estado, ':id' => $id_inc]);
   }
   header('Location: /srci/admin/reportes.php');
@@ -27,10 +30,12 @@ $total = (int)db()->query('SELECT COUNT(*) FROM incidencias')->fetchColumn();
 $total_pags = (int)ceil($total / $por_pagina);
 
 $stmt = db()->prepare(
-  'SELECT i.id, i.estado, i.fecha_hora, i.notas, t.nombre AS tipo, u.nombre AS usuario
+  'SELECT i.id, i.estado, i.fecha_hora, i.notas, i.direccion, i.gravedad, b.nombre AS barrio,
+          t.nombre AS tipo, u.nombre AS usuario
    FROM incidencias i
    JOIN tipos_incidencia t ON t.id = i.tipo_id
    JOIN usuarios u         ON u.id = i.usuario_id
+   LEFT JOIN barrios b     ON b.id = i.barrio_id
    ORDER BY i.fecha_hora DESC
    LIMIT :lim OFFSET :off'
 );
@@ -69,6 +74,7 @@ $csrf  = csrf_token();
     <a href="/srci/admin/reportes.php" class="admin-nav-item activo">📋 Reportes</a>
     <a href="/srci/admin/usuarios.php" class="admin-nav-item">👥 Usuarios</a>
     <a href="/srci/admin/tipos.php"    class="admin-nav-item">🏷️ Tipos</a>
+    <a href="/srci/admin/barrios.php"  class="admin-nav-item">🏙️ Barrios</a>
   </aside>
 
   <main class="admin-main">
@@ -81,7 +87,7 @@ $csrf  = csrf_token();
       <table class="tabla-incidencias">
         <thead>
           <tr>
-            <th>#</th><th>Tipo</th><th>Usuario</th><th>Fecha</th><th>Estado</th><th>Cambiar estado</th><th>Ver</th>
+            <th>#</th><th>Tipo</th><th>Barrio</th><th>Dirección</th><th>Gravedad</th><th>Usuario</th><th>Fecha</th><th>Estado</th><th>Cambiar estado</th><th>Ver</th>
           </tr>
         </thead>
         <tbody>
@@ -89,6 +95,9 @@ $csrf  = csrf_token();
             <tr>
               <td><?= (int)$f['id'] ?></td>
               <td><?= esc($f['tipo']) ?></td>
+              <td><?= esc($f['barrio'] ?? '—') ?></td>
+              <td><?= esc($f['direccion'] ?? '—') ?></td>
+              <td><span class="gravedad-badge <?= clase_gravedad($f['gravedad']) ?>"><?= esc(nombre_gravedad($f['gravedad'])) ?></span></td>
               <td><?= esc($f['usuario']) ?></td>
               <td style="white-space:nowrap;"><?= esc(fecha_legible($f['fecha_hora'])) ?></td>
               <td><span class="estado-badge <?= clase_estado($f['estado']) ?>"><?= esc(nombre_estado($f['estado'])) ?></span></td>
@@ -98,7 +107,7 @@ $csrf  = csrf_token();
                   <input type="hidden" name="incidencia_id" value="<?= (int)$f['id'] ?>">
                   <select name="estado" aria-label="Nuevo estado" style="padding:4px 8px;background:var(--color-fondo);border:1px solid var(--color-borde);border-radius:6px;color:var(--color-texto);font-size:.85rem;">
                     <option value="pendiente"  <?= $f['estado']==='pendiente'  ? 'selected':'' ?>>Pendiente</option>
-                    <option value="en_proceso" <?= $f['estado']==='en_proceso' ? 'selected':'' ?>>En proceso</option>
+                    <option value="en_proceso" <?= $f['estado']==='en_proceso' ? 'selected':'' ?>>En gestión</option>
                     <option value="resuelto"   <?= $f['estado']==='resuelto'   ? 'selected':'' ?>>Resuelto</option>
                   </select>
                   <button type="submit" class="boton boton-primario boton-sm">Guardar</button>

@@ -22,6 +22,14 @@ const vistaPreviaMapa = document.getElementById('vista-previa-foto');
 const mensajeDiv     = document.getElementById('mensaje-reporte');
 const modalCaja      = modalFondo.querySelector('.modal-caja');
 const encabezadoModal = modalFondo.querySelector('.modal-encabezado');
+const barrioSelect   = document.getElementById('barrio-reporte');
+const direccionInput = document.getElementById('direccion-reporte');
+const gravedadSelect = document.getElementById('gravedad-reporte');
+const familiasInput  = document.getElementById('familias-reporte');
+const servicioSelect = document.getElementById('servicio-reporte');
+const responsableSelect = document.getElementById('responsable-reporte');
+const calleCheck     = document.getElementById('calle-intransitable');
+const contactoInput  = document.getElementById('contacto-reporte');
 
 // Cargar tipos de incidencia y construir la grilla
 async function cargarTipos() {
@@ -47,6 +55,29 @@ async function cargarTipos() {
     });
   } catch (err) {
     console.error('Error cargando tipos:', err);
+  }
+}
+
+// Cargar barrios y llenar el select
+async function cargarBarrios() {
+  try {
+    const resp    = await fetch('/srci/api/barrios.php');
+    const barrios = await resp.json();
+
+    barrioSelect.innerHTML = '';
+    const opcionVacia = document.createElement('option');
+    opcionVacia.value = '';
+    opcionVacia.textContent = 'Elegir...';
+    barrioSelect.appendChild(opcionVacia);
+    barrios.forEach((b) => {
+      const opcion = document.createElement('option');
+      opcion.value        = b.id;
+      opcion.textContent  = b.nombre;
+      barrioSelect.appendChild(opcion);
+    });
+  } catch (err) {
+    barrioSelect.innerHTML = '<option value="">Error cargando barrios</option>';
+    console.error('Error cargando barrios:', err);
   }
 }
 
@@ -104,6 +135,14 @@ function resetearModal() {
   vistaPreviaMapa.src           = '';
   mensajeDiv.style.display      = 'none';
   coordTexto.textContent = 'Toca el mapa para marcar el lugar exacto';
+  barrioSelect.value   = '';
+  direccionInput.value = '';
+  gravedadSelect.value = '';
+  familiasInput.value  = '';
+  servicioSelect.value = '';
+  responsableSelect.value = '';
+  calleCheck.checked   = false;
+  contactoInput.value  = '';
   if (miniMarcador) { miniMarcador.remove(); miniMarcador = null; }
 }
 
@@ -155,6 +194,18 @@ btnEnviar.addEventListener('click', async () => {
     mostrarMensaje('Toca el mapa para marcar la ubicación del problema.', 'error');
     return;
   }
+  if (!barrioSelect.value) {
+    mostrarMensaje('Elegí el barrio del problema.', 'error');
+    return;
+  }
+  if (direccionInput.value.trim() === '') {
+    mostrarMensaje('Escribí la dirección (calle y altura).', 'error');
+    return;
+  }
+  if (!gravedadSelect.value) {
+    mostrarMensaje('Elegí la gravedad de la situación.', 'error');
+    return;
+  }
 
   btnEnviar.disabled   = true;
   btnEnviar.innerHTML  = '<span class="spinner"></span> Enviando...';
@@ -165,10 +216,18 @@ btnEnviar.addEventListener('click', async () => {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
-        tipo_id:  parseInt(tipoSeleccionado.id),
-        latitud:  coordSeleccionada.lat,
-        longitud: coordSeleccionada.lng,
-        notas:    notasReporte.value.trim(),
+        tipo_id:             parseInt(tipoSeleccionado.id),
+        latitud:             coordSeleccionada.lat,
+        longitud:            coordSeleccionada.lng,
+        barrio_id:           parseInt(barrioSelect.value),
+        direccion:           direccionInput.value.trim(),
+        gravedad:            gravedadSelect.value,
+        familias_afectadas:  familiasInput.value === '' ? '' : familiasInput.value,
+        servicio_afectado:   servicioSelect.value,
+        calle_intransitable: calleCheck.checked ? 1 : 0,
+        responsable_area:    responsableSelect.value,
+        contacto_vecino:     contactoInput.value.trim(),
+        notas:               notasReporte.value.trim(),
       }),
     });
     const textoInc = await respInc.text();
@@ -268,5 +327,6 @@ function terminarArrastre(e) {
 encabezadoModal.addEventListener('pointerup', terminarArrastre);
 encabezadoModal.addEventListener('pointercancel', terminarArrastre);
 
-// Cargar tipos al iniciar
+// Cargar tipos y barrios al iniciar
 cargarTipos();
+cargarBarrios();

@@ -9,15 +9,21 @@ $id = (int)($_GET['id'] ?? 0);
 if ($id === 0) { header('Location: /srci/incidencias.php'); exit; }
 
 $stmt = db()->prepare(
-  'SELECT i.*, t.nombre AS tipo_nombre, t.icono AS tipo_icono, t.clave AS tipo_clave, u.nombre AS usuario_nombre
+  'SELECT i.*, t.nombre AS tipo_nombre, t.icono AS tipo_icono, t.clave AS tipo_clave, u.nombre AS usuario_nombre, b.nombre AS barrio_nombre
    FROM incidencias i
    JOIN tipos_incidencia t ON t.id = i.tipo_id
    JOIN usuarios u         ON u.id = i.usuario_id
+   LEFT JOIN barrios b     ON b.id = i.barrio_id
    WHERE i.id = :id LIMIT 1'
 );
 $stmt->execute([':id' => $id]);
 $inc = $stmt->fetch();
 if (!$inc) { http_response_code(404); die('Incidencia no encontrada.'); }
+
+// Dias abiertos: desde el reporte hasta la resolucion (o hoy)
+$inicio = new DateTime($inc['fecha_hora']);
+$fin    = $inc['fecha_resolucion'] ? new DateTime($inc['fecha_resolucion']) : new DateTime('now');
+$dias_abiertos = (int)$inicio->diff($fin)->days;
 
 $fotos = db()->prepare('SELECT ruta_archivo FROM fotos WHERE incidencia_id = :id ORDER BY id');
 $fotos->execute([':id' => $id]);
@@ -57,6 +63,7 @@ $fotos = $fotos->fetchAll();
       <h1 style="font-size:1.375rem;">
         <?= esc($inc['tipo_icono'] ?? '') ?> <?= esc($inc['tipo_nombre']) ?>
       </h1>
+      <span class="gravedad-badge <?= clase_gravedad($inc['gravedad']) ?>"><?= esc(nombre_gravedad($inc['gravedad'])) ?></span>
       <span class="estado-badge <?= clase_estado($inc['estado']) ?>"><?= esc(nombre_estado($inc['estado'])) ?></span>
     </div>
 
@@ -67,8 +74,44 @@ $fotos = $fotos->fetchAll();
       <dd><?= esc(fecha_legible($inc['fecha_hora'])) ?></dd>
       <dt style="color:var(--color-texto-suave);font-weight:600;">Reportado por</dt>
       <dd><?= esc($inc['usuario_nombre']) ?></dd>
+      <?php if (!empty($inc['barrio_nombre'])): ?>
+        <dt style="color:var(--color-texto-suave);font-weight:600;">Barrio</dt>
+        <dd><?= esc($inc['barrio_nombre']) ?></dd>
+      <?php endif; ?>
+      <?php if (!empty($inc['direccion'])): ?>
+        <dt style="color:var(--color-texto-suave);font-weight:600;">Dirección</dt>
+        <dd><?= esc($inc['direccion']) ?></dd>
+      <?php endif; ?>
+      <dt style="color:var(--color-texto-suave);font-weight:600;">Gravedad</dt>
+      <dd><span class="gravedad-badge <?= clase_gravedad($inc['gravedad']) ?>"><?= esc(nombre_gravedad($inc['gravedad'])) ?></span></dd>
+      <?php if ($inc['familias_afectadas'] !== null && $inc['familias_afectadas'] !== ''): ?>
+        <dt style="color:var(--color-texto-suave);font-weight:600;">Familias afectadas</dt>
+        <dd><?= (int)$inc['familias_afectadas'] ?></dd>
+      <?php endif; ?>
+      <?php if (!empty($inc['servicio_afectado'])): ?>
+        <dt style="color:var(--color-texto-suave);font-weight:600;">Servicio afectado</dt>
+        <dd><?= esc($inc['servicio_afectado']) ?></dd>
+      <?php endif; ?>
+      <?php if ($inc['calle_intransitable'] !== null && $inc['calle_intransitable'] !== ''): ?>
+        <dt style="color:var(--color-texto-suave);font-weight:600;">Calle intransitable</dt>
+        <dd><?= $inc['calle_intransitable'] ? 'Sí' : 'No' ?></dd>
+      <?php endif; ?>
+      <?php if (!empty($inc['responsable_area'])): ?>
+        <dt style="color:var(--color-texto-suave);font-weight:600;">Responsable / área</dt>
+        <dd><?= esc($inc['responsable_area']) ?></dd>
+      <?php endif; ?>
+      <?php if (!empty($inc['contacto_vecino'])): ?>
+        <dt style="color:var(--color-texto-suave);font-weight:600;">Contacto vecino</dt>
+        <dd><?= esc($inc['contacto_vecino']) ?></dd>
+      <?php endif; ?>
       <dt style="color:var(--color-texto-suave);font-weight:600;">Coordenadas</dt>
       <dd><?= esc($inc['latitud']) ?>, <?= esc($inc['longitud']) ?></dd>
+      <?php if ($inc['fecha_resolucion']): ?>
+        <dt style="color:var(--color-texto-suave);font-weight:600;">Fecha de resolución</dt>
+        <dd><?= esc(fecha_legible($inc['fecha_resolucion'])) ?></dd>
+      <?php endif; ?>
+      <dt style="color:var(--color-texto-suave);font-weight:600;">Días abiertos</dt>
+      <dd><?= $dias_abiertos ?></dd>
       <?php if ($inc['notas']): ?>
         <dt style="color:var(--color-texto-suave);font-weight:600;">Descripción</dt>
         <dd><?= esc($inc['notas']) ?></dd>
