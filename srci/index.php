@@ -3,7 +3,7 @@ require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/funciones.php';
 
 requiere_sesion();
-$nombre_usuario = esc($_SESSION['nombre']);
+$nombre_usuario = esc((string)($_SESSION['nombre'] ?? ''));
 $es_admin       = es_admin();
 ?>
 <!DOCTYPE html>

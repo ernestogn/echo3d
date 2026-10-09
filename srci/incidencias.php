@@ -107,7 +107,7 @@ $incidencias = $stmt->fetchAll();
 // Tipos para el select del filtro
 $tipos_lista = db()->query('SELECT id, nombre FROM tipos_incidencia WHERE activo=1 ORDER BY nombre')->fetchAll();
 
-$nombre_usuario = esc($_SESSION['nombre']);
+$nombre_usuario = esc((string)($_SESSION['nombre'] ?? ''));
 
 // URL base para filtros y paginacion
 function url_filtros(array $extras = []): string {
