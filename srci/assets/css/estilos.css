@@ -367,7 +367,7 @@ h3 { font-size: 1.125rem; font-weight: 600; }
   border-radius: var(--radio-lg) var(--radio-lg) 0 0;
   width: 100%;
   max-width: 560px;
-  max-height: 92vh;
+  max-height: 86vh;
   overflow-y: auto;
   padding: var(--espacio-xl);
   transform: translateY(100%);

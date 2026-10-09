@@ -167,7 +167,14 @@ btnEnviar.addEventListener('click', async () => {
         notas:    notasReporte.value.trim(),
       }),
     });
-    const datosInc = await respInc.json();
+    const textoInc = await respInc.text();
+    let datosInc;
+    try {
+      datosInc = JSON.parse(textoInc);
+    } catch (e) {
+      console.error('Respuesta no-JSON:', textoInc);
+      throw new Error('Error de servidor al guardar el reporte.');
+    }
     if (!respInc.ok || !datosInc.ok) {
       throw new Error(datosInc.error || 'Error al guardar el reporte.');
     }
@@ -178,10 +185,16 @@ btnEnviar.addEventListener('click', async () => {
       formData.append('incidencia_id', datosInc.id);
       formData.append('foto', fotoInput.files[0]);
       const respFoto = await fetch('/srci/api/subir_foto.php', { method: 'POST', body: formData });
-      const datosFoto = await respFoto.json();
+      const textoFoto = await respFoto.text();
+      let datosFoto = {};
+      try {
+        datosFoto = JSON.parse(textoFoto);
+      } catch (e) {
+        console.warn('Respuesta foto no-JSON:', textoFoto);
+      }
       if (!respFoto.ok) {
         // No bloqueamos: mostramos advertencia pero el reporte ya se guardo
-        console.warn('Advertencia al subir foto:', datosFoto.error);
+        console.warn('Advertencia al subir foto:', datosFoto.error || 'No se pudo subir la foto');
       }
     }
 
