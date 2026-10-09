@@ -366,13 +366,13 @@ h3 { font-size: 1.125rem; font-weight: 600; }
   background: #ffffff;
   border-radius: var(--radio-lg) var(--radio-lg) 0 0;
   width: 100%;
-  max-width: 560px;
+  max-width: 480px;
   max-height: 88vh;
   overflow-y: auto;
-  padding: var(--espacio-lg);
+  padding: var(--espacio-md);
   transform: translateY(100%);
   transition: transform 0.3s cubic-bezier(.4,0,.2,1);
-  box-shadow: var(--sombra-lg);
+  box-shadow: 0 8px 30px rgba(15,23,42,.18);
   /* Tema claro del modal (estilo echodata/home): sobrescribe las variables oscuras */
   --color-fondo:      #ffffff;
   --color-superficie: #ffffff;
@@ -385,23 +385,33 @@ h3 { font-size: 1.125rem; font-weight: 600; }
 .modal-fondo.visible .modal-caja {
   transform: translateY(0);
 }
+/* Encabezado minimalista plano + zona de arrastre */
 .modal-caja .modal-encabezado {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  margin: calc(var(--espacio-lg) * -1) calc(var(--espacio-lg) * -1) var(--espacio-lg);
-  padding: var(--espacio-md) var(--espacio-lg);
+  background: #ffffff;
+  border-bottom: 1px solid var(--color-borde);
+  margin: calc(var(--espacio-md) * -1) calc(var(--espacio-md) * -1) var(--espacio-md);
+  padding: var(--espacio-sm) var(--espacio-md);
   border-radius: var(--radio-lg) var(--radio-lg) 0 0;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
 }
+.modal-caja .modal-encabezado:active { cursor: grabbing; }
 .modal-caja .modal-encabezado h2 {
-  color: #ffffff;
+  color: #334155;
   margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
 }
 .modal-caja .modal-cerrar {
-  color: rgba(255,255,255,.85);
+  color: #94a3b8;
+  font-size: 1.1rem;
 }
-.modal-caja .modal-cerrar:hover { color: #ffffff; }
+.modal-caja .modal-cerrar:hover { color: #334155; }
 .modal-caja .tipo-tarjeta {
   background: #ffffff;
-  border-color: #e2e8f0;
+  border: 1px solid #e2e8f0;
+  padding: var(--espacio-xs) var(--espacio-sm);
 }
 .modal-caja .tipo-tarjeta:hover {
   border-color: #818cf8;
@@ -414,13 +424,13 @@ h3 { font-size: 1.125rem; font-weight: 600; }
 .modal-caja .tipo-tarjeta-icono {
   background: #e0e7ff;
   color: #4f46e5;
-  border-radius: 8px;
-  width: 40px;
-  height: 40px;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
+  font-size: 0.95rem;
 }
 .modal-caja .campo input:focus,
 .modal-caja .campo select:focus,
@@ -513,7 +523,7 @@ h3 { font-size: 1.125rem; font-weight: 600; }
   background: rgba(79,142,247,.15);
 }
 .tipo-tarjeta-icono {
-  font-size: 2rem;
+  font-size: 1.25rem;
   line-height: 1;
 }
 .tipo-tarjeta-nombre {
@@ -529,7 +539,7 @@ h3 { font-size: 1.125rem; font-weight: 600; }
 .zona-foto {
   border: 2px dashed var(--color-borde);
   border-radius: var(--radio-md);
-  padding: var(--espacio-md);
+  padding: var(--espacio-sm);
   text-align: center;
   cursor: pointer;
   transition: border-color var(--transicion), background var(--transicion);
@@ -547,7 +557,7 @@ h3 { font-size: 1.125rem; font-weight: 600; }
 .zona-foto-texto { color: var(--color-texto-suave); font-size: 0.9rem; }
 .vista-previa-foto {
   width: 100%;
-  max-height: 200px;
+  max-height: 140px;
   object-fit: cover;
   border-radius: var(--radio-md);
   margin-top: var(--espacio-md);

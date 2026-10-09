@@ -20,6 +20,8 @@ const notasReporte   = document.getElementById('notas-reporte');
 const fotoInput      = document.getElementById('foto-input');
 const vistaPreviaMapa = document.getElementById('vista-previa-foto');
 const mensajeDiv     = document.getElementById('mensaje-reporte');
+const modalCaja      = modalFondo.querySelector('.modal-caja');
+const encabezadoModal = modalFondo.querySelector('.modal-encabezado');
 
 // Cargar tipos de incidencia y construir la grilla
 async function cargarTipos() {
@@ -79,6 +81,8 @@ window.abrirReporteConCoordenada = abrirConCoordenada;
 function cerrarModal() {
   modalFondo.classList.remove('visible');
   document.body.style.overflow = '';
+  modalCaja.style.transform  = '';
+  modalCaja.style.transition = '';
   if (typeof window.removerMarcadorSeleccion === 'function') {
     window.removerMarcadorSeleccion();
   }
@@ -234,6 +238,35 @@ btnVolver.addEventListener('click', () => {
   pasoDetalles.style.display = 'none';
   pasoTipo.style.display     = '';
 });
+
+// Arrastrar el modal desde el encabezado
+let arrastre = null;
+
+encabezadoModal.addEventListener('pointerdown', (e) => {
+  if (e.target.closest('.modal-cerrar')) return;
+  arrastre = { x0: e.clientX, y0: e.clientY };
+  modalCaja.style.transition = 'none';
+  try { encabezadoModal.setPointerCapture(e.pointerId); } catch (err) { /* noop */ }
+});
+
+encabezadoModal.addEventListener('pointermove', (e) => {
+  if (!arrastre) return;
+  const dx = e.clientX - arrastre.x0;
+  const dy = e.clientY - arrastre.y0;
+  modalCaja.style.transform = `translate(${dx}px, ${dy}px)`;
+});
+
+function terminarArrastre(e) {
+  if (!arrastre) return;
+  arrastre = null;
+  modalCaja.style.transition = '';
+  if (encabezadoModal.hasPointerCapture && encabezadoModal.hasPointerCapture(e.pointerId)) {
+    encabezadoModal.releasePointerCapture(e.pointerId);
+  }
+}
+
+encabezadoModal.addEventListener('pointerup', terminarArrastre);
+encabezadoModal.addEventListener('pointercancel', terminarArrastre);
 
 // Cargar tipos al iniciar
 cargarTipos();

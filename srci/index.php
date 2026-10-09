@@ -13,7 +13,7 @@ $es_admin       = es_admin();
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mapa de Incidencias — SRCI</title>
   <meta name="description" content="Reporta incidencias urbanas en el mapa.">
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261009b">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261009c">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="manifest" href="/srci/manifest.json">
 </head>
@@ -52,7 +52,7 @@ $es_admin       = es_admin();
 <!-- Modal de reporte -->
 <div class="modal-fondo" id="modal-reporte" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
   <div class="modal-caja">
-    <div class="modal-encabezado">
+    <div class="modal-encabezado" title="Arrastrá para mover">
       <h2 id="modal-titulo">Nueva incidencia</h2>
       <button class="modal-cerrar" id="btn-cerrar-modal" aria-label="Cerrar">×</button>
     </div>
@@ -76,7 +76,7 @@ $es_admin       = es_admin();
         ← Volver
       </button>
 
-      <div id="info-tipo-seleccionado" style="margin-bottom:var(--espacio-md);padding:var(--espacio-sm) var(--espacio-md);background:rgba(79,142,247,.1);border-radius:var(--radio-md);font-weight:600;"></div>
+      <div id="info-tipo-seleccionado" style="margin-bottom:var(--espacio-md);padding:var(--espacio-xs) var(--espacio-sm);background:rgba(79,142,247,.08);border-radius:var(--radio-md);font-weight:600;font-size:.85rem;"></div>
 
       <div class="campo" style="margin-bottom:var(--espacio-md);">
         <label>Ubicación del problema</label>
@@ -96,7 +96,7 @@ $es_admin       = es_admin();
         <div class="zona-foto" id="zona-foto">
           <input type="file" id="foto-input" accept="image/jpeg,image/png,image/webp" aria-label="Seleccionar foto">
           <div class="zona-foto-texto">
-            <span style="font-size:1.5rem;">📷</span>
+            <span style="font-size:1.1rem;">📷</span>
             Tocá para agregar una foto
           </div>
           <img id="vista-previa-foto" class="vista-previa-foto" alt="Vista previa de la foto seleccionada">
@@ -115,7 +115,7 @@ $es_admin       = es_admin();
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="/srci/assets/js/mapa.js?v=20261009"></script>
-<script src="/srci/assets/js/reporte.js?v=20261009"></script>
+<script src="/srci/assets/js/reporte.js?v=20261010"></script>
 <script>
   // Registrar Service Worker para soporte PWA/offline
   if ('serviceWorker' in navigator) {
