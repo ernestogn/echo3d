@@ -100,7 +100,7 @@ function mostrarPasoDetalles() {
 
   // Inicializar mini-mapa si no existe aun
   if (!miniMapa) {
-    const centro = window.mapaLeaflet ? window.mapaLeaflet.getCenter() : L.latLng(-34.6037, -58.3816);
+    const centro = window.mapaLeaflet ? window.mapaLeaflet.getCenter() : L.latLng(-32.48262351713079, -58.24455570742029);
     miniMapa = L.map('mini-mapa', { zoomControl: true }).setView(centro, 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap',

@@ -6,8 +6,8 @@ const ICONOS_COLOR = {
   resuelto:   '#22c55e',
 };
 
-// Inicializar mapa centrado en Buenos Aires (ajustar segun ciudad del despliegue)
-const mapa = L.map('mapa', { zoomControl: true }).setView([-34.6037, -58.3816], 13);
+// Inicializar mapa centrado en la ciudad objetivo
+const mapa = L.map('mapa', { zoomControl: true }).setView([-32.48262351713079, -58.24455570742029], 13);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',

@@ -280,7 +280,7 @@ Antes de dar por terminada cualquier tarea, verificar:
 
 - [ ] Crear `includes/config.local.php` en el VPS con credenciales reales de DB
 - [ ] Ajustar `From:` de emails en `funciones.php::enviar_pin_por_email()` al dominio real
-- [ ] Cambiar el centro del mapa en `assets/js/mapa.js` linea 9 (coordenadas de la ciudad objetivo)
+- [x] Cambiar el centro del mapa en `assets/js/mapa.js` (coordenadas objetivo: `-32.48262351713079, -58.24455570742029`)
 - [ ] Crear iconos PWA: `assets/img/icon-192.png` y `assets/img/icon-512.png`
 - [ ] Permisos del servidor: `chmod 755 uploads/` y propietario `www-data` o `lsws`
 - [ ] PIN inicial del admin (`0000`) debe cambiarse en el primer login desde `/srci/admin/usuarios.php`
