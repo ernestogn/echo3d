@@ -306,6 +306,20 @@ ls -la /ruta/srci/uploads/
 mysqldump -u srci_user -p srci > backup_srci_$(date +%F).sql
 ```
 
+### 11.1 Como operar el VPS desde Windows/PowerShell (IMPORTANTE)
+
+El agente corre en PowerShell 5.1 (Windows) y **NO soporta bien las comillas anidadas** al enviar comandos por `ssh` (los `"` se pierden, `&` y `(` rompen el parser, y las variables `$...` se expanden y desaparecen). Regla para evitar intentos en vano:
+
+- **Nunca** mandar comandos complejos inline por ssh con comillas anidadas, heredocs ni `$`.
+- **Para subir/editar archivos:** crear el archivo localmente (herramienta Write) y subirlo con `scp`:
+  `scp -q "ruta\local" 149.50.142.160:/ruta/remota`
+- **Para ejecutar comandos:** escribir un `.sh` local, subirlo con `scp` y ejecutarlo:
+  `scp -q script.sh 149.50.142.160:/tmp/script.sh; ssh 149.50.142.160 "bash /tmp/script.sh"`
+- **Comandos simples sin comillas/`$`/`&`:** usar comillas simples de PowerShell, ej:
+  `ssh 149.50.142.160 'tail -30 /var/log/echo3d-deploy.log'`
+- **PHP CLI en el server:** pasar el código como archivo (scp), nunca `php -r` inline.
+- Credenciales de prod viven en `includes/config.local.php` (no en git).
+
 ---
 
 ## 12. Que NO hacer

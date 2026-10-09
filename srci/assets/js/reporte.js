@@ -172,8 +172,16 @@ btnEnviar.addEventListener('click', async () => {
     try {
       datosInc = JSON.parse(textoInc);
     } catch (e) {
-      console.error('Respuesta no-JSON:', textoInc);
-      throw new Error('Error de servidor al guardar el reporte.');
+      // Respuesta no-JSON: sesion expirada (redirect) o error de servidor
+      mostrarMensaje('Tu sesión expiró o hubo un error. Recargá la página e intentá de nuevo.', 'error');
+      btnEnviar.disabled  = false;
+      btnEnviar.innerHTML = 'Enviar reporte';
+      return;
+    }
+    if (respInc.status === 401) {
+      mostrarMensaje(datosInc.error || 'Tu sesión expiró. Redirigiendo al login...', 'error');
+      setTimeout(() => { window.location.href = '/srci/login.php'; }, 2000);
+      return;
     }
     if (!respInc.ok || !datosInc.ok) {
       throw new Error(datosInc.error || 'Error al guardar el reporte.');

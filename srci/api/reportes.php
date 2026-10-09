@@ -69,17 +69,25 @@ if ($metodo === 'POST') {
     respuesta_json(['error' => 'Tipo de incidencia no valido.'], 400);
   }
 
-  $stmt = db()->prepare(
-    'INSERT INTO incidencias (usuario_id, tipo_id, latitud, longitud, notas)
-     VALUES (:usuario_id, :tipo_id, :latitud, :longitud, :notas)'
-  );
-  $stmt->execute([
-    ':usuario_id' => $_SESSION['usuario_id'],
-    ':tipo_id'    => $tipo_id,
-    ':latitud'    => $latitud,
-    ':longitud'   => $longitud,
-    ':notas'      => $notas !== '' ? $notas : null,
-  ]);
+  try {
+    $stmt = db()->prepare(
+      'INSERT INTO incidencias (usuario_id, tipo_id, latitud, longitud, notas)
+       VALUES (:usuario_id, :tipo_id, :latitud, :longitud, :notas)'
+    );
+    $stmt->execute([
+      ':usuario_id' => $_SESSION['usuario_id'],
+      ':tipo_id'    => $tipo_id,
+      ':latitud'    => $latitud,
+      ':longitud'   => $longitud,
+      ':notas'      => $notas !== '' ? $notas : null,
+    ]);
+  } catch (PDOException $e) {
+    // Codigo 1452: FK rota (usuario borrado o sesion vieja)
+    if (($e->errorInfo[1] ?? 0) === 1452) {
+      respuesta_json(['error' => 'Tu sesion ya no es valida. Volve a iniciar sesion.', 'relogin' => true], 401);
+    }
+    respuesta_json(['error' => 'No pudimos guardar el reporte.'], 500);
+  }
   $id = (int)db()->lastInsertId();
   respuesta_json(['ok' => true, 'id' => $id], 201);
 }
