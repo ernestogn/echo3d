@@ -39,6 +39,7 @@ srci/
 ├── editar.php             Edicion completa de una incidencia (todos los campos, con CSRF)
 ├── login.php              Autenticacion por nombre + PIN de 4 digitos (teclado virtual)
 ├── logout.php             Destruye la sesion y redirige a login.php
+├── acceso.php             Magic link: token HMAC-SHA256 con vencimiento (7 dias) loguea sin PIN
 ├── error403.php           Pagina de error para acceso denegado (incluida por auth.php)
 ├── manifest.json          PWA manifest (icons: assets/img/icon-192.png y icon-512.png)
 ├── sw.js                  Service Worker — cache estatico basico para offline
@@ -95,6 +96,7 @@ define('SRCI_DB_HOST', 'localhost');
 define('SRCI_DB_NAME', 'srci');
 define('SRCI_DB_USER', 'usuario_real');
 define('SRCI_DB_PASS', 'contrasena_real');
+define('SRCI_MAGIC_SECRET', 'secreto_aleatorio_64_hex');  // firma los magic links (acceso.php)
 ```
 
 ### Esquema

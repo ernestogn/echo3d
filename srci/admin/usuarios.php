@@ -7,6 +7,8 @@ requiere_admin();
 
 $mensaje = '';
 $tipo_msg = '';
+$magic_link   = '';
+$magic_nombre = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   validar_csrf();
@@ -133,6 +135,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
   }
 
+  // Magic link de acceso (para enviar por WhatsApp, sin PIN)
+  if ($accion === 'magic_link') {
+    $uid = (int)($_POST['usuario_id'] ?? 0);
+    if ($uid > 0) {
+      $st = db()->prepare('SELECT nombre FROM usuarios WHERE id = :id');
+      $st->execute([':id' => $uid]);
+      $u = $st->fetch();
+      if ($u) {
+        $magic_link   = generar_magic_link($uid);
+        $magic_nombre = $u['nombre'];
+        registrar_auditoria(
+          (int)$_SESSION['usuario_id'],
+          'magic_link',
+          null,
+          'Genero link de acceso para ' . $u['nombre'] . ' (#' . $uid . ')'
+        );
+      }
+    }
+  }
+
   // Activar / Desactivar
   if ($accion === 'toggle_activo') {
     $uid = (int)($_POST['usuario_id'] ?? 0);
@@ -234,6 +256,20 @@ $csrf = csrf_token();
       </div>
     <?php endif; ?>
 
+    <?php if ($magic_link !== ''): ?>
+      <div class="mensaje mensaje-info" style="margin-bottom:var(--espacio-xl);" role="note">
+        <span>🔗</span>
+        <span style="flex:1;">
+          Link de acceso para <strong><?= esc($magic_nombre) ?></strong> — válido <?= MAGIC_LINK_DIAS ?> días, entra directo sin PIN. Reenvialo por WhatsApp o email:
+          <div style="display:flex;gap:var(--espacio-sm);margin-top:var(--espacio-sm);flex-wrap:wrap;">
+            <input type="text" readonly id="magic-link-url" value="<?= esc($magic_link) ?>" onclick="this.select()"
+                   style="flex:1;min-width:240px;padding:8px 10px;border:1px solid var(--color-borde);border-radius:var(--radio-md);font-size:.8rem;background:var(--color-fondo);color:var(--color-texto);">
+            <button type="button" class="boton boton-primario boton-sm" onclick="copiarMagicLink(this)">📋 Copiar</button>
+          </div>
+        </span>
+      </div>
+    <?php endif; ?>
+
     <!-- Crear usuario -->
     <div class="tarjeta" style="margin-bottom:var(--espacio-xl);">
       <h2 style="margin-bottom:var(--espacio-lg);">Agregar usuario</h2>
@@ -300,6 +336,16 @@ $csrf = csrf_token();
                           data-self="<?= (int)$u['id'] === (int)$_SESSION['usuario_id'] ? '1' : '0' ?>">
                     ✏️ Editar
                   </button>
+                  <!-- Magic link -->
+                  <form method="POST" style="display:inline;">
+                    <input type="hidden" name="csrf_token"  value="<?= esc($csrf) ?>">
+                    <input type="hidden" name="accion"      value="magic_link">
+                    <input type="hidden" name="usuario_id"  value="<?= (int)$u['id'] ?>">
+                    <button type="submit" class="boton boton-secundario boton-sm"
+                            onclick="return confirm('¿Generar link de acceso para <?= esc(addslashes($u['nombre'])) ?>? (válido <?= MAGIC_LINK_DIAS ?> días, sin PIN)')">
+                      🔗 Link
+                    </button>
+                  </form>
                   <!-- Regenerar PIN -->
                   <form method="POST" style="display:inline;">
                     <input type="hidden" name="csrf_token"  value="<?= esc($csrf) ?>">
@@ -389,6 +435,16 @@ document.addEventListener('keydown', function (e) {
     buscador.focus();
   }
 });
+
+function copiarMagicLink(btn) {
+  const input = document.getElementById('magic-link-url');
+  input.select();
+  navigator.clipboard.writeText(input.value).then(function () {
+    const original = btn.textContent;
+    btn.textContent = '✓ Copiado';
+    setTimeout(function () { btn.textContent = original; }, 2000);
+  });
+}
 
 function abrirModalEditar(btn) {
   document.getElementById('editar-id').value     = btn.dataset.id;

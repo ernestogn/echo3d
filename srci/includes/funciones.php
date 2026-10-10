@@ -14,6 +14,45 @@ function esc(string $valor): string
   return htmlspecialchars($valor, ENT_QUOTES, 'UTF-8');
 }
 
+// --- Magic links de acceso (ingreso sin PIN) ---
+
+// Fallback solo para desarrollo; en produccion definir en config.local.php
+if (!defined('SRCI_MAGIC_SECRET')) {
+  define('SRCI_MAGIC_SECRET', 'srci-dev-secret-cambiar-en-config-local');
+}
+
+define('MAGIC_LINK_DIAS', 7);
+
+// Genera un magic link firmado (HMAC-SHA256) para que un usuario ingrese sin PIN
+function generar_magic_link(int $usuario_id): string
+{
+  $expira  = time() + MAGIC_LINK_DIAS * 86400;
+  $payload = $usuario_id . '.' . $expira;
+  $firma   = hash_hmac('sha256', $payload, SRCI_MAGIC_SECRET);
+  return 'https://echo3dlaser.com.ar/srci/acceso.php?t=' . $payload . '.' . $firma;
+}
+
+// Valida un token de magic link: devuelve el id de usuario o null si es invalido/vencido
+function validar_magic_token(string $token): ?int
+{
+  $partes = explode('.', $token);
+  if (count($partes) !== 3) {
+    return null;
+  }
+  [$uid, $expira, $firma] = $partes;
+  if (!ctype_digit($uid) || !ctype_digit($expira)) {
+    return null;
+  }
+  $esperada = hash_hmac('sha256', $uid . '.' . $expira, SRCI_MAGIC_SECRET);
+  if (!hash_equals($esperada, $firma)) {
+    return null;
+  }
+  if ((int)$expira < time()) {
+    return null;
+  }
+  return (int)$uid;
+}
+
 // Formatea fecha en formato legible en espanol
 function fecha_legible(string $fecha_hora): string
 {
