@@ -1,9 +1,18 @@
 // mapa.js - Mapa Leaflet principal con marcadores de incidencias
 
-const ICONOS_COLOR = {
-  pendiente:  '#f59e0b',
-  en_proceso: '#4f8ef7',
-  resuelto:   '#22c55e',
+// Color del pin segun gravedad (urgencia); el emoji del tipo va dentro
+const GRAVEDAD_COLOR = {
+  baja:    '#16a34a',
+  media:   '#d97706',
+  alta:    '#ea580c',
+  critica: '#dc2626',
+};
+
+const GRAVEDAD_NOMBRE = {
+  baja:    'Baja',
+  media:   'Media',
+  alta:    'Alta',
+  critica: 'Crítica',
 };
 
 // Inicializar mapa centrado en la ciudad objetivo (zoom a la derecha para dejar lugar a los filtros)
@@ -15,20 +24,30 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
 }).addTo(mapa);
 
-// Icono SVG personalizado segun estado
-function crearIcono(estado) {
-  const color = ICONOS_COLOR[estado] || '#94a3b8';
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
-    <path d="M14 0C6.268 0 0 6.268 0 14c0 9.817 14 22 14 22S28 23.817 28 14C28 6.268 21.732 0 14 0z"
-          fill="${color}" stroke="rgba(0,0,0,.25)" stroke-width="1.5"/>
-    <circle cx="14" cy="14" r="5" fill="white" opacity=".85"/>
+// Icono del marcador: color = gravedad, emoji = tipo, resueltas grises con ✓,
+// en gestion con anillo azul
+function crearIcono(inc) {
+  const resuelto   = inc.estado === 'resuelto';
+  const enGestion  = inc.estado === 'en_proceso';
+  const color      = resuelto ? '#94a3b8' : (GRAVEDAD_COLOR[inc.gravedad] || '#94a3b8');
+  const emoji      = resuelto ? '✓' : (inc.tipo_icono || '📍');
+  const opacidad   = resuelto ? 0.55 : 1;
+  const anillo     = enGestion
+    ? '<circle cx="17" cy="17" r="13.25" fill="none" stroke="#2563eb" stroke-width="2.5"/>'
+    : '';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="44" viewBox="0 0 34 44">
+    <path d="M17 0C7.611 0 0 7.611 0 17c0 11.5 17 27 17 27s17-15.5 17-27C34 7.611 26.389 0 17 0z"
+          fill="${color}" fill-opacity="${opacidad}" stroke="rgba(0,0,0,.25)" stroke-width="1.5"/>
+    ${anillo}
+    <circle cx="17" cy="17" r="11.5" fill="white" opacity=".92"/>
+    <text x="17" y="21.5" text-anchor="middle" font-size="12.5">${emoji}</text>
   </svg>`;
   return L.divIcon({
     html: svg,
     className: '',
-    iconSize: [28, 36],
-    iconAnchor: [14, 36],
-    popupAnchor: [0, -36],
+    iconSize: [34, 44],
+    iconAnchor: [17, 44],
+    popupAnchor: [0, -44],
   });
 }
 
@@ -56,15 +75,21 @@ async function cargarIncidencias() {
     const incidencias = await resp.json();
 
     incidencias.forEach((inc) => {
-      const marcador = L.marker([inc.latitud, inc.longitud], { icon: crearIcono(inc.estado) });
+      const marcador = L.marker([inc.latitud, inc.longitud], { icon: crearIcono(inc) });
+      // Las resueltas quedan por debajo de las activas en el orden de apilado
+      if (inc.estado === 'resuelto') marcador.setZIndexOffset(-600);
       const foto     = inc.foto
         ? `<img src="/srci/uploads/${inc.foto}" style="width:100%;border-radius:6px;margin-top:6px;max-height:120px;object-fit:cover;" alt="Foto de la incidencia">`
+        : '';
+
+      const badgeGravedad = inc.gravedad
+        ? `<span class="gravedad-badge gravedad-${inc.gravedad}">${GRAVEDAD_NOMBRE[inc.gravedad] || inc.gravedad}</span>`
         : '';
 
       marcador.bindPopup(`
         <div class="popup-titulo">${inc.tipo_icono || ''} ${inc.tipo_nombre}</div>
         <div class="popup-meta">${inc.fecha_hora} · ${inc.usuario_nombre}</div>
-        <div class="popup-meta"><span class="estado-badge estado-${inc.estado}">${inc.estado.replace('_',' ')}</span></div>
+        <div class="popup-meta">${badgeGravedad} <span class="estado-badge estado-${inc.estado}">${inc.estado.replace('_',' ')}</span></div>
         ${inc.notas ? `<div style="margin-top:4px;font-size:.82rem;">${inc.notas}</div>` : ''}
         ${foto}
         <div class="popup-enlace" style="margin-top:6px;"><a href="/srci/detalle.php?id=${inc.id}">Ver detalle →</a></div>

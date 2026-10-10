@@ -97,25 +97,26 @@ $logueado = !empty($_SESSION['usuario_id']);
   <div class="tarjeta" style="margin-bottom:var(--espacio-lg);">
     <h2>🎨 Qué significan los colores</h2>
     <p style="color:var(--color-texto);margin-bottom:var(--espacio-md);">
-      Cada punto del mapa tiene un color según su <strong>estado</strong>:
+      Cada punto del mapa tiene un color según su <strong>gravedad</strong>, y dentro muestra el
+      <strong>emoji del tipo</strong> de problema:
     </p>
     <div style="display:flex;gap:var(--espacio-md);flex-wrap:wrap;">
-      <span class="estado-badge estado-pendiente">🟡 Pendiente — recién cargado</span>
-      <span class="estado-badge estado-en_proceso">🔵 En gestión — alguien lo está trabajando</span>
-      <span class="estado-badge estado-resuelto">🟢 Resuelto — quedó solucionado</span>
+      <span class="gravedad-badge gravedad-baja">🟢 Baja</span>
+      <span class="gravedad-badge gravedad-media">🟡 Media</span>
+      <span class="gravedad-badge gravedad-alta">🟠 Alta</span>
+      <span class="gravedad-badge gravedad-critica">🔴 Crítica</span>
     </div>
-    <p style="color:var(--color-texto);margin-top:var(--espacio-lg);margin-bottom:var(--espacio-md);">
-      Y la <strong>gravedad</strong> se ve en cada reporte:
+    <p style="color:var(--color-texto);margin-top:var(--espacio-lg);line-height:1.7;">
+      El <strong>estado</strong> se ve así:
     </p>
-    <div style="display:flex;gap:var(--espacio-sm);flex-wrap:wrap;">
-      <span class="gravedad-badge gravedad-baja">Baja</span>
-      <span class="gravedad-badge gravedad-media">Media</span>
-      <span class="gravedad-badge gravedad-alta">Alta</span>
-      <span class="gravedad-badge gravedad-critica">Crítica</span>
+    <div style="display:flex;gap:var(--espacio-md);flex-wrap:wrap;margin-top:var(--espacio-sm);">
+      <span class="estado-badge estado-pendiente">Pendiente — recién cargado</span>
+      <span class="estado-badge estado-en_proceso">🔵 Anillo azul = en gestión</span>
+      <span class="estado-badge estado-resuelto">⚪ Gris con ✓ = resuelto</span>
     </div>
     <p style="color:var(--color-texto-suave);margin-top:var(--espacio-md);line-height:1.7;">
-      El <strong>estado</strong> lo actualizan los organizadores a medida que avanza cada caso.
-      Los reportes resueltos quedan en el mapa como registro.
+      Así, de un vistazo, lo <strong>urgente</strong> salta a la vista (colores cálidos) y lo
+      <strong>resuelto</strong> se apaga del mapa. Tocá cualquier punto para ver el detalle completo.
     </p>
   </div>
 

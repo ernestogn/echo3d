@@ -74,7 +74,7 @@ srci/
 │   ├── css/estilos.css    Sistema de diseno completo (variables CSS, dark mode, responsive)
 │   └── js/
 │       ├── login.js       Logica del teclado PIN numerico en login.php
-│       ├── mapa.js        Inicializacion Leaflet, carga marcadores, iconos SVG por estado
+│       ├── mapa.js        Inicializacion Leaflet, carga marcadores, iconos: color por gravedad + emoji del tipo; resueltas grises con check y zIndex bajo; en_gestion con anillo azul
 │       └── reporte.js     Modal de reporte: paso 1 (tipo) → paso 2 (mini-mapa + foto + notas)
 │
 └── uploads/
