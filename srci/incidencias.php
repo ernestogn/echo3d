@@ -280,6 +280,7 @@ function url_filtros(array $extras = []): string {
           <tr>
             <th>#</th>
             <th>Fecha</th>
+            <th>Hora</th>
             <th>Tipo</th>
             <th>Barrio</th>
             <th>Dirección</th>
@@ -298,7 +299,8 @@ function url_filtros(array $extras = []): string {
           ?>
             <tr>
               <td><?= (int)$inc['id'] ?></td>
-              <td style="white-space:nowrap;"><?= esc(fecha_legible($inc['fecha_hora'])) ?></td>
+              <td style="white-space:nowrap;"><?= esc(date('d/m/y', strtotime($inc['fecha_hora']))) ?></td>
+              <td style="white-space:nowrap;"><?= esc(date('H:i', strtotime($inc['fecha_hora']))) ?></td>
               <td><?= esc($inc['tipo_icono'] ?? '') ?> <?= esc($inc['tipo_nombre']) ?></td>
               <td><?= esc($inc['barrio_nombre'] ?? '—') ?></td>
               <td style="max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<?= esc($inc['direccion'] ?? '') ?>"><?= esc($inc['direccion'] ?? '—') ?></td>
@@ -314,7 +316,7 @@ function url_filtros(array $extras = []): string {
               </td>
             </tr>
             <tr class="fila-expandida" id="expandida-<?= (int)$inc['id'] ?>" style="display:none;">
-              <td colspan="10">
+              <td colspan="11">
                 <dl style="display:grid;grid-template-columns:170px 1fr;gap:6px var(--espacio-lg);font-size:.85rem;">
                   <dt style="color:var(--color-texto-suave);font-weight:600;">Dirección</dt>
                   <dd><?= esc($inc['direccion'] ?? '—') ?></dd>
