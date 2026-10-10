@@ -171,7 +171,7 @@ $logueado = !empty($_SESSION['usuario_id']);
   <!-- Contacto -->
   <div class="mensaje mensaje-exito" role="note">
     <span>🤝</span>
-    <span>¿Dudas o problemas técnicos? Escribile a un organizador (Guillermo Guillaume, Mariana Marclay o Juan Martín Garay) y lo resolvemos.</span>
+    <span>¿Dudas o problemas técnicos? Escribile a un organizador y lo resolvemos.</span>
   </div>
 
 </div>
