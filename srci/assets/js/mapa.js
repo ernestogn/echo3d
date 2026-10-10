@@ -6,8 +6,9 @@ const ICONOS_COLOR = {
   resuelto:   '#22c55e',
 };
 
-// Inicializar mapa centrado en la ciudad objetivo
-const mapa = L.map('mapa', { zoomControl: true }).setView([-32.48262351713079, -58.24455570742029], 13);
+// Inicializar mapa centrado en la ciudad objetivo (zoom a la derecha para dejar lugar a los filtros)
+const mapa = L.map('mapa', { zoomControl: false }).setView([-32.48262351713079, -58.24455570742029], 13);
+L.control.zoom({ position: 'topright' }).addTo(mapa);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
@@ -32,6 +33,22 @@ function crearIcono(estado) {
 }
 
 // Cargar y mostrar incidencias en el mapa
+let todosLosMarcadores = [];
+let filtroTipo = null;
+let filtroMios = false;
+
+function aplicarFiltros() {
+  todosLosMarcadores.forEach(({ marker, tipoId, usuarioId }) => {
+    const okTipo = filtroTipo === null || tipoId === filtroTipo;
+    const okMios = !filtroMios || usuarioId === SRCI_USUARIO_ID;
+    if (okTipo && okMios) {
+      if (!mapa.hasLayer(marker)) marker.addTo(mapa);
+    } else if (mapa.hasLayer(marker)) {
+      mapa.removeLayer(marker);
+    }
+  });
+}
+
 async function cargarIncidencias() {
   try {
     const resp = await fetch('/srci/api/reportes.php');
@@ -52,11 +69,74 @@ async function cargarIncidencias() {
         ${foto}
         <div class="popup-enlace" style="margin-top:6px;"><a href="/srci/detalle.php?id=${inc.id}">Ver detalle →</a></div>
       `);
-      marcador.addTo(mapa);
+      todosLosMarcadores.push({ marker: marcador, tipoId: inc.tipo_id, usuarioId: inc.usuario_id });
     });
+    aplicarFiltros();
   } catch (err) {
     console.error('Error cargando incidencias:', err);
   }
+}
+
+// Botonera de filtros sobre el mapa: Todos, tipos y Mis reportes
+let chipTodos   = null;
+let chipMios    = null;
+const chipsTipo = [];
+
+function actualizarChips() {
+  chipsTipo.forEach((chip) => chip.classList.toggle('activo', String(filtroTipo) === chip.dataset.tipo));
+  if (chipTodos) chipTodos.classList.toggle('activo', filtroTipo === null && !filtroMios);
+  if (chipMios)  chipMios.classList.toggle('activo', filtroMios);
+}
+
+async function cargarFiltros() {
+  const cont = document.getElementById('filtros-mapa');
+  if (!cont) return;
+
+  chipTodos = document.createElement('button');
+  chipTodos.type = 'button';
+  chipTodos.className = 'chip-filtro';
+  chipTodos.textContent = 'Todos';
+  chipTodos.addEventListener('click', () => {
+    filtroTipo = null;
+    filtroMios = false;
+    actualizarChips();
+    aplicarFiltros();
+  });
+  cont.appendChild(chipTodos);
+
+  try {
+    const resp  = await fetch('/srci/api/tipos.php');
+    const tipos = await resp.json();
+    tipos.forEach((t) => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip-filtro';
+      chip.dataset.tipo = String(t.id);
+      chip.textContent = `${t.icono || ''} ${t.nombre}`;
+      chip.addEventListener('click', () => {
+        filtroTipo = filtroTipo === t.id ? null : t.id;
+        actualizarChips();
+        aplicarFiltros();
+      });
+      cont.appendChild(chip);
+      chipsTipo.push(chip);
+    });
+  } catch (err) {
+    console.error('Error cargando tipos para filtros:', err);
+  }
+
+  chipMios = document.createElement('button');
+  chipMios.type = 'button';
+  chipMios.className = 'chip-filtro chip-mios';
+  chipMios.textContent = '👤 Mis reportes';
+  chipMios.addEventListener('click', () => {
+    filtroMios = !filtroMios;
+    actualizarChips();
+    aplicarFiltros();
+  });
+  cont.appendChild(chipMios);
+
+  actualizarChips();
 }
 
 // Icono del punto elegido con click en el mapa
@@ -85,6 +165,7 @@ function removerMarcadorSeleccion() {
 }
 
 cargarIncidencias();
+cargarFiltros();
 
 // Exponer mapa globalmente para que reporte.js lo use
 window.mapaLeaflet = mapa;

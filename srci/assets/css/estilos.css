@@ -526,6 +526,48 @@ h3 { font-size: 1.125rem; font-weight: 600; }
   width: 100%;
   z-index: 1;
 }
+.contenedor-mapa { position: relative; }
+
+/* Botonera de filtros sobre el mapa */
+#filtros-mapa {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 500;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px;
+  scrollbar-width: none;
+  pointer-events: none;
+}
+#filtros-mapa::-webkit-scrollbar { display: none; }
+#filtros-mapa .chip-filtro {
+  pointer-events: auto;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #ffffff;
+  border: 1px solid var(--color-borde);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-texto);
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: var(--sombra-sm);
+  transition: background-color var(--transicion), color var(--transicion), border-color var(--transicion);
+  white-space: nowrap;
+}
+#filtros-mapa .chip-filtro:hover { border-color: var(--color-acento); color: var(--color-acento); }
+#filtros-mapa .chip-filtro.activo {
+  background: var(--color-acento);
+  border-color: var(--color-acento);
+  color: #ffffff;
+}
 .fab-reportar {
   position: fixed;
   bottom: 24px;

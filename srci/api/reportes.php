@@ -46,7 +46,7 @@ if ($metodo === 'GET') {
   $clausula_where = $donde ? 'WHERE ' . implode(' AND ', $donde) : '';
 
   // Para el mapa no paginamos (devolvemos todo, max 1000)
-  $sql = "SELECT i.id, i.latitud, i.longitud, i.estado, i.fecha_hora, i.fecha_resolucion, i.notas,
+  $sql = "SELECT i.id, i.tipo_id, i.usuario_id, i.latitud, i.longitud, i.estado, i.fecha_hora, i.fecha_resolucion, i.notas,
                  i.direccion, i.gravedad, i.familias_afectadas, i.servicio_afectado,
                  i.calle_intransitable, i.responsable_area, i.contacto_vecino,
                  i.barrio_id, b.nombre AS barrio_nombre,
