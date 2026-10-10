@@ -153,10 +153,10 @@ $csrf  = csrf_token();
           <div class="campo">
             <label for="t-icono">Emoji</label>
             <input type="text" id="t-icono" name="icono" maxlength="10" placeholder="🚧">
-            <div id="selector-icono-crear" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:var(--espacio-sm);"></div>
           </div>
           <button type="submit" class="boton boton-primario" style="align-self:flex-end;">Crear</button>
         </div>
+        <div id="selector-icono-crear" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:var(--espacio-md);"></div>
       </form>
     </div>
 
