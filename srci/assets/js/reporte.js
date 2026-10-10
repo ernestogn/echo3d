@@ -4,6 +4,7 @@ let tipoSeleccionado = null;
 let coordSeleccionada = null;
 let miniMapa = null;
 let miniMarcador = null;
+let barriosCargados = [];
 
 const modalFondo     = document.getElementById('modal-reporte');
 const btnAbrir       = document.getElementById('btn-abrir-reporte');
@@ -23,6 +24,7 @@ const mensajeDiv     = document.getElementById('mensaje-reporte');
 const modalCaja      = modalFondo.querySelector('.modal-caja');
 const encabezadoModal = modalFondo.querySelector('.modal-encabezado');
 const barrioSelect   = document.getElementById('barrio-reporte');
+const listaBarrios   = document.getElementById('lista-barrios');
 const direccionInput = document.getElementById('direccion-reporte');
 const gravedadSelect = document.getElementById('gravedad-reporte');
 const familiasInput  = document.getElementById('familias-reporte');
@@ -58,27 +60,32 @@ async function cargarTipos() {
   }
 }
 
-// Cargar barrios y llenar el select
+// Cargar barrios y llenar el datalist (buscable)
 async function cargarBarrios() {
   try {
     const resp    = await fetch('/srci/api/barrios.php');
     const barrios = await resp.json();
+    barriosCargados = barrios;
 
-    barrioSelect.innerHTML = '';
-    const opcionVacia = document.createElement('option');
-    opcionVacia.value = '';
-    opcionVacia.textContent = 'Elegir...';
-    barrioSelect.appendChild(opcionVacia);
+    listaBarrios.innerHTML = '';
     barrios.forEach((b) => {
       const opcion = document.createElement('option');
-      opcion.value        = b.id;
-      opcion.textContent  = b.nombre;
-      barrioSelect.appendChild(opcion);
+      opcion.value = b.nombre;
+      listaBarrios.appendChild(opcion);
     });
   } catch (err) {
-    barrioSelect.innerHTML = '<option value="">Error cargando barrios</option>';
     console.error('Error cargando barrios:', err);
   }
+}
+
+// Resuelve un barrio a partir del texto buscado (exacto o unica coincidencia)
+function encontrarBarrio(texto) {
+  if (texto === '') return null;
+  const t = texto.toLowerCase();
+  const exacto = barriosCargados.find((b) => b.nombre.toLowerCase() === t);
+  if (exacto) return exacto;
+  const coincidencias = barriosCargados.filter((b) => b.nombre.toLowerCase().includes(t));
+  return coincidencias.length === 1 ? coincidencias[0] : null;
 }
 
 function seleccionarTipo(tarjeta) {
@@ -198,6 +205,11 @@ btnEnviar.addEventListener('click', async () => {
     mostrarMensaje('Elegí el barrio del problema.', 'error');
     return;
   }
+  const barrioEncontrado = encontrarBarrio(barrioSelect.value.trim());
+  if (!barrioEncontrado) {
+    mostrarMensaje('Ese barrio no está en la lista. Elegilo del desplegable buscable.', 'error');
+    return;
+  }
   if (direccionInput.value.trim() === '') {
     mostrarMensaje('Escribí la dirección (calle y altura).', 'error');
     return;
@@ -219,7 +231,7 @@ btnEnviar.addEventListener('click', async () => {
         tipo_id:             parseInt(tipoSeleccionado.id),
         latitud:             coordSeleccionada.lat,
         longitud:            coordSeleccionada.lng,
-        barrio_id:           parseInt(barrioSelect.value),
+        barrio_id:           parseInt(barrioEncontrado.id),
         direccion:           direccionInput.value.trim(),
         gravedad:            gravedadSelect.value,
         familias_afectadas:  familiasInput.value === '' ? '' : familiasInput.value,

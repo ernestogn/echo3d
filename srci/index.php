@@ -80,9 +80,8 @@ $es_admin       = es_admin();
 
       <div class="campo" style="margin-bottom:var(--espacio-md);">
         <label for="barrio-reporte">Barrio *</label>
-        <select id="barrio-reporte" required>
-          <option value="">Cargando...</option>
-        </select>
+        <input type="text" id="barrio-reporte" list="lista-barrios" placeholder="Escribí para buscar..." autocomplete="off" required>
+        <datalist id="lista-barrios"></datalist>
       </div>
 
       <div class="campo" style="margin-bottom:var(--espacio-md);">
@@ -181,7 +180,7 @@ $es_admin       = es_admin();
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="/srci/assets/js/mapa.js?v=20261009"></script>
-<script src="/srci/assets/js/reporte.js?v=20261010b"></script>
+<script src="/srci/assets/js/reporte.js?v=20261010c"></script>
 <script>
   // Registrar Service Worker para soporte PWA/offline
   if ('serviceWorker' in navigator) {
