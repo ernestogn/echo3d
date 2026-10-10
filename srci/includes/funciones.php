@@ -124,20 +124,76 @@ function guardar_foto(array $archivo): string
   return $nombre_seguro;
 }
 
-// Envia un email simple con el PIN al usuario
+// Envia un email con el PIN al usuario (HTML con estilo + texto plano de respaldo)
 function enviar_pin_por_email(string $email, string $nombre, string $pin): bool
 {
-  $asunto  = '=?UTF-8?B?' . base64_encode('Tu PIN de acceso — SRCI') . '?=';
-  $cuerpo  = "Hola {$nombre},\n\nTu PIN de acceso al Sistema de Reporte Ciudadano es:\n\n"
-           . "  {$pin}\n\n"
-           . "Ingresa con tu email y este PIN en: https://echo3dlaser.com.ar/srci/\n"
-           . "Si no pediste este PIN, ignora este mensaje.\n";
+  $url    = 'https://echo3dlaser.com.ar/srci/';
+  $asunto = '=?UTF-8?B?' . base64_encode('Tu PIN de acceso — SRCI') . '?=';
+
+  // Parte texto plano (clientes sin HTML)
+  $texto = "Hola {$nombre},\n\n"
+         . "Tu PIN de acceso al Sistema de Reporte Ciudadano es: {$pin}\n\n"
+         . "Ingresa con tu email y este PIN en: {$url}\n\n"
+         . "Si no pediste este PIN, ignora este mensaje.\n";
+
+  // Parte HTML (estilos inline: los clientes de correo ignoran <style>)
+  $html = <<<HTML
+<!DOCTYPE html>
+<html lang="es">
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:24px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;">
+        <tr><td style="background:#4f46e5;padding:26px 32px;text-align:center;">
+          <div style="font-size:30px;line-height:1;">🗺️</div>
+          <div style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:.5px;margin-top:6px;">SRCI</div>
+          <div style="color:#c7d2fe;font-size:13px;margin-top:2px;">Sistema de Reporte Ciudadano</div>
+        </td></tr>
+        <tr><td style="padding:30px 32px;">
+          <p style="margin:0 0 8px;color:#0f172a;font-size:17px;font-weight:700;">Hola {$nombre} 👋</p>
+          <p style="margin:0 0 20px;color:#475569;font-size:14px;line-height:1.6;">Este es tu PIN de acceso al mapa de incidencias. Ingresalo junto a tu email en la pantalla de login.</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr><td align="center" style="padding:6px 0 20px;">
+              <div style="display:inline-block;background:#eef2ff;border:2px dashed #4f46e5;border-radius:12px;padding:14px 34px;">
+                <span style="font-size:32px;font-weight:800;letter-spacing:10px;color:#4f46e5;">{$pin}</span>
+              </div>
+            </td></tr>
+          </table>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr><td align="center">
+              <a href="{$url}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:13px 34px;border-radius:10px;">Entrar al mapa</a>
+            </td></tr>
+          </table>
+          <p style="margin:18px 0 0;color:#64748b;font-size:12px;line-height:1.6;">Si el botón no funciona, copiá este enlace:<br><a href="{$url}" style="color:#4f46e5;">{$url}</a></p>
+        </td></tr>
+        <tr><td style="padding:16px 32px;border-top:1px solid #e2e8f0;">
+          <p style="margin:0;color:#94a3b8;font-size:11px;line-height:1.6;">Si no pediste este PIN, ignorá este mensaje. Correo automático del Sistema de Reporte Ciudadano — echo3dlaser.com.ar</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+HTML;
+
+  $limite = md5(uniqid((string)random_int(0, mt_getrandmax()), true));
   $headers = implode("\r\n", [
     'From: SRCI <admin@echo3dlaser.com.ar>',
-    'Content-Type: text/plain; charset=UTF-8',
-    'Content-Transfer-Encoding: base64',
+    'MIME-Version: 1.0',
+    "Content-Type: multipart/alternative; boundary=\"{$limite}\"",
   ]);
+
+  $cuerpo = "--{$limite}\r\n"
+          . "Content-Type: text/plain; charset=UTF-8\r\n"
+          . "Content-Transfer-Encoding: base64\r\n\r\n"
+          . chunk_split(base64_encode($texto)) . "\r\n"
+          . "--{$limite}\r\n"
+          . "Content-Type: text/html; charset=UTF-8\r\n"
+          . "Content-Transfer-Encoding: base64\r\n\r\n"
+          . chunk_split(base64_encode($html)) . "\r\n"
+          . "--{$limite}--\r\n";
+
   // Envelope sender alineado con el From (evita DMARC:Quarantine / spam de Gmail)
-  return @mail($email, $asunto, base64_encode($cuerpo), $headers, '-fadmin@echo3dlaser.com.ar');
+  return @mail($email, $asunto, $cuerpo, $headers, '-fadmin@echo3dlaser.com.ar');
 }
   
