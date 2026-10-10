@@ -69,6 +69,7 @@ $fotos = $fotos->fetchAll();
     <div class="nav-enlaces">
       <a href="/srci/index.php"       class="nav-enlace">Mapa</a>
       <a href="/srci/incidencias.php" class="nav-enlace">Listado</a>
+      <a href="/srci/ayuda.php"       class="nav-enlace">Ayuda</a>
     </div>
     <div class="nav-usuario">
       <a href="/srci/logout.php" class="boton boton-secundario boton-sm">Salir</a>

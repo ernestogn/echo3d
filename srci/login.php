@@ -114,6 +114,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </form>
     </div>
 
+    <p style="text-align:center;margin-top:var(--espacio-md);">
+      <a href="/srci/ayuda.php" style="color:var(--color-texto-suave);font-size:.85rem;">❓ ¿Cómo ingreso? Ver ayuda</a>
+    </p>
+
   </div>
 </div>
 

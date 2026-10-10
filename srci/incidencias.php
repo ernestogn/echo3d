@@ -216,6 +216,7 @@ function url_filtros(array $extras = []): string {
     <div class="nav-enlaces">
       <a href="/srci/index.php"       class="nav-enlace">Mapa</a>
       <a href="/srci/incidencias.php" class="nav-enlace activo">Listado</a>
+      <a href="/srci/ayuda.php"       class="nav-enlace">Ayuda</a>
       <?php if (es_admin()): ?>
         <a href="/srci/admin/reportes.php" class="nav-enlace">Admin</a>
       <?php endif; ?>
