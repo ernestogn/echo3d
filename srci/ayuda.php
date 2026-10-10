@@ -11,7 +11,7 @@ $logueado = !empty($_SESSION['usuario_id']);
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ayuda — SRCI</title>
   <meta name="description" content="Guia de uso del Sistema de Reporte Ciudadano de Incidencias.">
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010b">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010e">
 </head>
 <body>
 <nav class="nav-principal" role="navigation">

@@ -137,7 +137,7 @@ $csrf          = csrf_token();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Editar incidencia #<?= $id ?> — SRCI</title>
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010b">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010e">
 </head>
 <body>
 
@@ -188,7 +188,7 @@ $csrf          = csrf_token();
     <form method="POST">
       <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--espacio-md);">
+      <div class="grilla-form-2">
         <div class="campo">
           <label for="e-tipo">Tipo de situación *</label>
           <select id="e-tipo" name="tipo_id" required>

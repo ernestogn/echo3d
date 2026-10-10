@@ -844,6 +844,18 @@ h3 { font-size: 1.125rem; font-weight: 600; }
 .popup-enlace { font-size: 0.8rem; }
 
 /* ============================================================
+   Grillas de formularios: colapsan a una columna en movil
+   ============================================================ */
+.grilla-form-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--espacio-md); align-items: end; }
+.grilla-form-4 { display: grid; grid-template-columns: 1fr 1fr 150px auto; gap: var(--espacio-md); align-items: end; }
+
+@media (max-width: 640px) {
+  .grilla-form-2 { grid-template-columns: 1fr; }
+  .grilla-form-4 { grid-template-columns: 1fr; }
+  .grilla-form-4 > .boton { width: 100%; }
+}
+
+/* ============================================================
    Responsive movil
    ============================================================ */
 @media (max-width: 768px) {

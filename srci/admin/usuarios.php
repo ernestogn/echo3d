@@ -217,7 +217,7 @@ $csrf = csrf_token();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin — Usuarios · SRCI</title>
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010c">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010e">
 </head>
 <body>
 <nav class="nav-principal">
@@ -276,7 +276,7 @@ $csrf = csrf_token();
       <form method="POST" action="/srci/admin/usuarios.php">
         <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
         <input type="hidden" name="accion"     value="crear">
-        <div style="display:grid;grid-template-columns:1fr 1fr 140px auto;gap:var(--espacio-md);align-items:flex-end;flex-wrap:wrap;">
+        <div class="grilla-form-4">
           <div class="campo">
             <label for="nuevo-nombre">Nombre</label>
             <input type="text" id="nuevo-nombre" name="nombre" required placeholder="ej: Juan Pérez">

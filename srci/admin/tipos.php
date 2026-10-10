@@ -99,7 +99,7 @@ $csrf  = csrf_token();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin — Tipos · SRCI</title>
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010c">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010e">
 </head>
 <body>
 <nav class="nav-principal">
@@ -141,7 +141,7 @@ $csrf  = csrf_token();
       <form method="POST">
         <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
         <input type="hidden" name="accion"     value="crear">
-        <div style="display:grid;grid-template-columns:1fr 1fr 80px auto;gap:var(--espacio-md);align-items:flex-end;">
+        <div class="grilla-form-4">
           <div class="campo">
             <label for="t-clave">Clave (única, sin espacios)</label>
             <input type="text" id="t-clave" name="clave" required placeholder="ej: bache_calle">

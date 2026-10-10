@@ -17,7 +17,7 @@ function acceso_error(string $titulo, string $mensaje): never
   echo '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
      . '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
      . '<title>Acceso — SRCI</title>'
-     . '<link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010b"></head>'
+     . '<link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010e"></head>'
      . '<body><div class="login-pantalla"><div class="login-caja"><div class="tarjeta" style="text-align:center;">'
      . '<div style="font-size:44px;line-height:1;">🔒</div>'
      . '<h1 style="font-size:1.15rem;margin:var(--espacio-md) 0;">' . esc($titulo) . '</h1>'
