@@ -133,8 +133,7 @@ function enviar_a_sheets(array $payload): void
       CURLOPT_POSTFIELDS     => json_encode($payload, JSON_UNESCAPED_UNICODE),
       CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
       CURLOPT_RETURNTRANSFER => true,
-      CURLOPT_FOLLOWLOCATION => true,
-      CURLOPT_POSTREDIR      => CURL_REDIR_POST_ALL,
+      CURLOPT_FOLLOWLOCATION => true,  // /exec responde 302: el echo final se llama con GET (el payload viaja en la URL)
       CURLOPT_CONNECTTIMEOUT => 2,
       CURLOPT_TIMEOUT        => 5,
     ]);
