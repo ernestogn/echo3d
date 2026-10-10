@@ -16,19 +16,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   // Traer filas nuevas de la planilla de Google (sync manual)
   if ($accion === 'traer_google') {
     [$ok_sync, $proc, $err_sync, $detalle_sync] = sincronizar_hoja();
-    if ($ok_sync) {
-      $mensaje  = "Sincronización con Google: {$proc} fila(s) importada(s)" . ($err_sync ? ", {$err_sync} con error" : '') . '.';
-      $tipo_msg = $err_sync ? ($proc ? 'info' : 'error') : 'exito';
-      if ($err_sync && is_array($detalle_sync) && $detalle_sync) {
-        $mensaje .= ' ' . implode(' | ', array_slice($detalle_sync, 0, 3));
-      }
-      if ($proc > 0) {
-        registrar_auditoria((int)$_SESSION['usuario_id'], 'sync_planilla', null, "Trajo {$proc} fila(s) de la planilla de Google");
-      }
-    } else {
-      $mensaje  = 'No se pudo sincronizar con Google: ' . (is_string($detalle_sync) ? $detalle_sync : 'error desconocido');
-      $tipo_msg = 'error';
+    if ($proc > 0) {
+      registrar_auditoria((int)$_SESSION['usuario_id'], 'sync_planilla', null, "Trajo {$proc} fila(s) de la planilla de Google" . ($err_sync ? " ({$err_sync} con error)" : ''));
     }
+    if ($ok_sync) {
+      header('Location: /srci/admin/reportes.php?sync=1&proc=' . $proc . '&err=' . $err_sync);
+    } else {
+      header('Location: /srci/admin/reportes.php?sync=0&msg=' . urlencode(is_string($detalle_sync) ? $detalle_sync : 'error desconocido'));
+    }
+    exit;
   } elseif ($accion === 'restaurar' && $id_inc > 0) {
     db()->prepare('UPDATE incidencias SET oculto = 0 WHERE id = :id')->execute([':id' => $id_inc]);
     registrar_auditoria((int)$_SESSION['usuario_id'], 'restaurar', $id_inc, 'Restauro la incidencia');
@@ -133,6 +129,37 @@ $csrf  = csrf_token();
         </form>
       <?php endif; ?>
     </div>
+
+    <?php if (isset($_GET['sync'])): ?>
+      <?php $sync_proc = (int)($_GET['proc'] ?? 0); $sync_err = (int)($_GET['err'] ?? 0); ?>
+      <?php if ($_GET['sync'] === '0'): ?>
+        <div class="mensaje mensaje-error" style="margin-bottom:var(--espacio-lg);" role="alert">
+          <span>⚠️</span>
+          <span>No se pudo sincronizar con Google: <?= esc($_GET['msg'] ?? 'error desconocido') ?></span>
+        </div>
+      <?php elseif ($sync_proc === 0 && $sync_err === 0): ?>
+        <div class="mensaje mensaje-info" id="toast-sync" style="margin-bottom:var(--espacio-lg);" role="status">
+          <span>ℹ️</span>
+          <span>Nada nuevo: la planilla ya está al día.</span>
+        </div>
+      <?php else: ?>
+        <div class="mensaje mensaje-<?= $sync_err ? 'info' : 'exito' ?>" style="margin-bottom:var(--espacio-lg);" role="status">
+          <span>✓</span>
+          <span>Sincronización con Google: <?= $sync_proc ?> fila(s) importada(s)<?= $sync_err ? ", {$sync_err} con error" : '' ?>.</span>
+        </div>
+      <?php endif; ?>
+      <script>
+        // El "nada nuevo" se auto-oculta como toast
+        setTimeout(function () {
+          const t = document.getElementById('toast-sync');
+          if (t) {
+            t.style.transition = 'opacity .6s';
+            t.style.opacity = '0';
+            setTimeout(function () { t.remove(); }, 650);
+          }
+        }, 3000);
+      </script>
+    <?php endif; ?>
 
     <div class="tabla-contenedor">
       <table class="tabla-incidencias">
