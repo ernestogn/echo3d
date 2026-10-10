@@ -5,6 +5,29 @@ require_once __DIR__ . '/includes/funciones.php';
 
 requiere_sesion();
 
+// --- Ocultar / Restaurar (solo admin, sin borrar) ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  validar_csrf();
+  $accion = $_POST['accion'] ?? '';
+  if ($accion === 'ocultar' || $accion === 'restaurar') {
+    if (!es_admin()) { http_response_code(403); die('Solo administradores.'); }
+    $sql = $accion === 'ocultar'
+      ? 'UPDATE incidencias SET oculto = 1 WHERE id = :id'
+      : 'UPDATE incidencias SET oculto = 0 WHERE id = :id';
+    db()->prepare($sql)->execute([':id' => $id]);
+    registrar_auditoria(
+      (int)$_SESSION['usuario_id'],
+      $accion,
+      $id,
+      $accion === 'ocultar' ? 'Oculto la incidencia (no se borra)' : 'Restauro la incidencia'
+    );
+    header('Location: /srci/incidencias.php');
+    exit;
+  }
+}
+
+$csrf = csrf_token();
+
 $id = (int)($_GET['id'] ?? 0);
 if ($id === 0) { header('Location: /srci/incidencias.php'); exit; }
 
@@ -63,9 +86,19 @@ $fotos = $fotos->fetchAll();
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--espacio-md);margin-bottom:var(--espacio-lg);">
       <h1 style="font-size:1.375rem;">
         <?= esc($inc['tipo_icono'] ?? '') ?> <?= esc($inc['tipo_nombre']) ?>
+        <?php if ($inc['oculto']): ?><span class="badge-oculta">Oculta</span><?php endif; ?>
       </h1>
       <span class="gravedad-badge <?= clase_gravedad($inc['gravedad']) ?>"><?= esc(nombre_gravedad($inc['gravedad'])) ?></span>
       <span class="estado-badge <?= clase_estado($inc['estado']) ?>"><?= esc(nombre_estado($inc['estado'])) ?></span>
+      <?php if (es_admin()): ?>
+        <form method="POST" onsubmit="return confirm('¿<?= $inc['oculto'] ? 'Restaurar' : 'Ocultar' ?> esta incidencia? No se borra.');">
+          <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
+          <input type="hidden" name="accion"     value="<?= $inc['oculto'] ? 'restaurar' : 'ocultar' ?>">
+          <button type="submit" class="boton <?= $inc['oculto'] ? 'boton-secundario' : 'boton-peligro' ?> boton-sm">
+            <?= $inc['oculto'] ? '👁 Restaurar' : '🗑 Ocultar' ?>
+          </button>
+        </form>
+      <?php endif; ?>
     </div>
 
     <dl style="display:grid;grid-template-columns:140px 1fr;gap:var(--espacio-sm) var(--espacio-lg);font-size:.9rem;">

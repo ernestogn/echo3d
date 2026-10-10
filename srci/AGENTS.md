@@ -66,7 +66,8 @@ srci/
 │   ├── reportes.php       Panel admin: listado de reportes + cambio de estado via form POST
 │   ├── usuarios.php       Panel admin: crear usuarios, regenerar PIN, activar/desactivar
 │   ├── tipos.php          Panel admin: crear tipos de incidencia, activar/desactivar
-│   └── barrios.php        Panel admin: crear barrios, activar/desactivar
+│   ├── barrios.php        Panel admin: crear barrios, activar/desactivar
+│   └── auditoria.php      Panel admin: log de auditoria (quien, cuando, que hizo)
 │
 ├── assets/
 │   ├── css/estilos.css    Sistema de diseno completo (variables CSS, dark mode, responsive)
@@ -106,8 +107,10 @@ referentes_barrios usuario_id(FK CASCADE), barrio_id(FK CASCADE) — PK(usuario_
 incidencias       id, usuario_id(FK), tipo_id(FK), latitud, longitud, barrio_id(FK barrios, NULL),
                   direccion, gravedad(baja|media|alta|critica), familias_afectadas,
                   servicio_afectado, calle_intransitable, responsable_area, contacto_vecino,
-                  notas, fecha_hora, estado(pendiente|en_proceso|resuelto), fecha_resolucion
+                  notas, fecha_hora, estado(pendiente|en_proceso|resuelto), oculto(0|1), fecha_resolucion
 fotos             id, incidencia_id(FK CASCADE), ruta_archivo, fecha_subida
+auditoria         id, usuario_id(FK SET NULL), accion(crear|editar|cambiar_estado|ocultar|restaurar|subir_foto),
+                  incidencia_id, detalle, fecha_hora
 ```
 
 **Regla:** nunca alterar el esquema sin proponer la migracion SQL primero y esperar confirmacion del humano.
@@ -123,6 +126,8 @@ Usuarios del relevamiento: cargados por script one-shot con **username = email**
 **Sesion larga (auth.php):** `SESION_DURACION` = 90 dias, cookie persistente + **sliding** (`renovar_sesion()` en `requiere_sesion()` renueva la cookie en cada request) + `session.gc_maxlifetime` = 90 dias. La sesion permanece viva hasta logout explicito (`logout.php` destruye sesion y borra cookie). Si se quiere mas/menos, ajustar `SESION_DURACION`.
 
 **Alineacion con la planilla de relevamiento** (`Planilla_relevamiento_barrios.xlsx`): el formulario pide Barrio, Direccion/calle y altura, Gravedad (obligatorios) y Familias afectadas, Servicio afectado, Calle intransitable, Responsable/area, Contacto vecino (opcionales). "Dias abiertos" se calcula (fecha_hora → fecha_resolucion o hoy). Estado: "En gestion" = `en_proceso`.
+
+**Ocultar (soft delete) + auditoria (REGLAS):** las incidencias **nunca se borran** de la BD. "Eliminar" = pasar a `oculto = 1` (solo admins, con CSRF y confirm). El mapa, listado y exportaciones filtran `oculto = 0`; el admin ve/restaura las ocultas desde `admin/reportes.php?ocultas=1`. Toda accion (crear, editar con detalle de campos cambiados, cambiar estado, ocultar, restaurar, subir foto) se registra en la tabla `auditoria` con `registrar_auditoria()` (`includes/funciones.php`) — visible en `/srci/admin/auditoria.php`.
 
 ---
 

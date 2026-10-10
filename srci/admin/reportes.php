@@ -8,36 +8,49 @@ requiere_admin();
 // Cambio de estado por POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   validar_csrf();
+  $accion  = $_POST['accion'] ?? '';
   $id_inc  = (int)($_POST['incidencia_id'] ?? 0);
   $estado  = $_POST['estado'] ?? '';
   $estados = ['pendiente','en_proceso','resuelto'];
-  if ($id_inc > 0 && in_array($estado, $estados, true)) {
+
+  if ($accion === 'restaurar' && $id_inc > 0) {
+    db()->prepare('UPDATE incidencias SET oculto = 0 WHERE id = :id')->execute([':id' => $id_inc]);
+    registrar_auditoria((int)$_SESSION['usuario_id'], 'restaurar', $id_inc, 'Restauro la incidencia');
+  } elseif ($id_inc > 0 && in_array($estado, $estados, true)) {
+    $st = db()->prepare('SELECT estado FROM incidencias WHERE id = :id');
+    $st->execute([':id' => $id_inc]);
+    $estado_anterior = (string)($st->fetchColumn() ?: 'sin estado');
     $sql = $estado === 'resuelto'
       ? 'UPDATE incidencias SET estado = :estado, fecha_resolucion = NOW() WHERE id = :id'
       : 'UPDATE incidencias SET estado = :estado, fecha_resolucion = NULL WHERE id = :id';
     $stmt = db()->prepare($sql);
     $stmt->execute([':estado' => $estado, ':id' => $id_inc]);
+    registrar_auditoria((int)$_SESSION['usuario_id'], 'cambiar_estado', $id_inc, "Estado: {$estado_anterior} → {$estado}");
   }
   header('Location: /srci/admin/reportes.php');
   exit;
 }
 
+$ver_ocultas = ($_GET['ocultas'] ?? '') === '1';
+$where_oculto = $ver_ocultas ? 'WHERE i.oculto = 1' : 'WHERE i.oculto = 0';
+
 $pagina     = max(1, (int)($_GET['pagina'] ?? 1));
 $por_pagina = 25;
 $offset     = ($pagina - 1) * $por_pagina;
 
-$total = (int)db()->query('SELECT COUNT(*) FROM incidencias')->fetchColumn();
+$total = (int)db()->query('SELECT COUNT(*) FROM incidencias WHERE oculto = ' . ($ver_ocultas ? '1' : '0'))->fetchColumn();
 $total_pags = (int)ceil($total / $por_pagina);
 
 $stmt = db()->prepare(
-  'SELECT i.id, i.estado, i.fecha_hora, i.notas, i.direccion, i.gravedad, b.nombre AS barrio,
+  "SELECT i.id, i.estado, i.oculto, i.fecha_hora, i.notas, i.direccion, i.gravedad, b.nombre AS barrio,
           t.nombre AS tipo, u.nombre AS usuario
    FROM incidencias i
    JOIN tipos_incidencia t ON t.id = i.tipo_id
    JOIN usuarios u         ON u.id = i.usuario_id
    LEFT JOIN barrios b     ON b.id = i.barrio_id
+   {$where_oculto}
    ORDER BY i.fecha_hora DESC
-   LIMIT :lim OFFSET :off'
+   LIMIT :lim OFFSET :off"
 );
 $stmt->bindValue(':lim', $por_pagina, PDO::PARAM_INT);
 $stmt->bindValue(':off', $offset,     PDO::PARAM_INT);
@@ -75,12 +88,16 @@ $csrf  = csrf_token();
     <a href="/srci/admin/usuarios.php" class="admin-nav-item">👥 Usuarios</a>
     <a href="/srci/admin/tipos.php"    class="admin-nav-item">🏷️ Tipos</a>
     <a href="/srci/admin/barrios.php"  class="admin-nav-item">🏙️ Barrios</a>
+    <a href="/srci/admin/auditoria.php" class="admin-nav-item">🧾 Auditoría</a>
   </aside>
 
   <main class="admin-main">
     <div class="pagina-encabezado">
-      <h1>Gestión de reportes</h1>
-      <span style="color:var(--color-texto-suave);font-size:.9rem;"><?= $total ?> incidencias totales</span>
+      <h1><?= $ver_ocultas ? 'Incidencias ocultas' : 'Gestión de reportes' ?></h1>
+      <span style="color:var(--color-texto-suave);font-size:.9rem;"><?= $total ?> incidencias</span>
+      <a href="/srci/admin/reportes.php<?= $ver_ocultas ? '' : '?ocultas=1' ?>" class="boton <?= $ver_ocultas ? 'boton-secundario' : 'boton-primario' ?> boton-sm">
+        <?= $ver_ocultas ? '← Ver activas' : '👁 Ver ocultas' ?>
+      </a>
     </div>
 
     <div class="tabla-contenedor">
@@ -101,18 +118,29 @@ $csrf  = csrf_token();
               <td><?= esc($f['usuario']) ?></td>
               <td style="white-space:nowrap;"><?= esc(fecha_legible($f['fecha_hora'])) ?></td>
               <td><span class="estado-badge <?= clase_estado($f['estado']) ?>"><?= esc(nombre_estado($f['estado'])) ?></span></td>
-              <td>
-                <form method="POST" action="/srci/admin/reportes.php" style="display:flex;gap:4px;flex-wrap:wrap;">
-                  <input type="hidden" name="csrf_token"    value="<?= esc($csrf) ?>">
-                  <input type="hidden" name="incidencia_id" value="<?= (int)$f['id'] ?>">
-                  <select name="estado" aria-label="Nuevo estado" style="padding:4px 8px;background:var(--color-fondo);border:1px solid var(--color-borde);border-radius:6px;color:var(--color-texto);font-size:.85rem;">
-                    <option value="pendiente"  <?= $f['estado']==='pendiente'  ? 'selected':'' ?>>Pendiente</option>
-                    <option value="en_proceso" <?= $f['estado']==='en_proceso' ? 'selected':'' ?>>En gestión</option>
-                    <option value="resuelto"   <?= $f['estado']==='resuelto'   ? 'selected':'' ?>>Resuelto</option>
-                  </select>
-                  <button type="submit" class="boton boton-primario boton-sm">Guardar</button>
-                </form>
-              </td>
+              <?php if ($ver_ocultas): ?>
+                <td>
+                  <form method="POST" action="/srci/admin/reportes.php" onsubmit="return confirm('¿Restaurar esta incidencia a la lista activa?');">
+                    <input type="hidden" name="csrf_token"    value="<?= esc($csrf) ?>">
+                    <input type="hidden" name="incidencia_id" value="<?= (int)$f['id'] ?>">
+                    <input type="hidden" name="accion"        value="restaurar">
+                    <button type="submit" class="boton boton-primario boton-sm">👁 Restaurar</button>
+                  </form>
+                </td>
+              <?php else: ?>
+                <td>
+                  <form method="POST" action="/srci/admin/reportes.php" style="display:flex;gap:4px;flex-wrap:wrap;">
+                    <input type="hidden" name="csrf_token"    value="<?= esc($csrf) ?>">
+                    <input type="hidden" name="incidencia_id" value="<?= (int)$f['id'] ?>">
+                    <select name="estado" aria-label="Nuevo estado" style="padding:4px 8px;background:var(--color-fondo);border:1px solid var(--color-borde);border-radius:6px;color:var(--color-texto);font-size:.85rem;">
+                      <option value="pendiente"  <?= $f['estado']==='pendiente'  ? 'selected':'' ?>>Pendiente</option>
+                      <option value="en_proceso" <?= $f['estado']==='en_proceso' ? 'selected':'' ?>>En gestión</option>
+                      <option value="resuelto"   <?= $f['estado']==='resuelto'   ? 'selected':'' ?>>Resuelto</option>
+                    </select>
+                    <button type="submit" class="boton boton-primario boton-sm">Guardar</button>
+                  </form>
+                </td>
+              <?php endif; ?>
               <td><a href="/srci/detalle.php?id=<?= (int)$f['id'] ?>" class="boton boton-secundario boton-sm">Ver</a></td>
             </tr>
           <?php endforeach; ?>

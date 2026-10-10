@@ -18,6 +18,11 @@ if ($incidencia_id === 0 || !in_array($estado, $estados_validos, true)) {
   respuesta_json(['error' => 'Datos invalidos.'], 400);
 }
 
+// Estado anterior para el log de auditoria
+$st = db()->prepare('SELECT estado FROM incidencias WHERE id = :id');
+$st->execute([':id' => $incidencia_id]);
+$estado_anterior = (string)($st->fetchColumn() ?: 'sin estado');
+
 // Al resolver se guarda la fecha de resolucion; al volver a otro estado se limpia
 $sql = $estado === 'resuelto'
   ? 'UPDATE incidencias SET estado = :estado, fecha_resolucion = NOW() WHERE id = :id'
@@ -25,5 +30,8 @@ $sql = $estado === 'resuelto'
 
 $stmt = db()->prepare($sql);
 $stmt->execute([':estado' => $estado, ':id' => $incidencia_id]);
+
+// Log de auditoria: quien cambio el estado
+registrar_auditoria((int)$_SESSION['usuario_id'], 'cambiar_estado', $incidencia_id, "Estado: {$estado_anterior} → {$estado}");
 
 respuesta_json(['ok' => true]);

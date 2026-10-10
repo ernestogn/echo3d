@@ -15,6 +15,9 @@ if ($metodo === 'GET') {
 
   $gravedades_validas = ['baja', 'media', 'alta', 'critica'];
 
+  // Las ocultas no salen ni en el mapa ni en la lista
+  $donde[] = 'i.oculto = 0';
+
   if (!empty($_GET['tipo_id'])) {
     $donde[]              = 'i.tipo_id = :tipo_id';
     $params[':tipo_id']   = (int)$_GET['tipo_id'];
@@ -141,6 +144,10 @@ if ($metodo === 'POST') {
     respuesta_json(['error' => 'No pudimos guardar el reporte.'], 500);
   }
   $id = (int)db()->lastInsertId();
+
+  // Log de auditoria: quien cargo la incidencia
+  registrar_auditoria((int)$_SESSION['usuario_id'], 'crear', $id, 'Cargo una incidencia');
+
   respuesta_json(['ok' => true, 'id' => $id], 201);
 }
 

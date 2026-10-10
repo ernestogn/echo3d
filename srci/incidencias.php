@@ -5,6 +5,29 @@ require_once __DIR__ . '/includes/funciones.php';
 
 requiere_sesion();
 
+// --- Ocultar / Restaurar (solo admin, sin borrar: pasa a ocultas) ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  validar_csrf();
+  $accion = $_POST['accion'] ?? '';
+  $id_oc  = (int)($_POST['incidencia_id'] ?? 0);
+  if ($id_oc > 0 && in_array($accion, ['ocultar', 'restaurar'], true) && es_admin()) {
+    $sql = $accion === 'ocultar'
+      ? 'UPDATE incidencias SET oculto = 1 WHERE id = :id'
+      : 'UPDATE incidencias SET oculto = 0 WHERE id = :id';
+    db()->prepare($sql)->execute([':id' => $id_oc]);
+    registrar_auditoria(
+      (int)$_SESSION['usuario_id'],
+      $accion,
+      $id_oc,
+      $accion === 'ocultar' ? 'Oculto la incidencia (no se borra)' : 'Restauro la incidencia'
+    );
+  }
+  header('Location: /srci/incidencias.php');
+  exit;
+}
+
+$csrf = csrf_token();
+
 // --- Filtros ---
 $tipo_id     = (int)($_GET['tipo_id']     ?? 0);
 $estado      = $_GET['estado']      ?? '';
@@ -20,6 +43,9 @@ $donde  = [];
 $params = [];
 
 $gravedades_validas = ['baja', 'media', 'alta', 'critica'];
+
+// Las ocultas no salen en la lista ni en las exportaciones
+$donde[] = 'i.oculto = 0';
 
 if ($tipo_id > 0) {
   $donde[]            = 'i.tipo_id = :tipo_id';
@@ -312,6 +338,14 @@ function url_filtros(array $extras = []): string {
                 <div style="display:flex;gap:4px;">
                   <button type="button" class="boton boton-secundario boton-sm" onclick="toggleFila(<?= (int)$inc['id'] ?>)" aria-expanded="false" title="Ver todos los campos">▾</button>
                   <a href="/srci/editar.php?id=<?= (int)$inc['id'] ?>" class="boton boton-primario boton-sm">Editar</a>
+                  <?php if (es_admin()): ?>
+                    <form method="POST" style="display:inline;" onsubmit="return confirm('¿Ocultar esta incidencia? No se borra: pasa a ocultas.');">
+                      <input type="hidden" name="csrf_token"    value="<?= esc($csrf) ?>">
+                      <input type="hidden" name="accion"        value="ocultar">
+                      <input type="hidden" name="incidencia_id" value="<?= (int)$inc['id'] ?>">
+                      <button type="submit" class="boton boton-peligro boton-sm" title="Ocultar (no se borra)">🗑</button>
+                    </form>
+                  <?php endif; ?>
                 </div>
               </td>
             </tr>

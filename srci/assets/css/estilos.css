@@ -267,6 +267,35 @@ h3 { font-size: 1.125rem; font-weight: 600; }
 .gravedad-alta    { background: rgba(249,115,22,.15); color: #c2410c; }
 .gravedad-critica { background: rgba(239,68,68,.15);  color: #b91c1c; }
 
+/* Incidencias ocultas */
+.badge-oculta {
+  display: inline-block;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  background: rgba(100,116,139,.15);
+  color: #475569;
+}
+
+/* Badges de auditoria */
+.aud-badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.aud-crear     { background: rgba(79,70,229,.12);  color: #4f46e5; }
+.aud-editar    { background: rgba(245,158,11,.12); color: #b45309; }
+.aud-estado    { background: rgba(37,99,235,.12);  color: #2563eb; }
+.aud-ocultar   { background: rgba(220,38,38,.12);  color: #b91c1c; }
+.aud-restaurar { background: rgba(22,163,74,.12);  color: #15803d; }
+.aud-foto      { background: rgba(100,116,139,.12); color: #475569; }
+
 /* ============================================================
    Tabla de incidencias
    ============================================================ */

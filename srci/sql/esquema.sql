@@ -62,11 +62,23 @@ CREATE TABLE IF NOT EXISTS incidencias (
   notas              TEXT,
   fecha_hora         DATETIME DEFAULT CURRENT_TIMESTAMP,
   estado             ENUM('pendiente','en_proceso','resuelto') DEFAULT 'pendiente',
+  oculto             TINYINT(1) NOT NULL DEFAULT 0,
   fecha_resolucion   DATETIME,
   INDEX idx_incidencias_barrio (barrio_id),
   FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
   FOREIGN KEY (tipo_id)    REFERENCES tipos_incidencia(id),
   FOREIGN KEY (barrio_id)  REFERENCES barrios(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Log de auditoria: quien, cuando y que (append-only, nunca se borra)
+CREATE TABLE IF NOT EXISTS auditoria (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  usuario_id    INT,
+  accion        VARCHAR(50) NOT NULL,
+  incidencia_id INT,
+  detalle       TEXT,
+  fecha_hora    DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS fotos (

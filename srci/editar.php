@@ -15,6 +15,19 @@ $responsables_validos = ['Cooperativa eléctrica', 'Defensa Civil', 'Municipio',
 $mensaje  = '';
 $tipo_msg = '';
 
+// Datos actuales de la incidencia (para el form y para detectar cambios)
+$stmt = db()->prepare(
+  'SELECT i.*, t.nombre AS tipo_nombre, t.icono AS tipo_icono, u.nombre AS usuario_nombre, b.nombre AS barrio_nombre
+   FROM incidencias i
+   JOIN tipos_incidencia t ON t.id = i.tipo_id
+   JOIN usuarios u         ON u.id = i.usuario_id
+   LEFT JOIN barrios b     ON b.id = i.barrio_id
+   WHERE i.id = :id LIMIT 1'
+);
+$stmt->execute([':id' => $id]);
+$inc = $stmt->fetch();
+if (!$inc) { http_response_code(404); die('Incidencia no encontrada.'); }
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   validar_csrf();
 
@@ -65,6 +78,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ':notas'       => $notas !== '' ? $notas : null,
         ':id'          => $id,
       ]);
+
+      // Log de auditoria: quien edito y que campos cambio
+      $norm = fn($v) => ($v === null || $v === '') ? 'null' : (string)$v;
+      $previo = [
+        'tipo_id'            => (string)$inc['tipo_id'],
+        'barrio_id'          => (string)($inc['barrio_id'] ?? 0),
+        'latitud'            => $norm($inc['latitud']),
+        'longitud'           => $norm($inc['longitud']),
+        'direccion'          => $norm($inc['direccion'] ?? null),
+        'gravedad'           => $norm($inc['gravedad'] ?? null),
+        'familias_afectadas' => $norm($inc['familias_afectadas'] ?? null),
+        'servicio_afectado'  => $norm($inc['servicio_afectado'] ?? null),
+        'calle_intransitable'=> $norm($inc['calle_intransitable'] ?? null),
+        'responsable_area'   => $norm($inc['responsable_area'] ?? null),
+        'contacto_vecino'    => $norm($inc['contacto_vecino'] ?? null),
+        'notas'              => $norm($inc['notas'] ?? null),
+      ];
+      $nuevo = [
+        'tipo_id'            => (string)$tipo_id,
+        'barrio_id'          => (string)$barrio_id,
+        'latitud'            => $norm($latitud),
+        'longitud'           => $norm($longitud),
+        'direccion'          => $norm($direccion),
+        'gravedad'           => $norm($gravedad),
+        'familias_afectadas' => $norm($familias),
+        'servicio_afectado'  => $norm($servicio !== '' ? $servicio : null),
+        'calle_intransitable'=> $norm($calleIntransitable),
+        'responsable_area'   => $norm($responsable !== '' ? $responsable : null),
+        'contacto_vecino'    => $norm($contacto),
+        'notas'              => $norm($notas !== '' ? $notas : null),
+      ];
+      $cambiados = [];
+      foreach ($previo as $campo => $valorAnterior) {
+        if ($valorAnterior !== $nuevo[$campo]) {
+          $cambiados[] = $campo . ': ' . $valorAnterior . ' → ' . $nuevo[$campo];
+        }
+      }
+      $detalle = $cambiados ? 'Edito: ' . implode('; ', $cambiados) : 'Guardo sin cambios';
+      registrar_auditoria((int)$_SESSION['usuario_id'], 'editar', $id, $detalle);
+
       $mensaje  = 'Incidencia actualizada.';
       $tipo_msg = 'exito';
     } catch (PDOException $e) {
@@ -73,18 +126,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
   }
 }
-
-$stmt = db()->prepare(
-  'SELECT i.*, t.nombre AS tipo_nombre, t.icono AS tipo_icono, u.nombre AS usuario_nombre, b.nombre AS barrio_nombre
-   FROM incidencias i
-   JOIN tipos_incidencia t ON t.id = i.tipo_id
-   JOIN usuarios u         ON u.id = i.usuario_id
-   LEFT JOIN barrios b     ON b.id = i.barrio_id
-   WHERE i.id = :id LIMIT 1'
-);
-$stmt->execute([':id' => $id]);
-$inc = $stmt->fetch();
-if (!$inc) { http_response_code(404); die('Incidencia no encontrada.'); }
 
 $tipos_lista   = db()->query('SELECT id, nombre, icono FROM tipos_incidencia WHERE activo = 1 ORDER BY id')->fetchAll();
 $barrios_lista = db()->query('SELECT id, nombre FROM barrios WHERE activo = 1 ORDER BY nombre')->fetchAll();

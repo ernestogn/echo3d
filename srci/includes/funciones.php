@@ -74,6 +74,23 @@ function clase_gravedad(?string $gravedad): string
   };
 }
 
+// Registra una accion en el log de auditoria (quien, cuando, que)
+// Nunca rompe el flujo principal si falla
+function registrar_auditoria(int $usuario_id, string $accion, ?int $incidencia_id, string $detalle = ''): void
+{
+  try {
+    $stmt = db()->prepare('INSERT INTO auditoria (usuario_id, accion, incidencia_id, detalle) VALUES (:u, :a, :i, :d)');
+    $stmt->execute([
+      ':u' => $usuario_id,
+      ':a' => $accion,
+      ':i' => $incidencia_id,
+      ':d' => $detalle !== '' ? $detalle : null,
+    ]);
+  } catch (PDOException $e) {
+    // La auditoria no debe interrumpir el flujo
+  }
+}
+
 // Valida y guarda una foto subida
 // Devuelve la ruta relativa o lanza Exception
 function guardar_foto(array $archivo): string
@@ -122,3 +139,4 @@ function enviar_pin_por_email(string $email, string $nombre, string $pin): bool
   ]);
   return @mail($email, $asunto, base64_encode($cuerpo), $headers);
 }
+  

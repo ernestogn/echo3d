@@ -73,6 +73,7 @@ $csrf    = csrf_token();
     <a href="/srci/admin/usuarios.php" class="admin-nav-item">👥 Usuarios</a>
     <a href="/srci/admin/tipos.php"    class="admin-nav-item">🏷️ Tipos</a>
     <a href="/srci/admin/barrios.php"  class="admin-nav-item activo">🏙️ Barrios</a>
+    <a href="/srci/admin/auditoria.php" class="admin-nav-item">🧾 Auditoría</a>
   </aside>
 
   <main class="admin-main">

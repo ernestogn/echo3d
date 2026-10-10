@@ -41,4 +41,7 @@ try {
 $stmt = db()->prepare('INSERT INTO fotos (incidencia_id, ruta_archivo) VALUES (:incidencia_id, :ruta)');
 $stmt->execute([':incidencia_id' => $incidencia_id, ':ruta' => $nombre_archivo]);
 
+// Log de auditoria: quien subio la foto
+registrar_auditoria((int)$_SESSION['usuario_id'], 'subir_foto', $incidencia_id, 'Subio una foto');
+
 respuesta_json(['ok' => true, 'ruta' => UPLOADS_URL . $nombre_archivo], 201);
