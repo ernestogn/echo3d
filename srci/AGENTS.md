@@ -64,7 +64,7 @@ srci/
 │
 ├── admin/
 │   ├── reportes.php       Panel admin: listado de reportes + cambio de estado via form POST
-│   ├── usuarios.php       Panel admin: crear usuarios, regenerar PIN, activar/desactivar
+│   ├── usuarios.php       Panel admin: crear usuarios, editarlos (nombre/email/rol), regenerar PIN, activar/desactivar
 │   ├── tipos.php          Panel admin: crear tipos de incidencia, activar/desactivar
 │   ├── barrios.php        Panel admin: crear barrios, activar/desactivar
 │   └── auditoria.php      Panel admin: log de auditoria (quien, cuando, que hizo)

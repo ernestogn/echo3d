@@ -45,6 +45,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
   }
 
+  // Editar usuario (nombre, email, rol)
+  if ($accion === 'editar') {
+    $uid    = (int)($_POST['usuario_id'] ?? 0);
+    $nombre = trim($_POST['nombre'] ?? '');
+    $email  = trim($_POST['email']  ?? '');
+    $rol    = $_POST['rol'] ?? 'usuario';
+    $roles  = ['usuario','admin'];
+
+    if ($nombre === '') {
+      $mensaje  = 'El nombre es obligatorio.';
+      $tipo_msg = 'error';
+    } elseif (!in_array($rol, $roles, true)) {
+      $mensaje  = 'Rol invalido.';
+      $tipo_msg = 'error';
+    } elseif ($uid <= 0) {
+      $mensaje  = 'Usuario invalido.';
+      $tipo_msg = 'error';
+    } else {
+      $st = db()->prepare('SELECT id, nombre, email, rol FROM usuarios WHERE id = :id');
+      $st->execute([':id' => $uid]);
+      $u = $st->fetch();
+
+      if (!$u) {
+        $mensaje  = 'El usuario no existe.';
+        $tipo_msg = 'error';
+      } elseif ((int)$u['id'] === (int)$_SESSION['usuario_id'] && $rol !== $u['rol']) {
+        // Evita que un admin se degrade a si mismo y pierda el panel
+        $mensaje  = 'No podes cambiar tu propio rol.';
+        $tipo_msg = 'error';
+      } else {
+        $email_nuevo = $email !== '' ? $email : null;
+        $cambios = [];
+        if ($nombre !== $u['nombre']) {
+          $cambios[] = "nombre: '{$u['nombre']}' -> '{$nombre}'";
+        }
+        if ($email_nuevo !== $u['email']) {
+          $cambios[] = 'email: ' . ($u['email'] ?? '(vacio)') . ' -> ' . ($email_nuevo ?? '(vacio)');
+        }
+        if ($rol !== $u['rol']) {
+          $cambios[] = "rol: {$u['rol']} -> {$rol}";
+        }
+
+        if (!$cambios) {
+          $mensaje  = 'Sin cambios: los datos ya eran esos.';
+          $tipo_msg = 'info';
+        } else {
+          try {
+            $stmt = db()->prepare('UPDATE usuarios SET nombre = :n, email = :e, rol = :r WHERE id = :id');
+            $stmt->execute([':n' => $nombre, ':e' => $email_nuevo, ':r' => $rol, ':id' => $uid]);
+            $mensaje  = "Usuario '{$nombre}' actualizado.";
+            $tipo_msg = 'exito';
+            registrar_auditoria(
+              (int)$_SESSION['usuario_id'],
+              'editar',
+              null,
+              'Edito a ' . $u['nombre'] . ' (#' . $uid . '): ' . implode('; ', $cambios)
+            );
+          } catch (PDOException $e) {
+            $mensaje  = 'Ese nombre de usuario ya existe.';
+            $tipo_msg = 'error';
+          }
+        }
+      }
+    }
+  }
+
   // Regenerar PIN
   if ($accion === 'nuevo_pin') {
     $uid = (int)($_POST['usuario_id'] ?? 0);
@@ -155,7 +221,7 @@ $csrf = csrf_token();
 
     <?php if ($mensaje !== ''): ?>
       <div class="mensaje mensaje-<?= esc($tipo_msg) ?>" style="margin-bottom:var(--espacio-xl);" role="alert">
-        <span><?= $tipo_msg === 'exito' ? '✓' : '⚠️' ?></span>
+        <span><?= $tipo_msg === 'exito' ? '✓' : ($tipo_msg === 'info' ? 'ℹ️' : '⚠️') ?></span>
         <span><?= esc($mensaje) ?></span>
       </div>
     <?php endif; ?>
@@ -208,6 +274,15 @@ $csrf = csrf_token();
               <td><?= esc(fecha_legible($u['creado_en'])) ?></td>
               <td>
                 <div style="display:flex;gap:var(--espacio-sm);flex-wrap:wrap;">
+                  <!-- Editar usuario -->
+                  <button type="button" class="boton boton-secundario boton-sm" onclick="abrirModalEditar(this)"
+                          data-id="<?= (int)$u['id'] ?>"
+                          data-nombre="<?= esc($u['nombre']) ?>"
+                          data-email="<?= esc($u['email'] ?? '') ?>"
+                          data-rol="<?= esc($u['rol']) ?>"
+                          data-self="<?= (int)$u['id'] === (int)$_SESSION['usuario_id'] ? '1' : '0' ?>">
+                    ✏️ Editar
+                  </button>
                   <!-- Regenerar PIN -->
                   <form method="POST" style="display:inline;">
                     <input type="hidden" name="csrf_token"  value="<?= esc($csrf) ?>">
@@ -238,5 +313,65 @@ $csrf = csrf_token();
     </div>
   </main>
 </div>
+
+<!-- Modal editar usuario -->
+<div class="modal-fondo" id="modal-editar" role="dialog" aria-modal="true" aria-labelledby="modal-editar-titulo">
+  <div class="modal-caja">
+    <div class="modal-encabezado">
+      <h2 id="modal-editar-titulo">Editar usuario</h2>
+      <button class="modal-cerrar" type="button" aria-label="Cerrar" onclick="cerrarModalEditar()">×</button>
+    </div>
+    <form method="POST" action="/srci/admin/usuarios.php" id="form-editar">
+      <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
+      <input type="hidden" name="accion"     value="editar">
+      <input type="hidden" name="usuario_id" id="editar-id" value="">
+      <div class="campo" style="margin-bottom:var(--espacio-md);">
+        <label for="editar-nombre">Nombre (es el usuario de login)</label>
+        <input type="text" id="editar-nombre" name="nombre" required>
+      </div>
+      <div class="campo" style="margin-bottom:var(--espacio-md);">
+        <label for="editar-email">Email (para enviar PIN)</label>
+        <input type="email" id="editar-email" name="email" placeholder="opcional">
+      </div>
+      <div class="campo" style="margin-bottom:var(--espacio-md);">
+        <label for="editar-rol">Rol</label>
+        <select id="editar-rol" name="rol">
+          <option value="usuario">Usuario</option>
+          <option value="admin">Admin</option>
+        </select>
+        <p id="editar-rol-nota" style="display:none;color:var(--color-texto-suave);font-size:.8rem;margin:var(--espacio-xs) 0 0;">
+          No podés cambiar tu propio rol.
+        </p>
+      </div>
+      <button type="submit" class="boton boton-primario boton-bloque">Guardar cambios</button>
+    </form>
+  </div>
+</div>
+
+<script>
+function abrirModalEditar(btn) {
+  document.getElementById('editar-id').value     = btn.dataset.id;
+  document.getElementById('editar-nombre').value = btn.dataset.nombre;
+  document.getElementById('editar-email').value  = btn.dataset.email;
+  document.getElementById('editar-rol').value    = btn.dataset.rol;
+  const esSelf = btn.dataset.self === '1';
+  document.getElementById('editar-rol').disabled = esSelf;
+  document.getElementById('editar-rol-nota').style.display = esSelf ? 'block' : 'none';
+  document.getElementById('modal-editar').classList.add('visible');
+}
+function cerrarModalEditar() {
+  document.getElementById('modal-editar').classList.remove('visible');
+}
+document.getElementById('modal-editar').addEventListener('click', function (e) {
+  if (e.target === this) cerrarModalEditar();
+});
+document.getElementById('form-editar').addEventListener('submit', function () {
+  // Un select disabled no se envia: lo re-habilitamos para que llegue el rol actual
+  document.getElementById('editar-rol').disabled = false;
+});
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') cerrarModalEditar();
+});
+</script>
 </body>
 </html>
