@@ -178,7 +178,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 }
 
-$usuarios = db()->query('SELECT id, nombre, email, rol, activo, creado_en FROM usuarios ORDER BY id')->fetchAll();
+$usuarios = db()->query(
+  "SELECT u.id, u.nombre, u.email, u.rol, u.activo, u.creado_en,
+          GROUP_CONCAT(b.nombre ORDER BY b.nombre SEPARATOR ', ') AS barrios
+   FROM usuarios u
+   LEFT JOIN referentes_barrios rb ON rb.usuario_id = u.id
+   LEFT JOIN barrios b ON b.id = rb.barrio_id
+   GROUP BY u.id
+   ORDER BY u.id"
+)->fetchAll();
 $csrf = csrf_token();
 ?>
 <!DOCTYPE html>
@@ -257,7 +265,7 @@ $csrf = csrf_token();
     <div class="tabla-contenedor">
       <table class="tabla-incidencias">
         <thead>
-          <tr><th>#</th><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th>Creado</th><th>Acciones</th></tr>
+          <tr><th>#</th><th>Nombre</th><th>Email</th><th>Barrios</th><th>Rol</th><th>Estado</th><th>Creado</th><th>Acciones</th></tr>
         </thead>
         <tbody>
           <?php foreach ($usuarios as $u): ?>
@@ -265,6 +273,7 @@ $csrf = csrf_token();
               <td><?= (int)$u['id'] ?></td>
               <td><strong><?= esc($u['nombre']) ?></strong></td>
               <td><?= esc($u['email'] ?? '—') ?></td>
+              <td style="font-size:.8rem;color:var(--color-texto-suave);max-width:220px;"><?= esc($u['barrios'] ?? '—') ?></td>
               <td><span style="text-transform:capitalize;"><?= esc($u['rol']) ?></span></td>
               <td>
                 <span class="estado-badge" style="<?= $u['activo'] ? 'background:rgba(34,197,94,.15);color:var(--color-verde)' : 'background:rgba(239,68,68,.15);color:var(--color-rojo)' ?>">

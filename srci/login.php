@@ -18,10 +18,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $pin    = trim($_POST['pin'] ?? '');
 
   if ($nombre === '' || $pin === '') {
-    $error = 'Ingresa tu nombre y PIN para continuar.';
+    $error = 'Ingresa tu nombre o email y tu PIN para continuar.';
   } else {
-    $stmt = db()->prepare('SELECT id, nombre, pin_hash, rol, activo FROM usuarios WHERE nombre = :nombre LIMIT 1');
-    $stmt->execute([':nombre' => $nombre]);
+    $stmt = db()->prepare('SELECT id, nombre, pin_hash, rol, activo FROM usuarios WHERE nombre = :login OR email = :login LIMIT 1');
+    $stmt->execute([':login' => $nombre]);
     $usuario = $stmt->fetch();
 
     if (!$usuario || !$usuario['activo']) {
@@ -73,9 +73,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="hidden" name="pin"    id="campo-pin">
 
         <div class="campo" style="margin-bottom:var(--espacio-lg);">
-          <label for="nombre-visible">Email</label>
+          <label for="nombre-visible">Nombre o email</label>
           <input
-            type="email"
+            type="text"
             id="nombre-visible"
             name="_nombre_visible"
             autocomplete="username"
