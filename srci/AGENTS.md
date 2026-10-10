@@ -61,7 +61,8 @@ srci/
 │   ├── reportes.php       GET  /srci/api/reportes.php   — lista incidencias con filtros opcionales
 │                          POST /srci/api/reportes.php   — crea nueva incidencia (JSON body)
 │   ├── subir_foto.php     POST /srci/api/subir_foto.php — sube foto (multipart/form-data)
-│   └── estado.php         POST /srci/api/estado.php     — cambia estado de incidencia (solo admin, JSON body)
+│   ├── estado.php         POST /srci/api/estado.php     — cambia estado de incidencia (solo admin, JSON body)
+│   └── sheets_entrada.php POST /srci/api/sheets_entrada.php — importa filas manuales de la planilla (auth por SRCI_SHEETS_SECRET; sin espejo)
 │
 ├── admin/
 │   ├── reportes.php       Panel admin: listado de reportes + cambio de estado via form POST
@@ -128,6 +129,8 @@ Usuarios del relevamiento: cargados por script one-shot con username = email; el
 **Sesion larga (auth.php):** `SESION_DURACION` = 90 dias, cookie persistente + **sliding** (`renovar_sesion()` en `requiere_sesion()` renueva la cookie en cada request) + `session.gc_maxlifetime` = 90 dias. La sesion permanece viva hasta logout explicito (`logout.php` destruye sesion y borra cookie). Si se quiere mas/menos, ajustar `SESION_DURACION`.
 
 **Alineacion con la planilla de relevamiento** (`Planilla_relevamiento_barrios.xlsx`): el formulario pide Barrio, Direccion/calle y altura, Gravedad (obligatorios) y Familias afectadas, Servicio afectado, Calle intransitable, Responsable/area, Contacto vecino (opcionales). "Dias abiertos" se calcula (fecha_hora → fecha_resolucion o hoy). Estado: "En gestion" = `en_proceso`.
+
+**Espejo bidireccional con Google Sheets (planilla de relevamiento, gid 73522773):** via Apps Script Web App (`SRCI_SHEETS_WEBAPP_URL` + `SRCI_SHEETS_SECRET` en config.local.php). Ida (app → hoja): cada reporte/foto/cambio de estado envia fire-and-forget (`enviar_a_sheets()`, funciones.php; Apps Script responde 302 y el echo final se llama con GET — el payload viaja en user_content_key). Vuelta (hoja → app): el script `sincronizarEntrada()` (trigger cada 5 min) escanea filas de datos **sin tag en col T** y las importa via `api/sheets_entrada.php` (accion 'importar'); al importar escribe tag `APP-<id>` en col T — ese tag es el dedupe: filas de la app ya nacen taggeadas, filas importadas quedan taggeadas, ERROR-xxx si la importacion falla. Coordenadas de importados = centro de la ciudad con aviso en notas; barrio inexistente se crea; "Relevado por" matchea usuario por nombre, fallback usuario dedicado 'Planilla' (inactivo). Cambiar el codigo del script requiere "Nueva version" en Administrar implementaciones.
 
 **Ocultar (soft delete) + auditoria (REGLAS):** las incidencias **nunca se borran** de la BD. "Eliminar" = pasar a `oculto = 1` (solo admins, con CSRF y confirm). El mapa, listado y exportaciones filtran `oculto = 0`; el admin ve/restaura las ocultas desde `admin/reportes.php?ocultas=1`. Toda accion (crear, editar con detalle de campos cambiados, cambiar estado, ocultar, restaurar, subir foto) se registra en la tabla `auditoria` con `registrar_auditoria()` (`includes/funciones.php`) — visible en `/srci/admin/auditoria.php`.
 
