@@ -25,10 +25,25 @@ $direccion = trim((string)($datos['direccion'] ?? ''));
 // Sanitizar sin rechazar: los referentes cargan con datos incompletos.
 // Todo campo es opcional; lo que falte queda NULL/vacio y se completa despues.
 
-// Tipo por nombre (collation ci); si no existe -> 'Otro'
-$st = db()->prepare('SELECT id FROM tipos_incidencia WHERE nombre = :n LIMIT 1');
-$st->execute([':n' => trim((string)($datos['tipo'] ?? ''))]);
-$tipo_id = (int)($st->fetchColumn() ?: 0);
+// Tipo por nombre (collation ci); si no existe -> por palabra; si no -> 'Otro'
+$tipo_nombre = trim((string)($datos['tipo'] ?? ''));
+$tipo_id = 0;
+if ($tipo_nombre !== '') {
+  $st = db()->prepare('SELECT id FROM tipos_incidencia WHERE nombre = :n LIMIT 1');
+  $st->execute([':n' => $tipo_nombre]);
+  $tipo_id = (int)($st->fetchColumn() ?: 0);
+  if ($tipo_id === 0) {
+    // match parcial por palabra (ej: 'Caída de árbol' -> 'Arbol caido / en riesgo')
+    $palabras = preg_split('/\s+/', $tipo_nombre, -1, PREG_SPLIT_NO_EMPTY);
+    foreach ($palabras as $p) {
+      if (mb_strlen($p) < 4) continue;
+      $st = db()->prepare('SELECT id FROM tipos_incidencia WHERE nombre LIKE :p ORDER BY activo DESC LIMIT 1');
+      $st->execute([':p' => '%' . $p . '%']);
+      $tipo_id = (int)($st->fetchColumn() ?: 0);
+      if ($tipo_id > 0) break;
+    }
+  }
+}
 if ($tipo_id === 0) {
   $tipo_id = (int)db()->query("SELECT id FROM tipos_incidencia WHERE clave = 'otro' LIMIT 1")->fetchColumn();
 }
@@ -60,6 +75,18 @@ if ($relevado !== '') {
   $usuario_id = (int)($st->fetchColumn() ?: 0);
 }
 if ($usuario_id === 0) {
+  // match parcial por palabra ('Scaglia' -> 'Maximiliano Scaglia')
+  $palabras = preg_split('/\s+/', $relevado, -1, PREG_SPLIT_NO_EMPTY);
+  foreach ($palabras as $p) {
+    if (mb_strlen($p) < 4) continue;
+    $st = db()->prepare('SELECT id FROM usuarios WHERE nombre LIKE :p LIMIT 1');
+    $st->execute([':p' => '%' . $p . '%']);
+    $usuario_id = (int)($st->fetchColumn() ?: 0);
+    if ($usuario_id > 0) break;
+  }
+}
+if ($usuario_id === 0) {
+  // fallback: usuario dedicado 'Planilla' (inactivo, nadie loguea con el)
   $st = db()->query("SELECT id FROM usuarios WHERE nombre = 'Planilla' LIMIT 1");
   $usuario_id = (int)($st->fetchColumn() ?: 0);
   if ($usuario_id === 0) {
