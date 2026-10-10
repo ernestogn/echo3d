@@ -713,7 +713,7 @@ h3 { font-size: 1.125rem; font-weight: 600; }
    Pagina de listado / contenedor principal
    ============================================================ */
 .pagina-contenedor {
-  max-width: 1200px;
+  max-width: 90%;
   margin: 0 auto;
   padding: var(--espacio-xl) var(--espacio-lg);
 }

@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ingresar — SRCI</title>
   <meta name="description" content="Acceso al Sistema de Reporte Ciudadano de Incidencias.">
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010b">
 </head>
 <body>
 <div class="login-pantalla">
