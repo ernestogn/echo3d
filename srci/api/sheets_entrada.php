@@ -42,7 +42,8 @@ $barrio_id = null;
 if ($barrio_nombre !== '') {
   $st = db()->prepare('SELECT id FROM barrios WHERE nombre = :n LIMIT 1');
   $st->execute([':n' => $barrio_nombre]);
-  $barrio_id = $st->fetchColumn() ? (int)$st->fetchColumn() : null;
+  $encontrado = $st->fetchColumn(); // una sola llamada: consume el cursor
+  $barrio_id = $encontrado ? (int)$encontrado : null;
   if ($barrio_id === null) {
     $st = db()->prepare('INSERT INTO barrios (nombre) VALUES (:n)');
     $st->execute([':n' => $barrio_nombre]);
