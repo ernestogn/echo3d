@@ -21,7 +21,7 @@ if (!defined('SRCI_MAGIC_SECRET')) {
   define('SRCI_MAGIC_SECRET', 'srci-dev-secret-cambiar-en-config-local');
 }
 
-define('MAGIC_LINK_DIAS', 7);
+define('MAGIC_LINK_DIAS', 30);
 
 // Genera un magic link firmado (HMAC-SHA256) para que un usuario ingrese sin PIN
 function generar_magic_link(int $usuario_id): string
