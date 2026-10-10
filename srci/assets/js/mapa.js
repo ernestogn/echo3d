@@ -136,6 +136,14 @@ async function cargarFiltros() {
   });
   cont.appendChild(chipMios);
 
+  // Rueda del mouse: scrollea los chips horizontalmente
+  cont.addEventListener('wheel', (e) => {
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      e.preventDefault();
+      cont.scrollLeft += e.deltaY;
+    }
+  }, { passive: false });
+
   actualizarChips();
 }
 

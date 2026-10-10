@@ -533,18 +533,17 @@ h3 { font-size: 1.125rem; font-weight: 600; }
   position: absolute;
   top: 10px;
   left: 10px;
-  right: 10px;
+  max-width: calc(100% - 20px);
   z-index: 500;
   display: flex;
   gap: 6px;
   overflow-x: auto;
   padding: 2px;
   scrollbar-width: none;
-  pointer-events: none;
+  -webkit-overflow-scrolling: touch;
 }
 #filtros-mapa::-webkit-scrollbar { display: none; }
 #filtros-mapa .chip-filtro {
-  pointer-events: auto;
   flex: none;
   display: inline-flex;
   align-items: center;
