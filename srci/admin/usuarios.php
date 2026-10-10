@@ -261,6 +261,14 @@ $csrf = csrf_token();
       </form>
     </div>
 
+    <!-- Buscador -->
+    <div style="display:flex;gap:var(--espacio-md);align-items:center;margin-bottom:var(--espacio-md);flex-wrap:wrap;">
+      <input type="search" id="buscador-usuarios" autocomplete="off"
+             placeholder="Buscar por nombre, email o barrio…  (tecla /)"
+             style="flex:1;min-width:260px;padding:10px 14px;border:1px solid var(--color-borde);border-radius:var(--radio-md);font-size:.95rem;background:var(--color-superficie);color:var(--color-texto);">
+      <span id="contador-usuarios" style="color:var(--color-texto-suave);font-size:.85rem;"></span>
+    </div>
+
     <!-- Tabla de usuarios -->
     <div class="tabla-contenedor">
       <table class="tabla-incidencias">
@@ -358,6 +366,30 @@ $csrf = csrf_token();
 </div>
 
 <script>
+// Buscador: filtra filas por nombre, email, barrio, rol o estado
+const buscador  = document.getElementById('buscador-usuarios');
+const filas     = Array.from(document.querySelectorAll('.tabla-incidencias tbody tr'));
+const contador  = document.getElementById('contador-usuarios');
+function filtrarUsuarios() {
+  const q = buscador.value.trim().toLowerCase();
+  let visibles = 0;
+  filas.forEach(function (f) {
+    const ok = f.textContent.toLowerCase().includes(q);
+    f.style.display = ok ? '' : 'none';
+    if (ok) visibles++;
+  });
+  contador.textContent = q ? (visibles + ' de ' + filas.length) : '';
+}
+buscador.addEventListener('input', filtrarUsuarios);
+// Tecla / enfoca el buscador (si no se esta escribiendo en otro campo)
+document.addEventListener('keydown', function (e) {
+  const tag = (document.activeElement && document.activeElement.tagName) || '';
+  if (e.key === '/' && !['INPUT', 'SELECT', 'TEXTAREA'].includes(tag)) {
+    e.preventDefault();
+    buscador.focus();
+  }
+});
+
 function abrirModalEditar(btn) {
   document.getElementById('editar-id').value     = btn.dataset.id;
   document.getElementById('editar-nombre').value = btn.dataset.nombre;
