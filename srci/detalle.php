@@ -91,7 +91,7 @@ $fotos = $fotos->fetchAll();
       <span class="gravedad-badge <?= clase_gravedad($inc['gravedad']) ?>"><?= esc(nombre_gravedad($inc['gravedad'])) ?></span>
       <span class="estado-badge <?= clase_estado($inc['estado']) ?>"><?= esc(nombre_estado($inc['estado'])) ?></span>
       <?php if (es_admin()): ?>
-        <form method="POST" onsubmit="return confirm('¿<?= $inc['oculto'] ? 'Restaurar' : 'Ocultar' ?> esta incidencia? No se borra.');">
+        <form method="POST" onsubmit="return confirm('<?= $inc['oculto'] ? '¿Restaurar esta incidencia? Vuelve a la lista activa.' : '¿Ocultar esta incidencia? No se borra: pasa a ocultas.' ?>');">
           <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
           <input type="hidden" name="accion"     value="<?= $inc['oculto'] ? 'restaurar' : 'ocultar' ?>">
           <button type="submit" class="boton <?= $inc['oculto'] ? 'boton-secundario' : 'boton-peligro' ?> boton-sm">

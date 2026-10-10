@@ -137,6 +137,7 @@ function enviar_pin_por_email(string $email, string $nombre, string $pin): bool
     'Content-Type: text/plain; charset=UTF-8',
     'Content-Transfer-Encoding: base64',
   ]);
-  return @mail($email, $asunto, base64_encode($cuerpo), $headers);
+  // Envelope sender alineado con el From (evita DMARC:Quarantine / spam de Gmail)
+  return @mail($email, $asunto, base64_encode($cuerpo), $headers, '-fadmin@echo3dlaser.com.ar');
 }
   
