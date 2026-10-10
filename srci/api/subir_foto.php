@@ -44,4 +44,11 @@ $stmt->execute([':incidencia_id' => $incidencia_id, ':ruta' => $nombre_archivo])
 // Log de auditoria: quien subio la foto
 registrar_auditoria((int)$_SESSION['usuario_id'], 'subir_foto', $incidencia_id, 'Subio una foto');
 
+// Espejo en Google Sheets: actualizar el link de foto de esa fila
+enviar_a_sheets([
+  'accion' => 'foto',
+  'id'     => $incidencia_id,
+  'foto'   => 'https://echo3dlaser.com.ar' . UPLOADS_URL . $nombre_archivo,
+]);
+
 respuesta_json(['ok' => true, 'ruta' => UPLOADS_URL . $nombre_archivo], 201);

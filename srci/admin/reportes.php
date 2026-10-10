@@ -26,6 +26,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt = db()->prepare($sql);
     $stmt->execute([':estado' => $estado, ':id' => $id_inc]);
     registrar_auditoria((int)$_SESSION['usuario_id'], 'cambiar_estado', $id_inc, "Estado: {$estado_anterior} → {$estado}");
+
+    // Espejo en Google Sheets: actualizar estado y fecha de resolucion de esa fila
+    enviar_a_sheets([
+      'accion'           => 'estado',
+      'id'               => $id_inc,
+      'estado'           => $estado,
+      'fecha_resolucion' => $estado === 'resuelto' ? date('Y-m-d H:i:s') : null,
+    ]);
   }
   header('Location: /srci/admin/reportes.php');
   exit;

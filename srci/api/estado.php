@@ -34,4 +34,12 @@ $stmt->execute([':estado' => $estado, ':id' => $incidencia_id]);
 // Log de auditoria: quien cambio el estado
 registrar_auditoria((int)$_SESSION['usuario_id'], 'cambiar_estado', $incidencia_id, "Estado: {$estado_anterior} → {$estado}");
 
+// Espejo en Google Sheets: actualizar estado y fecha de resolucion de esa fila
+enviar_a_sheets([
+  'accion'           => 'estado',
+  'id'               => $incidencia_id,
+  'estado'           => $estado,
+  'fecha_resolucion' => $estado === 'resuelto' ? date('Y-m-d H:i:s') : null,
+]);
+
 respuesta_json(['ok' => true]);

@@ -148,6 +148,29 @@ if ($metodo === 'POST') {
   // Log de auditoria: quien cargo la incidencia
   registrar_auditoria((int)$_SESSION['usuario_id'], 'crear', $id, 'Cargo una incidencia');
 
+  // Espejo en Google Sheets: fila nueva en la planilla de relevamiento
+  $st_tipo   = db()->prepare('SELECT nombre FROM tipos_incidencia WHERE id = :id');
+  $st_barrio = db()->prepare('SELECT nombre FROM barrios WHERE id = :id');
+  enviar_a_sheets([
+    'accion'           => 'reporte',
+    'id'               => $id,
+    'fecha_hora'       => date('Y-m-d H:i:s'),
+    'tipo'             => $st_tipo->execute([':id' => $tipo_id]) ? ($st_tipo->fetchColumn() ?: '') : '',
+    'barrio'           => $st_barrio->execute([':id' => $barrio_id]) ? ($st_barrio->fetchColumn() ?: '') : '',
+    'direccion'        => $direccion,
+    'gravedad'         => $gravedad,
+    'familias'         => $familias,
+    'servicio'         => $servicio,
+    'calle'            => $calleIntransitable,
+    'estado'           => 'pendiente',
+    'responsable'      => $responsable,
+    'contacto'         => $contacto,
+    'notas'            => $notas,
+    'relevado_por'     => $_SESSION['nombre'] ?? '',
+    'fecha_resolucion' => null,
+    'foto'             => null,
+  ]);
+
   respuesta_json(['ok' => true, 'id' => $id], 201);
 }
 

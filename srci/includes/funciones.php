@@ -113,6 +113,36 @@ function clase_gravedad(?string $gravedad): string
   };
 }
 
+// --- Espejo en Google Sheets (via Apps Script Web App) ---
+// Configurar en config.local.php (fuera de git):
+//   define('SRCI_SHEETS_WEBAPP_URL', 'https://script.google.com/macros/s/.../exec');
+//   define('SRCI_SHEETS_SECRET', 'secreto_compartido');
+// Fire-and-forget: si Google falla o tarda, el flujo principal sigue igual
+
+// Envia un payload al webhook de Sheets; nunca lanza excepciones
+function enviar_a_sheets(array $payload): void
+{
+  if (!defined('SRCI_SHEETS_WEBAPP_URL') || SRCI_SHEETS_WEBAPP_URL === '') {
+    return;
+  }
+  try {
+    $payload['secreto'] = defined('SRCI_SHEETS_SECRET') ? SRCI_SHEETS_SECRET : '';
+    $ch = curl_init(SRCI_SHEETS_WEBAPP_URL);
+    curl_setopt_array($ch, [
+      CURLOPT_POST           => true,
+      CURLOPT_POSTFIELDS     => json_encode($payload, JSON_UNESCAPED_UNICODE),
+      CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+      CURLOPT_RETURNTRANSFER => true,
+      CURLOPT_CONNECTTIMEOUT => 2,
+      CURLOPT_TIMEOUT        => 5,
+    ]);
+    curl_exec($ch);
+    curl_close($ch);
+  } catch (Throwable $e) {
+    // El espejo no debe interrumpir el flujo
+  }
+}
+
 // Registra una accion en el log de auditoria (quien, cuando, que)
 // Nunca rompe el flujo principal si falla
 function registrar_auditoria(int $usuario_id, string $accion, ?int $incidencia_id, string $detalle = ''): void
