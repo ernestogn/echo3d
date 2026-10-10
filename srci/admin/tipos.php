@@ -151,12 +151,11 @@ $csrf  = csrf_token();
             <input type="text" id="t-nombre" name="nombre" required placeholder="ej: Bache en calzada">
           </div>
           <div class="campo">
-            <label for="t-icono">Emoji</label>
-            <input type="text" id="t-icono" name="icono" maxlength="10" placeholder="🚧">
+            <label for="t-icono">Emoji (tocá para elegir)</label>
+            <input type="text" id="t-icono" name="icono" maxlength="10" placeholder="🚧" onclick="abrirSelectorIconos(this)" style="cursor:pointer;font-size:1.3rem;text-align:center;">
           </div>
           <button type="submit" class="boton boton-primario" style="align-self:flex-end;">Crear</button>
         </div>
-        <div id="selector-icono-crear" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:var(--espacio-md);"></div>
       </form>
     </div>
 
@@ -219,34 +218,55 @@ $csrf  = csrf_token();
       </div>
       <div class="campo" style="margin-bottom:var(--espacio-lg);">
         <label for="editar-icono">Icono (emoji)</label>
-        <input type="text" id="editar-icono" name="icono" maxlength="10" placeholder="🌳">
-        <div id="selector-icono-editar" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:var(--espacio-sm);"></div>
+        <input type="text" id="editar-icono" name="icono" maxlength="10" placeholder="🌳" onclick="abrirSelectorIconos(this)" style="cursor:pointer;font-size:1.3rem;text-align:center;">
       </div>
       <button type="submit" class="boton boton-primario boton-bloque">Guardar cambios</button>
     </form>
   </div>
 </div>
 
+<!-- Modal selector de icono -->
+<div class="modal-fondo" id="modal-iconos" role="dialog" aria-modal="true" aria-label="Elegir icono" style="z-index:1100;">
+  <div class="modal-caja">
+    <div class="modal-encabezado">
+      <h2>Elegir icono</h2>
+      <button class="modal-cerrar" type="button" aria-label="Cerrar" onclick="cerrarSelectorIconos()">×</button>
+    </div>
+    <div id="grilla-iconos" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:8px;"></div>
+  </div>
+</div>
+
 <script>
 const ICONOS_TIPO = ['🌳','🕳️','🏚️','🏠','⚡','💧','🗑️','💡','🌧️','🌊','🚧','🛣️','🚦','🔥','🚗','🐕','🦟','🐀','🏗️','🚰','🌿','💥','🚸','🔌','🏢','🌉','⛑️','🚨','⚠️','🧱','🪧','🚏','⛲','🪑','📋'];
 
-// Selector de emojis: botones que completan el input
-function crearSelectorIconos(contenedor, input) {
-  ICONOS_TIPO.forEach(function (ico) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.textContent = ico;
-    b.title = 'Usar ' + ico;
-    b.style.cssText = 'width:38px;height:38px;font-size:1.25rem;border:1px solid var(--color-borde);border-radius:var(--radio-sm);background:var(--color-fondo);cursor:pointer;line-height:1;';
-    b.addEventListener('click', function () {
-      input.value = ico;
-      input.focus();
-    });
-    contenedor.appendChild(b);
-  });
+let inputIconoActivo = null;
+function abrirSelectorIconos(input) {
+  inputIconoActivo = input;
+  input.blur();
+  document.getElementById('modal-iconos').classList.add('visible');
 }
-crearSelectorIconos(document.getElementById('selector-icono-crear'), document.getElementById('t-icono'));
-crearSelectorIconos(document.getElementById('selector-icono-editar'), document.getElementById('editar-icono'));
+function cerrarSelectorIconos() {
+  inputIconoActivo = null;
+  document.getElementById('modal-iconos').classList.remove('visible');
+}
+
+// Grilla del picker
+const grillaIconos = document.getElementById('grilla-iconos');
+ICONOS_TIPO.forEach(function (ico) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.textContent = ico;
+  b.title = ico;
+  b.style.cssText = 'width:52px;height:52px;font-size:1.6rem;border:1px solid var(--color-borde);border-radius:var(--radio-md);background:var(--color-fondo);cursor:pointer;line-height:1;';
+  b.addEventListener('click', function () {
+    if (inputIconoActivo) inputIconoActivo.value = ico;
+    cerrarSelectorIconos();
+  });
+  grillaIconos.appendChild(b);
+});
+document.getElementById('modal-iconos').addEventListener('click', function (e) {
+  if (e.target === this) cerrarSelectorIconos();
+});
 
 function abrirModalEditar(btn) {
   document.getElementById('editar-id').value     = btn.dataset.id;
@@ -261,7 +281,10 @@ document.getElementById('modal-editar').addEventListener('click', function (e) {
   if (e.target === this) cerrarModalEditar();
 });
 document.addEventListener('keydown', function (e) {
-  if (e.key === 'Escape') cerrarModalEditar();
+  if (e.key === 'Escape') {
+    cerrarModalEditar();
+    cerrarSelectorIconos();
+  }
 });
 </script>
 </body>
