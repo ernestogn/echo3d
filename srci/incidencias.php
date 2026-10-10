@@ -279,11 +279,12 @@ function url_filtros(array $extras = []): string {
         <thead>
           <tr>
             <th>#</th>
+            <th>Fecha</th>
             <th>Tipo</th>
             <th>Barrio</th>
+            <th>Dirección</th>
             <th>Gravedad</th>
             <th>Estado</th>
-            <th>Fecha</th>
             <th>Usuario</th>
             <th>Notas</th>
             <th>Acción</th>
@@ -297,11 +298,12 @@ function url_filtros(array $extras = []): string {
           ?>
             <tr>
               <td><?= (int)$inc['id'] ?></td>
+              <td style="white-space:nowrap;"><?= esc(fecha_legible($inc['fecha_hora'])) ?></td>
               <td><?= esc($inc['tipo_icono'] ?? '') ?> <?= esc($inc['tipo_nombre']) ?></td>
               <td><?= esc($inc['barrio_nombre'] ?? '—') ?></td>
+              <td style="max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<?= esc($inc['direccion'] ?? '') ?>"><?= esc($inc['direccion'] ?? '—') ?></td>
               <td><span class="gravedad-badge <?= clase_gravedad($inc['gravedad']) ?>"><?= esc(nombre_gravedad($inc['gravedad'])) ?></span></td>
               <td><span class="estado-badge <?= clase_estado($inc['estado']) ?>"><?= esc(nombre_estado($inc['estado'])) ?></span></td>
-              <td style="white-space:nowrap;"><?= esc(fecha_legible($inc['fecha_hora'])) ?></td>
               <td><?= esc($inc['usuario_nombre']) ?></td>
               <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<?= esc($inc['notas'] ?? '') ?>"><?= esc(substr($inc['notas'] ?? '', 0, 60)) ?></td>
               <td>
@@ -312,7 +314,7 @@ function url_filtros(array $extras = []): string {
               </td>
             </tr>
             <tr class="fila-expandida" id="expandida-<?= (int)$inc['id'] ?>" style="display:none;">
-              <td colspan="9">
+              <td colspan="10">
                 <dl style="display:grid;grid-template-columns:170px 1fr;gap:6px var(--espacio-lg);font-size:.85rem;">
                   <dt style="color:var(--color-texto-suave);font-weight:600;">Dirección</dt>
                   <dd><?= esc($inc['direccion'] ?? '—') ?></dd>
