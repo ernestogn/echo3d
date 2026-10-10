@@ -122,8 +122,7 @@ $csrf  = csrf_token();
         <form method="POST" action="/srci/admin/reportes.php" style="display:inline;">
           <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
           <input type="hidden" name="accion"     value="traer_google">
-          <button type="submit" class="boton boton-secundario boton-sm"
-                  onclick="return confirm('¿Traer filas nuevas de la planilla de Google? (puede tardar unos segundos)')">
+          <button type="submit" class="boton boton-secundario boton-sm">
             ⬇ Traer de Google
           </button>
         </form>
