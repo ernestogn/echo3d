@@ -32,6 +32,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
   }
 
+  if ($accion === 'editar') {
+    $id     = (int)($_POST['tipo_id'] ?? 0);
+    $nombre = trim($_POST['nombre'] ?? '');
+    $icono  = trim($_POST['icono']  ?? '');
+
+    if ($id <= 0) {
+      $mensaje  = 'Tipo invalido.';
+      $tipo_msg = 'error';
+    } elseif ($nombre === '') {
+      $mensaje  = 'El nombre es obligatorio.';
+      $tipo_msg = 'error';
+    } else {
+      $st = db()->prepare('SELECT nombre, icono FROM tipos_incidencia WHERE id = :id');
+      $st->execute([':id' => $id]);
+      $t = $st->fetch();
+
+      if (!$t) {
+        $mensaje  = 'El tipo no existe.';
+        $tipo_msg = 'error';
+      } else {
+        $icono_nuevo = $icono !== '' ? $icono : null;
+        $cambios = [];
+        if ($nombre !== $t['nombre']) {
+          $cambios[] = "nombre: '{$t['nombre']}' -> '{$nombre}'";
+        }
+        if ($icono_nuevo !== $t['icono']) {
+          $cambios[] = 'icono: ' . ($t['icono'] ?? '(ninguno)') . ' -> ' . ($icono_nuevo ?? '(ninguno)');
+        }
+
+        if (!$cambios) {
+          $mensaje  = 'Sin cambios: los datos ya eran esos.';
+          $tipo_msg = 'info';
+        } else {
+          db()->prepare('UPDATE tipos_incidencia SET nombre = :n, icono = :i WHERE id = :id')
+             ->execute([':n' => $nombre, ':i' => $icono_nuevo, ':id' => $id]);
+          $mensaje  = "Tipo '{$nombre}' actualizado.";
+          $tipo_msg = 'exito';
+          registrar_auditoria(
+            (int)$_SESSION['usuario_id'],
+            'editar',
+            null,
+            'Tipo #' . $id . ' (' . $t['nombre'] . '): ' . implode('; ', $cambios)
+          );
+        }
+      }
+    }
+  }
+
   if ($accion === 'toggle') {
     $id = (int)($_POST['tipo_id'] ?? 0);
     if ($id > 0) {
@@ -105,6 +153,7 @@ $csrf  = csrf_token();
           <div class="campo">
             <label for="t-icono">Emoji</label>
             <input type="text" id="t-icono" name="icono" maxlength="10" placeholder="🚧">
+            <div id="selector-icono-crear" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:var(--espacio-sm);"></div>
           </div>
           <button type="submit" class="boton boton-primario" style="align-self:flex-end;">Crear</button>
         </div>
@@ -122,21 +171,28 @@ $csrf  = csrf_token();
               <td><?= (int)$t['id'] ?></td>
               <td><code style="font-size:.85rem;"><?= esc($t['clave']) ?></code></td>
               <td><?= esc($t['nombre']) ?></td>
-              <td style="font-size:1.5rem;"><?= esc($t['icono'] ?? '—') ?></td>
-              <td>
+              <td style="font-size:1.5rem;"><?= esc($t['icono'] ?? '—') ?></td>              <td>
                 <span class="estado-badge" style="<?= $t['activo'] ? 'background:rgba(34,197,94,.15);color:var(--color-verde)' : 'background:rgba(239,68,68,.15);color:var(--color-rojo)' ?>">
                   <?= $t['activo'] ? 'Activo' : 'Inactivo' ?>
                 </span>
               </td>
               <td>
-                <form method="POST" style="display:inline;">
-                  <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
-                  <input type="hidden" name="accion"     value="toggle">
-                  <input type="hidden" name="tipo_id"    value="<?= (int)$t['id'] ?>">
-                  <button type="submit" class="boton <?= $t['activo'] ? 'boton-peligro' : 'boton-exito' ?> boton-sm">
-                    <?= $t['activo'] ? 'Desactivar' : 'Activar' ?>
+                <div style="display:flex;gap:var(--espacio-sm);flex-wrap:wrap;">
+                  <button type="button" class="boton boton-secundario boton-sm" onclick="abrirModalEditar(this)"
+                          data-id="<?= (int)$t['id'] ?>"
+                          data-nombre="<?= esc($t['nombre']) ?>"
+                          data-icono="<?= esc($t['icono'] ?? '') ?>">
+                    ✏️ Editar
                   </button>
-                </form>
+                  <form method="POST" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
+                    <input type="hidden" name="accion"     value="toggle">
+                    <input type="hidden" name="tipo_id"    value="<?= (int)$t['id'] ?>">
+                    <button type="submit" class="boton <?= $t['activo'] ? 'boton-peligro' : 'boton-exito' ?> boton-sm">
+                      <?= $t['activo'] ? 'Desactivar' : 'Activar' ?>
+                    </button>
+                  </form>
+                </div>
               </td>
             </tr>
           <?php endforeach; ?>
@@ -145,5 +201,68 @@ $csrf  = csrf_token();
     </div>
   </main>
 </div>
+
+<!-- Modal editar tipo -->
+<div class="modal-fondo" id="modal-editar" role="dialog" aria-modal="true" aria-labelledby="modal-editar-titulo">
+  <div class="modal-caja">
+    <div class="modal-encabezado">
+      <h2 id="modal-editar-titulo">Editar tipo</h2>
+      <button class="modal-cerrar" type="button" aria-label="Cerrar" onclick="cerrarModalEditar()">×</button>
+    </div>
+    <form method="POST" action="/srci/admin/tipos.php" id="form-editar">
+      <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
+      <input type="hidden" name="accion"     value="editar">
+      <input type="hidden" name="tipo_id"    id="editar-id" value="">
+      <div class="campo" style="margin-bottom:var(--espacio-md);">
+        <label for="editar-nombre">Nombre para mostrar</label>
+        <input type="text" id="editar-nombre" name="nombre" required>
+      </div>
+      <div class="campo" style="margin-bottom:var(--espacio-lg);">
+        <label for="editar-icono">Icono (emoji)</label>
+        <input type="text" id="editar-icono" name="icono" maxlength="10" placeholder="🌳">
+        <div id="selector-icono-editar" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:var(--espacio-sm);"></div>
+      </div>
+      <button type="submit" class="boton boton-primario boton-bloque">Guardar cambios</button>
+    </form>
+  </div>
+</div>
+
+<script>
+const ICONOS_TIPO = ['🌳','🕳️','🏚️','🏠','⚡','💧','🗑️','💡','🌧️','🌊','🚧','🛣️','🚦','🔥','🚗','🐕','🦟','🐀','🏗️','🚰','🌿','💥','🚸','🔌','🏢','🌉','⛑️','🚨','⚠️','🧱','🪧','🚏','⛲','🪑','📋'];
+
+// Selector de emojis: botones que completan el input
+function crearSelectorIconos(contenedor, input) {
+  ICONOS_TIPO.forEach(function (ico) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = ico;
+    b.title = 'Usar ' + ico;
+    b.style.cssText = 'width:38px;height:38px;font-size:1.25rem;border:1px solid var(--color-borde);border-radius:var(--radio-sm);background:var(--color-fondo);cursor:pointer;line-height:1;';
+    b.addEventListener('click', function () {
+      input.value = ico;
+      input.focus();
+    });
+    contenedor.appendChild(b);
+  });
+}
+crearSelectorIconos(document.getElementById('selector-icono-crear'), document.getElementById('t-icono'));
+crearSelectorIconos(document.getElementById('selector-icono-editar'), document.getElementById('editar-icono'));
+
+function abrirModalEditar(btn) {
+  document.getElementById('editar-id').value     = btn.dataset.id;
+  document.getElementById('editar-nombre').value = btn.dataset.nombre;
+  document.getElementById('editar-icono').value  = btn.dataset.icono;
+  document.getElementById('modal-editar').classList.add('visible');
+}
+function cerrarModalEditar() {
+  document.getElementById('modal-editar').classList.remove('visible');
+}
+document.getElementById('modal-editar').addEventListener('click', function (e) {
+  if (e.target === this) cerrarModalEditar();
+});
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') cerrarModalEditar();
+});
+</script>
 </body>
 </html>
