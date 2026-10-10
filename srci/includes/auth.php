@@ -30,7 +30,7 @@ function renovar_sesion(): void
   }
   $params = session_get_cookie_params();
   setcookie(session_name(), session_id(), [
-    'lifetime' => SESION_DURACION,
+    'expires'  => time() + SESION_DURACION,
     'path'     => $params['path'],
     'secure'   => $params['secure'],
     'httponly' => $params['httponly'],
