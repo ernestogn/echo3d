@@ -55,8 +55,8 @@ if ($barrio_nombre !== '') {
 $relevado   = trim((string)($datos['relevado_por'] ?? ''));
 $usuario_id = 0;
 if ($relevado !== '') {
-  $st = db()->prepare('SELECT id FROM usuarios WHERE nombre = :q OR email = :q LIMIT 1');
-  $st->execute([':q' => $relevado]);
+  $st = db()->prepare('SELECT id FROM usuarios WHERE nombre = :q1 OR email = :q2 LIMIT 1');
+  $st->execute([':q1' => $relevado, ':q2' => $relevado]);
   $usuario_id = (int)($st->fetchColumn() ?: 0);
 }
 if ($usuario_id === 0) {
