@@ -43,6 +43,9 @@ if ($metodo === 'GET') {
     $params[':fecha_hasta'] = $_GET['fecha_hasta'] . ' 23:59:59';
   }
 
+  // Para el mapa: solo con coordenadas; las sin ubicar se ven en el listado
+  $donde[] = 'i.latitud IS NOT NULL AND i.longitud IS NOT NULL';
+
   $clausula_where = $donde ? 'WHERE ' . implode(' AND ', $donde) : '';
 
   // Para el mapa no paginamos (devolvemos todo, max 1000)

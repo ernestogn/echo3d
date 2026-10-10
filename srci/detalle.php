@@ -140,7 +140,7 @@ $fotos = $fotos->fetchAll();
         <dd><?= esc($inc['contacto_vecino']) ?></dd>
       <?php endif; ?>
       <dt style="color:var(--color-texto-suave);font-weight:600;">Coordenadas</dt>
-      <dd><?= esc($inc['latitud']) ?>, <?= esc($inc['longitud']) ?></dd>
+      <dd><?= $inc['latitud'] !== null && $inc['longitud'] !== null ? esc($inc['latitud']) . ', ' . esc($inc['longitud']) : 'sin ubicación' ?></dd>
       <?php if ($inc['fecha_resolucion']): ?>
         <dt style="color:var(--color-texto-suave);font-weight:600;">Fecha de resolución</dt>
         <dd><?= esc(fecha_legible($inc['fecha_resolucion'])) ?></dd>
@@ -174,7 +174,14 @@ $fotos = $fotos->fetchAll();
   <!-- Mapa del detalle -->
   <div class="tarjeta tarjeta-sm" style="margin-bottom:var(--espacio-lg);">
     <h2 style="margin-bottom:var(--espacio-md);">Ubicación</h2>
-    <div id="mapa-detalle" style="height:300px;border-radius:var(--radio-md);overflow:hidden;"></div>
+    <?php if ($inc['latitud'] !== null && $inc['longitud'] !== null): ?>
+      <div id="mapa-detalle" style="height:300px;border-radius:var(--radio-md);overflow:hidden;"></div>
+    <?php else: ?>
+      <p style="color:var(--color-texto-suave);margin-bottom:var(--espacio-sm);">
+        📍 Esta incidencia fue importada de la planilla y todavía no tiene ubicación en el mapa.
+      </p>
+      <a href="/srci/editar.php?id=<?= (int)$inc['id'] ?>" class="boton boton-secundario boton-sm">✏️ Ubicar en el mapa</a>
+    <?php endif; ?>
   </div>
 
   <!-- Fotos -->
@@ -197,6 +204,7 @@ $fotos = $fotos->fetchAll();
 </main>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<?php if ($inc['latitud'] !== null && $inc['longitud'] !== null): ?>
 <script>
   const lat = <?= (float)$inc['latitud'] ?>;
   const lng = <?= (float)$inc['longitud'] ?>;
@@ -206,8 +214,9 @@ $fotos = $fotos->fetchAll();
   }).addTo(mapaDetalle);
   L.marker([lat, lng]).addTo(mapaDetalle)
    .bindPopup('<?= esc(addslashes($inc['tipo_nombre'])) ?>').openPopup();
-
-  <?php if (es_admin()): ?>
+</script>
+<?php endif; ?>
+<script>
   async function cambiarEstado(id, estado) {
     try {
       const resp = await fetch('/srci/api/estado.php', {

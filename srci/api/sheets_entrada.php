@@ -19,11 +19,10 @@ if (($datos['accion'] ?? '') !== 'importar') {
   respuesta_json(['error' => 'Accion desconocida.'], 400);
 }
 
-$fila      = (int)($datos['fila'] ?? 0);
-$direccion = trim((string)($datos['direccion'] ?? ''));
-if ($direccion === '') {
-  respuesta_json(['ok' => false, 'error' => 'Fila sin direccion.'], 422);
-}
+$fila = (int)($datos['fila'] ?? 0);
+
+// Sanitizar sin rechazar: los referentes cargan con datos incompletos.
+// Todo campo es opcional; lo que falte queda NULL/vacio y se completa despues.
 
 // Tipo por nombre (collation ci); si no existe -> 'Otro'
 $st = db()->prepare('SELECT id FROM tipos_incidencia WHERE nombre = :n LIMIT 1');
@@ -51,12 +50,12 @@ if ($barrio_nombre !== '') {
   }
 }
 
-// "Relevado por" -> usuario por nombre; fallback usuario dedicado 'Planilla'
+// "Relevado por" -> usuario por nombre O email (los referentes son los mismos); fallback 'Planilla'
 $relevado   = trim((string)($datos['relevado_por'] ?? ''));
 $usuario_id = 0;
 if ($relevado !== '') {
-  $st = db()->prepare('SELECT id FROM usuarios WHERE nombre = :n LIMIT 1');
-  $st->execute([':n' => $relevado]);
+  $st = db()->prepare('SELECT id FROM usuarios WHERE nombre = :q OR email = :q LIMIT 1');
+  $st->execute([':q' => $relevado]);
   $usuario_id = (int)($st->fetchColumn() ?: 0);
 }
 if ($usuario_id === 0) {
@@ -103,11 +102,12 @@ $fecha_hora = $ts ? date('Y-m-d H:i:s', $ts) : date('Y-m-d H:i:s');
 $fr = trim((string)($datos['fecha_resolucion'] ?? ''));
 $fecha_resolucion = $fr !== '' && strtotime($fr) ? date('Y-m-d H:i:s', strtotime($fr)) : ($estado === 'resuelto' ? $fecha_hora : null);
 
-// Sin coordenadas en la planilla: centro de la ciudad y aviso en notas
-$lat = -32.48262351713079;
-$lng = -58.24455570742029;
+// Sin coordenadas en la planilla: quedan NULL y NO aparecen en el mapa
+// hasta que alguien las ubique desde editar.php
+$lat = null;
+$lng = null;
 $notas = trim((string)($datos['notas'] ?? ''));
-$sufijo = '[importado de la planilla, fila ' . $fila . ' — ubicacion sin definir: marcar en el mapa]';
+$sufijo = '[importado de la planilla, fila ' . $fila . ']';
 $notas = $notas !== '' ? $notas . ' ' . $sufijo : $sufijo;
 
 try {

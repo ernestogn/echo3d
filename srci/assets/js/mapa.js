@@ -161,6 +161,21 @@ async function cargarFiltros() {
   });
   cont.appendChild(chipMios);
 
+  // Chip informativo: reportes sin coordenadas (importados de la planilla)
+  fetch('/srci/api/sin_ubicacion.php')
+    .then((r) => r.json())
+    .then((d) => {
+      if (d.sin_ubicacion > 0) {
+        const chip = document.createElement('span');
+        chip.className = 'chip-filtro';
+        chip.style.cssText = 'cursor:default;opacity:.75;';
+        chip.title = 'Reportes cargados desde la planilla sin ubicación. Se ubican desde el botón Editar de cada uno.';
+        chip.textContent = '📍 ' + d.sin_ubicacion + ' sin ubicación';
+        cont.appendChild(chip);
+      }
+    })
+    .catch(() => {});
+
   // Rueda del mouse: scrollea los chips horizontalmente
   cont.addEventListener('wheel', (e) => {
     if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {

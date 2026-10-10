@@ -256,14 +256,22 @@ $csrf          = csrf_token();
           <input type="text" id="e-contacto" name="contacto_vecino" maxlength="120" value="<?= esc($inc['contacto_vecino'] ?? '') ?>">
         </div>
 
+        <?php $sin_ubicacion = $inc['latitud'] === null || $inc['longitud'] === null; ?>
+        <?php if ($sin_ubicacion): ?>
+          <div class="mensaje mensaje-info" style="grid-column:1 / -1;margin-bottom:var(--espacio-md);">
+            <span>📍</span>
+            <span>Esta incidencia se importó de la planilla sin ubicación. Completá Latitud y Longitud para ubicarla en el mapa.</span>
+          </div>
+        <?php endif; ?>
+
         <div class="campo">
           <label for="e-latitud">Latitud *</label>
-          <input type="number" id="e-latitud" name="latitud" step="0.000001" min="-90" max="90" required value="<?= esc($inc['latitud']) ?>">
+          <input type="number" id="e-latitud" name="latitud" step="0.000001" min="-90" max="90" required value="<?= esc($inc['latitud'] ?? '') ?>">
         </div>
 
         <div class="campo">
           <label for="e-longitud">Longitud *</label>
-          <input type="number" id="e-longitud" name="longitud" step="0.000001" min="-180" max="180" required value="<?= esc($inc['longitud']) ?>">
+          <input type="number" id="e-longitud" name="longitud" step="0.000001" min="-180" max="180" required value="<?= esc($inc['longitud'] ?? '') ?>">
         </div>
 
         <div class="campo" style="grid-column:1 / -1;">

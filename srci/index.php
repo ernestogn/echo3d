@@ -184,7 +184,7 @@ $es_admin       = es_admin();
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="/srci/assets/js/mapa.js?v=20261011a"></script>
+<script src="/srci/assets/js/mapa.js?v=20261011b"></script>
 <script src="/srci/assets/js/reporte.js?v=20261010c"></script>
 <script>
   // Registrar Service Worker para soporte PWA/offline

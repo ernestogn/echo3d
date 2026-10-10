@@ -137,6 +137,8 @@ if ($exportar === 'csv' || $exportar === 'geojson') {
   if ($exportar === 'geojson') {
     header('Content-Type: application/geo+json; charset=utf-8');
     header('Content-Disposition: attachment; filename="incidencias_' . date('Y-m-d') . '.geojson"');
+    // Solo features con coordenadas; las sin ubicar quedan fuera (estan en el CSV)
+    $con_coords = array_filter($filas, fn($f) => $f['latitud'] !== null && $f['longitud'] !== null);
     $features = array_map(fn($f) => [
       'type'       => 'Feature',
       'geometry'   => ['type' => 'Point', 'coordinates' => [(float)$f['longitud'], (float)$f['latitud']]],
@@ -153,7 +155,7 @@ if ($exportar === 'csv' || $exportar === 'geojson') {
         'dias_abiertos'=> $dias_fila($f),
         'usuario'  => $f['usuario_nombre'], 'notas'   => $f['notas'] ?? null,
       ],
-    ], $filas);
+    ], $con_coords);
     echo json_encode(['type' => 'FeatureCollection', 'features' => $features], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     exit;
   }
@@ -370,7 +372,7 @@ function url_filtros(array $extras = []): string {
                   <dt style="color:var(--color-texto-suave);font-weight:600;">Contacto vecino</dt>
                   <dd><?= esc($inc['contacto_vecino'] ?? '—') ?></dd>
                   <dt style="color:var(--color-texto-suave);font-weight:600;">Coordenadas</dt>
-                  <dd><?= esc($inc['latitud']) ?>, <?= esc($inc['longitud']) ?></dd>
+                  <dd><?= $inc['latitud'] !== null && $inc['longitud'] !== null ? esc($inc['latitud']) . ', ' . esc($inc['longitud']) : 'sin ubicación' ?></dd>
                   <dt style="color:var(--color-texto-suave);font-weight:600;">Fecha de resolución</dt>
                   <dd><?= $inc['fecha_resolucion'] ? esc(fecha_legible($inc['fecha_resolucion'])) : '—' ?></dd>
                   <dt style="color:var(--color-texto-suave);font-weight:600;">Días abiertos</dt>
