@@ -138,7 +138,7 @@ try {
     ':fecha_resolucion' => $fecha_resolucion,
   ]);
 } catch (PDOException $e) {
-  respuesta_json(['ok' => false, 'error' => 'Error al guardar.'], 500);
+  respuesta_json(['ok' => false, 'error' => 'Error al guardar: ' . $e->getMessage()], 500);
 }
 
 $id = (int)db()->lastInsertId();
