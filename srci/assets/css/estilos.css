@@ -435,6 +435,14 @@ h3 { font-size: 1.125rem; font-weight: 600; }
 .modal-fondo.visible .modal-caja {
   transform: translateY(0);
 }
+/* Variante centrada (modales de admin): en desktop y movil queda en el centro */
+.modal-fondo.modal-centrado {
+  align-items: center;
+  padding: var(--espacio-md);
+}
+.modal-fondo.modal-centrado .modal-caja {
+  border-radius: var(--radio-lg);
+}
 /* Encabezado minimalista plano + zona de arrastre */
 .modal-caja .modal-encabezado {
   background: #ffffff;

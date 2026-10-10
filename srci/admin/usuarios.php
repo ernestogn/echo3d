@@ -217,7 +217,7 @@ $csrf = csrf_token();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin — Usuarios · SRCI</title>
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010b">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010c">
 </head>
 <body>
 <nav class="nav-principal">
@@ -378,7 +378,7 @@ $csrf = csrf_token();
 </div>
 
 <!-- Modal editar usuario -->
-<div class="modal-fondo" id="modal-editar" role="dialog" aria-modal="true" aria-labelledby="modal-editar-titulo">
+<div class="modal-fondo modal-centrado" id="modal-editar" role="dialog" aria-modal="true" aria-labelledby="modal-editar-titulo">
   <div class="modal-caja">
     <div class="modal-encabezado">
       <h2 id="modal-editar-titulo">Editar usuario</h2>

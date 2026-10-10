@@ -99,7 +99,7 @@ $csrf  = csrf_token();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin — Tipos · SRCI</title>
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010b">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010c">
 </head>
 <body>
 <nav class="nav-principal">
@@ -202,7 +202,7 @@ $csrf  = csrf_token();
 </div>
 
 <!-- Modal editar tipo -->
-<div class="modal-fondo" id="modal-editar" role="dialog" aria-modal="true" aria-labelledby="modal-editar-titulo">
+<div class="modal-fondo modal-centrado" id="modal-editar" role="dialog" aria-modal="true" aria-labelledby="modal-editar-titulo">
   <div class="modal-caja">
     <div class="modal-encabezado">
       <h2 id="modal-editar-titulo">Editar tipo</h2>
@@ -226,7 +226,7 @@ $csrf  = csrf_token();
 </div>
 
 <!-- Modal selector de icono -->
-<div class="modal-fondo" id="modal-iconos" role="dialog" aria-modal="true" aria-label="Elegir icono" style="z-index:1100;">
+<div class="modal-fondo modal-centrado" id="modal-iconos" role="dialog" aria-modal="true" aria-label="Elegir icono" style="z-index:1100;">
   <div class="modal-caja">
     <div class="modal-encabezado">
       <h2>Elegir icono</h2>
