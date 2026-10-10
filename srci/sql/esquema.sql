@@ -35,6 +35,16 @@ CREATE TABLE IF NOT EXISTS barrios (
   creado_en DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Referentes por barrio (muchos a muchos: un barrio puede tener varios
+-- referentes y un referente puede cubrir varios barrios)
+CREATE TABLE IF NOT EXISTS referentes_barrios (
+  usuario_id INT NOT NULL,
+  barrio_id  INT NOT NULL,
+  PRIMARY KEY (usuario_id, barrio_id),
+  FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+  FOREIGN KEY (barrio_id)  REFERENCES barrios(id)  ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS incidencias (
   id                 INT AUTO_INCREMENT PRIMARY KEY,
   usuario_id         INT NOT NULL,

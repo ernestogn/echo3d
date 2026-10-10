@@ -73,13 +73,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="hidden" name="pin"    id="campo-pin">
 
         <div class="campo" style="margin-bottom:var(--espacio-lg);">
-          <label for="nombre-visible">Nombre de usuario</label>
+          <label for="nombre-visible">Email</label>
           <input
-            type="text"
+            type="email"
             id="nombre-visible"
             name="_nombre_visible"
             autocomplete="username"
-            placeholder="Tu nombre"
+            placeholder="tu@email.com"
             required
             value="<?= esc($_POST['_nombre_visible'] ?? '') ?>"
           >

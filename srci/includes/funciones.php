@@ -113,10 +113,10 @@ function enviar_pin_por_email(string $email, string $nombre, string $pin): bool
   $asunto  = '=?UTF-8?B?' . base64_encode('Tu PIN de acceso — SRCI') . '?=';
   $cuerpo  = "Hola {$nombre},\n\nTu PIN de acceso al Sistema de Reporte Ciudadano es:\n\n"
            . "  {$pin}\n\n"
-           . "Ingresalo en la pantalla de inicio de sesion.\n"
+           . "Ingresa con tu email y este PIN en: https://echo3dlaser.com.ar/srci/\n"
            . "Si no pediste este PIN, ignora este mensaje.\n";
   $headers = implode("\r\n", [
-    'From: noreply@srci.local',
+    'From: SRCI <admin@echo3dlaser.com.ar>',
     'Content-Type: text/plain; charset=UTF-8',
     'Content-Transfer-Encoding: base64',
   ]);

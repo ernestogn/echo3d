@@ -1,12 +1,18 @@
 <?php
 declare(strict_types=1);
 
+// Duracion de la sesion: 90 dias, renovada en cada request (sliding).
+// La sesion permanece viva hasta logout explicito (logout.php).
+define('SESION_DURACION', 60 * 60 * 24 * 90);
+
 // Configurar cookie segura antes de iniciar sesion
 function iniciar_sesion(): void
 {
   if (session_status() === PHP_SESSION_NONE) {
+    // GC del server no mata la sesion por inactividad durante 90 dias
+    @ini_set('session.gc_maxlifetime', (string)SESION_DURACION);
     session_set_cookie_params([
-      'lifetime' => 0,
+      'lifetime' => SESION_DURACION,
       'path'     => '/',
       'secure'   => isset($_SERVER['HTTPS']),
       'httponly' => true,
@@ -14,6 +20,22 @@ function iniciar_sesion(): void
     ]);
     session_start();
   }
+}
+
+// Renueva la expiracion de la cookie en cada request con sesion activa
+function renovar_sesion(): void
+{
+  if (empty($_SESSION)) {
+    return;
+  }
+  $params = session_get_cookie_params();
+  setcookie(session_name(), session_id(), [
+    'lifetime' => SESION_DURACION,
+    'path'     => $params['path'],
+    'secure'   => $params['secure'],
+    'httponly' => $params['httponly'],
+    'samesite' => $params['samesite'],
+  ]);
 }
 
 // Verifica si hay sesion activa, redirige al login si no
@@ -24,6 +46,8 @@ function requiere_sesion(): void
     header('Location: /srci/login.php');
     exit;
   }
+  // Sesion viva mientras se use: renueva la cookie en cada request
+  renovar_sesion();
 }
 
 // Verifica que el usuario sea admin

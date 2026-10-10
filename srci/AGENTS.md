@@ -46,7 +46,8 @@ srci/
 │
 ├── sql/
 │   ├── esquema.sql        Esquema completo de DB + datos semilla de tipos, barrios y usuario admin
-│   └── migracion_planilla.sql  Migracion: tabla barrios + campos nuevos en incidencias + 3 tipos nuevos
+│   ├── migracion_planilla.sql  Migracion: tabla barrios + campos nuevos en incidencias + 3 tipos nuevos
+│   └── migracion_usuarios_barrios.sql  Migracion: barrios reales + tabla referentes_barrios
 │
 ├── includes/
 │   ├── db.php             Conexion PDO singleton (funcion db()), respuesta_json()
@@ -101,6 +102,7 @@ define('SRCI_DB_PASS', 'contrasena_real');
 usuarios          id, nombre(UNIQUE), email, pin_hash, rol(usuario|admin), activo, creado_en
 tipos_incidencia  id, clave(UNIQUE), nombre, icono, activo
 barrios           id, nombre(UNIQUE), activo, creado_en
+referentes_barrios usuario_id(FK CASCADE), barrio_id(FK CASCADE) — PK(usuario_id, barrio_id)
 incidencias       id, usuario_id(FK), tipo_id(FK), latitud, longitud, barrio_id(FK barrios, NULL),
                   direccion, gravedad(baja|media|alta|critica), familias_afectadas,
                   servicio_afectado, calle_intransitable, responsable_area, contacto_vecino,
@@ -113,8 +115,12 @@ fotos             id, incidencia_id(FK CASCADE), ruta_archivo, fecha_subida
 ### Datos semilla (ya aplicados)
 
 11 tipos de incidencia con `icono` emoji (español): `🌳` arbol_caido, `🕳️` alcantarilla, `🏚️` vivienda_precaria, `🏠` techo_riesgo, `⚡` cableado, `💧` fuga_agua, `🗑️` basural, `📋` otro, `💡` caida_poste, `🌧️` anegamiento, `🌊` inundacion.  
-Barrio inicial: `Otro` (el admin carga el resto — barrios reales, informales y asentamientos — desde `/srci/admin/barrios.php`).  
-Usuario admin inicial: nombre=`admin`, PIN=`0000` (password_hash de PASSWORD_DEFAULT).
+Barrios: 44 sembrados con los barrios reales del relevamiento (Los Palos, Circuito 5, San Roque, La Quilmes, Villa Itapé, etc. — lista completa en `sql/migracion_usuarios_barrios.sql`), editables desde `/srci/admin/barrios.php`.  
+Referentes por barrio: tabla `referentes_barrios` (muchos a muchos) — asignados por el script de carga masiva; los referentes que faltan por email se cargan cuando completen datos.  
+Usuario admin inicial: nombre=`admin`, PIN=`0000` (password_hash de PASSWORD_DEFAULT).  
+Usuarios del relevamiento: cargados por script one-shot con **username = email** (login case-insensitive por collation ci). PIN por email desde `admin@echo3dlaser.com.ar` (`enviar_pin_por_email()`). CSV con los PINs queda en `/tmp` del server (chmod 600, nunca en git). 3 admins: Guillaume, Marclay, Garay. Despliegue por etapas: solo activos pueden loguear.
+
+**Sesion larga (auth.php):** `SESION_DURACION` = 90 dias, cookie persistente + **sliding** (`renovar_sesion()` en `requiere_sesion()` renueva la cookie en cada request) + `session.gc_maxlifetime` = 90 dias. La sesion permanece viva hasta logout explicito (`logout.php` destruye sesion y borra cookie). Si se quiere mas/menos, ajustar `SESION_DURACION`.
 
 **Alineacion con la planilla de relevamiento** (`Planilla_relevamiento_barrios.xlsx`): el formulario pide Barrio, Direccion/calle y altura, Gravedad (obligatorios) y Familias afectadas, Servicio afectado, Calle intransitable, Responsable/area, Contacto vecino (opcionales). "Dias abiertos" se calcula (fecha_hora → fecha_resolucion o hoy). Estado: "En gestion" = `en_proceso`.
 
@@ -337,6 +343,8 @@ El agente corre en PowerShell 5.1 (Windows) y **NO soporta bien las comillas ani
 - **Comandos simples sin comillas/`$`/`&`:** usar comillas simples de PowerShell, ej:
   `ssh 149.50.142.160 'tail -30 /var/log/echo3d-deploy.log'`
 - **PHP CLI en el server:** pasar el código como archivo (scp), nunca `php -r` inline.
+- **Encoding UTF-8 (CRITICO):** `Get-Content`/`Set-Content` de PowerShell 5.1 leen como ANSI y re-guardan doble-encoded: **corrompen acentos y emojis** de los archivos. Para leer/reescribir archivos con texto en español/emojis usar metodos .NET:
+  `$enc = New-Object System.Text.UTF8Encoding($false); $c = [System.IO.File]::ReadAllText($ruta, $enc); ... [System.IO.File]::WriteAllText($ruta, $c, $enc)`
 - Credenciales de prod viven en `includes/config.local.php` (no en git).
 
 ### 11.2 Pitfall del Service Worker (cache viejo)
