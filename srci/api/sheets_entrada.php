@@ -20,6 +20,7 @@ if (($datos['accion'] ?? '') !== 'importar') {
 }
 
 $fila = (int)($datos['fila'] ?? 0);
+$direccion = trim((string)($datos['direccion'] ?? ''));
 
 // Sanitizar sin rechazar: los referentes cargan con datos incompletos.
 // Todo campo es opcional; lo que falte queda NULL/vacio y se completa despues.
