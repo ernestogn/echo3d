@@ -13,7 +13,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $estado  = $_POST['estado'] ?? '';
   $estados = ['pendiente','en_proceso','resuelto'];
 
-  if ($accion === 'restaurar' && $id_inc > 0) {
+  // Traer filas nuevas de la planilla de Google (sync manual)
+  if ($accion === 'traer_google') {
+    [$ok_sync, $proc, $err_sync, $detalle_sync] = sincronizar_hoja();
+    if ($ok_sync) {
+      $mensaje  = "Sincronización con Google: {$proc} fila(s) importada(s)" . ($err_sync ? ", {$err_sync} con error" : '') . '.';
+      $tipo_msg = $err_sync ? ($proc ? 'info' : 'error') : 'exito';
+      if ($err_sync && is_array($detalle_sync) && $detalle_sync) {
+        $mensaje .= ' ' . implode(' | ', array_slice($detalle_sync, 0, 3));
+      }
+      if ($proc > 0) {
+        registrar_auditoria((int)$_SESSION['usuario_id'], 'sync_planilla', null, "Trajo {$proc} fila(s) de la planilla de Google");
+      }
+    } else {
+      $mensaje  = 'No se pudo sincronizar con Google: ' . (is_string($detalle_sync) ? $detalle_sync : 'error desconocido');
+      $tipo_msg = 'error';
+    }
+  } elseif ($accion === 'restaurar' && $id_inc > 0) {
     db()->prepare('UPDATE incidencias SET oculto = 0 WHERE id = :id')->execute([':id' => $id_inc]);
     registrar_auditoria((int)$_SESSION['usuario_id'], 'restaurar', $id_inc, 'Restauro la incidencia');
   } elseif ($id_inc > 0 && in_array($estado, $estados, true)) {
@@ -106,6 +122,16 @@ $csrf  = csrf_token();
       <a href="/srci/admin/reportes.php<?= $ver_ocultas ? '' : '?ocultas=1' ?>" class="boton <?= $ver_ocultas ? 'boton-secundario' : 'boton-primario' ?> boton-sm">
         <?= $ver_ocultas ? '← Ver activas' : '👁 Ver ocultas' ?>
       </a>
+      <?php if (!$ver_ocultas): ?>
+        <form method="POST" action="/srci/admin/reportes.php" style="display:inline;">
+          <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
+          <input type="hidden" name="accion"     value="traer_google">
+          <button type="submit" class="boton boton-secundario boton-sm"
+                  onclick="return confirm('¿Traer filas nuevas de la planilla de Google? (puede tardar unos segundos)')">
+            ⬇ Traer de Google
+          </button>
+        </form>
+      <?php endif; ?>
     </div>
 
     <div class="tabla-contenedor">

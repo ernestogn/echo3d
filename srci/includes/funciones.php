@@ -144,6 +144,41 @@ function enviar_a_sheets(array $payload): void
   }
 }
 
+// Ejecuta el sync de entrada (hoja -> app) llamando al Web App de Google
+// Devuelve [ok, procesadas, errores, detalle] o [false, 0, 0, error]
+function sincronizar_hoja(): array
+{
+  if (!defined('SRCI_SHEETS_WEBAPP_URL') || SRCI_SHEETS_WEBAPP_URL === '' || !defined('SRCI_SHEETS_SECRET')) {
+    return [false, 0, 0, 'La integracion con Sheets no esta configurada.'];
+  }
+  try {
+    $ch = curl_init(SRCI_SHEETS_WEBAPP_URL . '?accion=sync&secreto=' . urlencode(SRCI_SHEETS_SECRET));
+    curl_setopt_array($ch, [
+      CURLOPT_RETURNTRANSFER => true,
+      CURLOPT_FOLLOWLOCATION => true,
+      CURLOPT_CONNECTTIMEOUT => 3,
+      CURLOPT_TIMEOUT        => 20,
+    ]);
+    $resp = curl_exec($ch);
+    curl_close($ch);
+    if (!is_string($resp) || $resp === '') {
+      return [false, 0, 0, 'Google no respondio. Probá de nuevo en un momento.'];
+    }
+    $datos = json_decode($resp, true);
+    if (!is_array($datos)) {
+      return [false, 0, 0, 'Respuesta inesperada de Google.'];
+    }
+    return [
+      (bool)($datos['ok'] ?? false),
+      (int)($datos['procesadas'] ?? 0),
+      (int)($datos['errores'] ?? 0),
+      $datos['detalle'] ?? [],
+    ];
+  } catch (Throwable $e) {
+    return [false, 0, 0, 'Error de conexion con Google.'];
+  }
+}
+
 // Registra una accion en el log de auditoria (quien, cuando, que)
 // Nunca rompe el flujo principal si falla
 function registrar_auditoria(int $usuario_id, string $accion, ?int $incidencia_id, string $detalle = ''): void
