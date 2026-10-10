@@ -71,10 +71,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if ($accion === 'toggle_activo') {
     $uid = (int)($_POST['usuario_id'] ?? 0);
     if ($uid > 0 && $uid !== $_SESSION['usuario_id']) {
-      $stmt = db()->prepare('UPDATE usuarios SET activo = 1 - activo WHERE id = :id');
-      $stmt->execute([':id' => $uid]);
-      $mensaje  = 'Estado del usuario actualizado.';
-      $tipo_msg = 'exito';
+      $st = db()->prepare('SELECT nombre, email, activo FROM usuarios WHERE id = :id');
+      $st->execute([':id' => $uid]);
+      $u = $st->fetch();
+
+      db()->prepare('UPDATE usuarios SET activo = 1 - activo WHERE id = :id')->execute([':id' => $uid]);
+
+      // Al activar: regenerar y enviar PIN por email (el PIN viejo no es recuperable)
+      if ($u && (int)$u['activo'] === 0) {
+        if (!empty($u['email'])) {
+          $pin      = generar_pin();
+          $pin_hash = password_hash($pin, PASSWORD_DEFAULT);
+          db()->prepare('UPDATE usuarios SET pin_hash = :h WHERE id = :id')->execute([':h' => $pin_hash, ':id' => $uid]);
+          $enviado  = enviar_pin_por_email($u['email'], $u['nombre'], $pin);
+          $mensaje  = $enviado
+            ? "Usuario activado. PIN nuevo enviado por email a {$u['email']}."
+            : "Usuario activado, pero el email fallo. Usa 'Nuevo PIN' para reenviar.";
+          $tipo_msg = $enviado ? 'exito' : 'error';
+          registrar_auditoria(
+            (int)$_SESSION['usuario_id'],
+            'activar',
+            null,
+            "Activo a {$u['nombre']} (<{$u['email']}>) y envio PIN" . ($enviado ? '' : ' — EMAIL FALLO')
+          );
+        } else {
+          $mensaje  = 'Usuario activado. No tiene email cargado: cargalo y usa Nuevo PIN.';
+          $tipo_msg = 'error';
+        }
+      } else {
+        $mensaje  = 'Estado del usuario actualizado.';
+        $tipo_msg = 'exito';
+        registrar_auditoria(
+          (int)$_SESSION['usuario_id'],
+          'desactivar',
+          null,
+          'Desactivo a ' . ($u['nombre'] ?? ('#' . $uid))
+        );
+      }
     }
   }
 }
@@ -187,12 +220,12 @@ $csrf = csrf_token();
                   </form>
                   <!-- Activar/Desactivar (no afecta al admin en sesion) -->
                   <?php if ((int)$u['id'] !== (int)$_SESSION['usuario_id']): ?>
-                    <form method="POST" style="display:inline;">
+                    <form method="POST" style="display:inline;" onsubmit="return confirm('<?= $u['activo'] ? '¿Desactivar este usuario? No podrá ingresar hasta reactivarlo.' : '¿Activar este usuario? Se generará un PIN nuevo y se enviará por email.' ?>');">
                       <input type="hidden" name="csrf_token"  value="<?= esc($csrf) ?>">
                       <input type="hidden" name="accion"      value="toggle_activo">
                       <input type="hidden" name="usuario_id"  value="<?= (int)$u['id'] ?>">
                       <button type="submit" class="boton <?= $u['activo'] ? 'boton-peligro' : 'boton-exito' ?> boton-sm">
-                        <?= $u['activo'] ? 'Desactivar' : 'Activar' ?>
+                        <?= $u['activo'] ? 'Desactivar' : 'Activar + PIN' ?>
                       </button>
                     </form>
                   <?php endif; ?>

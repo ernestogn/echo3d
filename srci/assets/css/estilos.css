@@ -538,11 +538,14 @@ h3 { font-size: 1.125rem; font-weight: 600; }
   display: flex;
   gap: 6px;
   overflow-x: auto;
-  padding: 2px;
-  scrollbar-width: none;
+  padding: 2px 2px 6px;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
 }
-#filtros-mapa::-webkit-scrollbar { display: none; }
+#filtros-mapa::-webkit-scrollbar { height: 4px; }
+#filtros-mapa::-webkit-scrollbar-track { background: transparent; }
+#filtros-mapa::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
 #filtros-mapa .chip-filtro {
   flex: none;
   display: inline-flex;
@@ -566,6 +569,15 @@ h3 { font-size: 1.125rem; font-weight: 600; }
   background: var(--color-acento);
   border-color: var(--color-acento);
   color: #ffffff;
+}
+
+/* Desktop: todas las opciones visibles en filas, sin scroll */
+@media (min-width: 900px) {
+  #filtros-mapa {
+    flex-wrap: wrap;
+    overflow: visible;
+    max-width: calc(100% - 130px);
+  }
 }
 .fab-reportar {
   position: fixed;
