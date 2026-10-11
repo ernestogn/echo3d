@@ -45,6 +45,7 @@ srci/
 ├── logout.php             Destruye la sesion y redirige a login.php
 ├── acceso.php             Magic link: token HMAC-SHA256 con vencimiento (7 dias) loguea sin PIN
 ├── error403.php           Pagina de error para acceso denegado (incluida por auth.php)
+├── ayuda.php              Ayuda publica (sin sesion) + tarjeta admin-only "Activacion masiva": activa referentes inactivos con email valido y les envia link (30 dias) + PIN de respaldo, en lotes de 10 (POST lote_links + CSRF, flash por redirect, cada activacion audita "Lote masivo:...", exclusion rol=admin y emails .local)
 ├── perfil.php             Perfil privado del usuario logueado (datos, barrios, sus reportes, cambiar PIN; avatar Gravatar)
 ├── manifest.json          PWA manifest (icons: assets/img/icon-192.png y icon-512.png)
 ├── sw.js                  Service Worker — cache estatico basico para offline

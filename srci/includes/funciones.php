@@ -601,4 +601,86 @@ HTML;
   // Envelope sender alineado con el From (evita DMARC:Quarantine / spam de Gmail)
   return @mail($email, $asunto, $cuerpo, $headers, '-fadmin@echo3dlaser.com.ar');
 }
+
+// Envia el email de activacion: link de acceso directo (magic link, sin PIN)
+// + PIN de respaldo para cuando el link venza. Usada por la activacion en lotes.
+function enviar_activacion_por_email(string $email, string $nombre, string $link, string $pin): bool
+{
+  $asunto = '=?UTF-8?B?' . base64_encode('Tu acceso al SRCI — cuenta activada') . '?=';
+  $dias_link = (string)MAGIC_LINK_DIAS;
+
+  // Parte texto plano (clientes sin HTML)
+  $texto = "Hola {$nombre},\n\n"
+         . "Tu cuenta del Sistema de Reporte Ciudadano fue activada.\n\n"
+         . "Entra directo con este link (válido " . MAGIC_LINK_DIAS . " días, sin PIN):\n"
+         . "{$link}\n\n"
+         . "Tu PIN de respaldo (entra con tu email + este PIN cuando el link venza): {$pin}\n\n"
+         . "Si no esperabas este mensaje, ignoralo.\n";
+
+  // Parte HTML (estilos inline: los clientes de correo ignoran <style>)
+  $html = <<<HTML
+<!DOCTYPE html>
+<html lang="es">
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:24px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;">
+        <tr><td style="background:#4f46e5;padding:26px 32px;text-align:center;">
+          <div style="font-size:30px;line-height:1;">🗺️</div>
+          <div style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:.5px;margin-top:6px;">SRCI</div>
+          <div style="color:#c7d2fe;font-size:13px;margin-top:2px;">Sistema de Reporte Ciudadano</div>
+        </td></tr>
+        <tr><td style="padding:30px 32px;">
+          <p style="margin:0 0 8px;color:#0f172a;font-size:17px;font-weight:700;">Hola {$nombre} 👋</p>
+          <p style="margin:0 0 20px;color:#475569;font-size:14px;line-height:1.6;">Tu cuenta fue <strong>activada</strong>. Tocá el botón para entrar directo al mapa de incidencias (no hace falta PIN).</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr><td align="center">
+              <a href="{$link}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:13px 34px;border-radius:10px;">Entrar al mapa</a>
+            </td></tr>
+            <tr><td align="center" style="padding-top:8px;">
+              <span style="color:#64748b;font-size:12px;">Link válido por {$dias_link} días — si el botón no funciona, copiá este enlace:</span><br>
+              <a href="{$link}" style="color:#4f46e5;font-size:12px;word-break:break-all;">{$link}</a>
+            </td></tr>
+          </table>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:22px;">
+            <tr><td align="center" style="padding:6px 0 4px;">
+              <div style="display:inline-block;background:#eef2ff;border:2px dashed #4f46e5;border-radius:12px;padding:12px 30px;">
+                <span style="font-size:26px;font-weight:800;letter-spacing:8px;color:#4f46e5;">{$pin}</span>
+              </div>
+            </td></tr>
+            <tr><td align="center" style="padding-top:6px;">
+              <span style="color:#64748b;font-size:12px;">PIN de respaldo: cuando el link venza, entra con tu email + este PIN.</span>
+            </td></tr>
+          </table>
+        </td></tr>
+        <tr><td style="padding:16px 32px;border-top:1px solid #e2e8f0;">
+          <p style="margin:0;color:#94a3b8;font-size:11px;line-height:1.6;">Si no esperabas este mensaje, ignoralo. Correo automático del Sistema de Reporte Ciudadano — echo3dlaser.com.ar</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+HTML;
+
+  $limite = md5(uniqid((string)random_int(0, mt_getrandmax()), true));
+  $headers = implode("\r\n", [
+    'From: SRCI <admin@echo3dlaser.com.ar>',
+    'MIME-Version: 1.0',
+    "Content-Type: multipart/alternative; boundary=\"{$limite}\"",
+  ]);
+
+  $cuerpo = "--{$limite}\r\n"
+          . "Content-Type: text/plain; charset=UTF-8\r\n"
+          . "Content-Transfer-Encoding: base64\r\n\r\n"
+          . chunk_split(base64_encode($texto)) . "\r\n"
+          . "--{$limite}\r\n"
+          . "Content-Type: text/html; charset=UTF-8\r\n"
+          . "Content-Transfer-Encoding: base64\r\n\r\n"
+          . chunk_split(base64_encode($html)) . "\r\n"
+          . "--{$limite}--\r\n";
+
+  // Envelope sender alineado con el From (evita DMARC:Quarantine / spam de Gmail)
+  return @mail($email, $asunto, $cuerpo, $headers, '-fadmin@echo3dlaser.com.ar');
+}
   
