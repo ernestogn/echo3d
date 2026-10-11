@@ -97,6 +97,7 @@ function crearIcono(inc) {
 let todosLosMarcadores = [];
 let filtroTipo = null;
 let filtroMios = false;
+let filtroCategoria = null;
 
 // Agrega/quita un marcador respetando el agrupamiento de su barrio (o suelto si no hay plugin)
 function mostrarMarcador(reg) {
@@ -112,7 +113,8 @@ function aplicarFiltros() {
   todosLosMarcadores.forEach((reg) => {
     const okTipo = filtroTipo === null || reg.tipoId === filtroTipo;
     const okMios = !filtroMios || reg.usuarioId === SRCI_USUARIO_ID;
-    if (okTipo && okMios) {
+    const okCat  = filtroCategoria === null || (reg.categoriaIds || []).indexOf(filtroCategoria) !== -1;
+    if (okTipo && okMios && okCat) {
       mostrarMarcador(reg);
     } else {
       ocultarMarcador(reg);
@@ -138,10 +140,18 @@ async function cargarIncidencias() {
         ? `<span class="gravedad-badge gravedad-${inc.gravedad}">${GRAVEDAD_NOMBRE[inc.gravedad] || inc.gravedad}</span>`
         : '';
 
+      const badgesCats = (Array.isArray(inc.categorias) && inc.categorias.length)
+        ? `<div class="popup-meta" style="margin-top:4px;">` + inc.categorias.map((c) => {
+            const col = /^#[0-9a-fA-F]{6}$/.test(c.color || '') ? c.color : '#64748b';
+            return `<span class="categoria-badge" style="--cat-color:${col}">${c.icono || ''} ${c.nombre}</span>`;
+          }).join(' ') + `</div>`
+        : '';
+
       marcador.bindPopup(`
         <div class="popup-titulo">${inc.tipo_icono || ''} ${inc.tipo_nombre}</div>
         <div class="popup-meta">${inc.fecha_hora} · ${inc.usuario_nombre}</div>
         <div class="popup-meta">${badgeGravedad} <span class="estado-badge estado-${inc.estado}">${inc.estado.replace('_',' ')}</span></div>
+        ${badgesCats}
         ${inc.notas ? `<div style="margin-top:4px;font-size:.82rem;">${inc.notas}</div>` : ''}
         ${foto}
         <div class="popup-enlace" style="margin-top:6px;"><a href="/srci/detalle.php?id=${inc.id}">Ver detalle →</a></div>
@@ -151,6 +161,7 @@ async function cargarIncidencias() {
         marker: marcador,
         tipoId: inc.tipo_id,
         usuarioId: inc.usuario_id,
+        categoriaIds: Array.isArray(inc.categorias) ? inc.categorias.map((c) => c.id) : [],
         grupo: grupoDeBarrio(claveBarrio),
       });
     });
@@ -175,6 +186,31 @@ async function cargarFiltros() {
   const cont = document.getElementById('filtros-mapa');
   if (!cont) return;
 
+  // Filtro por categoria: dropdown aparte de los chips de tipo (combina con AND)
+  const selectCategoria = document.createElement('select');
+  selectCategoria.className = 'select-categoria-mapa';
+  selectCategoria.setAttribute('aria-label', 'Filtrar por categoría');
+  const optTodas = document.createElement('option');
+  optTodas.value = '';
+  optTodas.textContent = 'Todas las categorías';
+  selectCategoria.appendChild(optTodas);
+  selectCategoria.addEventListener('change', () => {
+    filtroCategoria = selectCategoria.value === '' ? null : parseInt(selectCategoria.value, 10);
+    aplicarFiltros();
+  });
+  cont.appendChild(selectCategoria);
+  fetch('/srci/api/categorias.php')
+    .then((r) => r.json())
+    .then((cats) => {
+      cats.forEach((cat) => {
+        const opt = document.createElement('option');
+        opt.value = cat.id;
+        opt.textContent = `${cat.icono || ''} ${cat.nombre}`.trim();
+        selectCategoria.appendChild(opt);
+      });
+    })
+    .catch(() => {});
+
   chipTodos = document.createElement('button');
   chipTodos.type = 'button';
   chipTodos.className = 'chip-filtro';
@@ -182,6 +218,8 @@ async function cargarFiltros() {
   chipTodos.addEventListener('click', () => {
     filtroTipo = null;
     filtroMios = false;
+    filtroCategoria = null;
+    selectCategoria.value = '';
     actualizarChips();
     aplicarFiltros();
   });

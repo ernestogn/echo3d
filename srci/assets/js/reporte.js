@@ -66,6 +66,7 @@ const servicioSelect = document.getElementById('servicio-reporte');
 const responsableSelect = document.getElementById('responsable-reporte');
 const calleCheck     = document.getElementById('calle-intransitable');
 const contactoInput  = document.getElementById('contacto-reporte');
+const categoriasReporte = document.getElementById('categorias-reporte');
 
 // Cargar tipos de incidencia y construir la grilla
 async function cargarTipos() {
@@ -110,6 +111,43 @@ async function cargarBarrios() {
   } catch (err) {
     console.error('Error cargando barrios:', err);
   }
+}
+
+// Cargar categorias de incidencia (etiquetas, multiseleccion) y construir los chips
+async function cargarCategorias() {
+  try {
+    const resp = await fetch('/srci/api/categorias.php');
+    const cats = await resp.json();
+    categoriasReporte.innerHTML = '';
+    cats.forEach((cat) => {
+      const label = document.createElement('label');
+      label.className = 'chip-categoria';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.value = cat.id;
+      input.dataset.clave = cat.clave;
+      const span = document.createElement('span');
+      span.textContent = (cat.icono ? cat.icono + ' ' : '') + cat.nombre;
+      if (cat.color) { label.style.setProperty('--cat-color', cat.color); }
+      input.addEventListener('change', () => {
+        label.classList.toggle('activa', input.checked);
+      });
+      label.appendChild(input);
+      label.appendChild(span);
+      categoriasReporte.appendChild(label);
+    });
+    resetearCategorias();
+  } catch (err) {
+    console.error('Error cargando categorias:', err);
+  }
+}
+
+// Marca por defecto la categoria "Climaticos" y desmarca el resto
+function resetearCategorias() {
+  categoriasReporte.querySelectorAll('input[type=checkbox]').forEach((input) => {
+    input.checked = input.dataset.clave === 'climaticos';
+    input.parentElement.classList.toggle('activa', input.checked);
+  });
 }
 
 // Resuelve un barrio a partir del texto buscado (exacto o unica coincidencia)
@@ -184,6 +222,7 @@ function resetearModal() {
   responsableSelect.value = '';
   calleCheck.checked   = false;
   contactoInput.value  = '';
+  resetearCategorias();
   if (miniMarcador) { miniMarcador.remove(); miniMarcador = null; }
 }
 
@@ -260,6 +299,10 @@ btnEnviar.addEventListener('click', async () => {
   btnEnviar.disabled   = true;
   btnEnviar.innerHTML  = '<span class="spinner"></span> Enviando...';
 
+  const categoriasElegidas = Array.from(
+    categoriasReporte.querySelectorAll('input[type=checkbox]:checked')
+  ).map((input) => parseInt(input.value));
+
   try {
     // 1. Crear incidencia
     const respInc = await fetch('/srci/api/reportes.php', {
@@ -278,6 +321,7 @@ btnEnviar.addEventListener('click', async () => {
         responsable_area:    responsableSelect.value,
         contacto_vecino:     contactoInput.value.trim(),
         notas:               notasReporte.value.trim(),
+        categorias:          categoriasElegidas,
       }),
     });
     const textoInc = await respInc.text();
@@ -380,3 +424,4 @@ encabezadoModal.addEventListener('pointercancel', terminarArrastre);
 // Cargar tipos y barrios al iniciar
 cargarTipos();
 cargarBarrios();
+cargarCategorias();

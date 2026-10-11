@@ -171,6 +171,9 @@ try {
 
 $id = (int)db()->lastInsertId();
 
+// Categorias: las importadas quedan en la categoria por defecto (Climaticos)
+guardar_categorias_incidencia($id, []);
+
 registrar_auditoria(
   $usuario_id,
   'crear',

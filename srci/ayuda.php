@@ -12,7 +12,7 @@ $logueado = !empty($_SESSION['usuario_id']);
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ayuda — SRCI</title>
   <meta name="description" content="Guia de uso del Sistema de Reporte Ciudadano de Incidencias.">
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011f">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011g">
 </head>
 <body>
 <nav class="nav-principal" role="navigation">
@@ -86,6 +86,7 @@ $logueado = !empty($_SESSION['usuario_id']);
         <ul style="line-height:1.9;margin-top:var(--espacio-xs);">
           <li><strong>Barrio y dirección</strong> (obligatorios)</li>
           <li><strong>Gravedad</strong>: baja, media, alta o crítica (obligatoria)</li>
+          <li><strong>Categorías</strong>: podés marcar varias (por defecto, 🌧️ Climáticos)</li>
           <li>Opcionales: familias afectadas, servicio afectado, si la calle está intransitable, responsable/área y contacto del vecino</li>
           <li><strong>Ubicación</strong>: tocá el mini-mapa para poner el punto exacto (o marcá la ubicación tocando el mapa principal antes de reportar)</li>
           <li><strong>Foto</strong> (opcional, hasta 5 MB) y notas con más detalle</li>
@@ -93,6 +94,32 @@ $logueado = !empty($_SESSION['usuario_id']);
       </li>
       <li>Tocá <strong>Enviar</strong> — ¡listo! Ya aparece en el mapa y en el listado</li>
     </ol>
+  </div>
+
+  <!-- 3b. Categorias -->
+  <div class="tarjeta" style="margin-bottom:var(--espacio-lg);">
+    <h2>🗂️ Categorías</h2>
+    <p style="color:var(--color-texto);line-height:1.7;">
+      Además del <strong>tipo</strong> de problema, cada reporte puede llevar una o varias
+      <strong>categorías</strong>. Son etiquetas <strong>independientes</strong> y
+      <strong>no excluyentes</strong>: un mismo reporte puede ser, por ejemplo, de
+      <em>Basura</em> y de <em>Agua y cloaca</em> a la vez.
+    </p>
+    <div style="display:flex;gap:var(--espacio-sm);flex-wrap:wrap;margin:var(--espacio-md) 0;">
+      <span class="categoria-badge" style="--cat-color:#2563eb">🌧️ Climáticos</span>
+      <span class="categoria-badge" style="--cat-color:#ea580c">🛣️ Calles rotas</span>
+      <span class="categoria-badge" style="--cat-color:#d97706">💡 Luminarias</span>
+      <span class="categoria-badge" style="--cat-color:#16a34a">🌳 Arbolado</span>
+      <span class="categoria-badge" style="--cat-color:#64748b">🗑️ Basura</span>
+      <span class="categoria-badge" style="--cat-color:#0891b2">💧 Agua y cloaca</span>
+    </div>
+    <ul style="line-height:1.9;color:var(--color-texto);">
+      <li>Al reportar, en el <strong>Paso 2</strong>, elegís las categorías que correspondan (podés marcar varias).</li>
+      <li>La categoría <strong>Climáticos</strong> viene marcada por defecto.</li>
+      <li>En el <strong>mapa</strong> hay un <strong>desplegable</strong> para mostrar solo una categoría.</li>
+      <li>En el <strong>listado</strong> podés filtrar por categoría y la columna "Categorías" muestra las de cada reporte.</li>
+      <li>Las exportaciones <strong>CSV</strong> y <strong>GeoJSON</strong> también incluyen las categorías.</li>
+    </ul>
   </div>
 
   <!-- 4. Colores del mapa -->
@@ -127,7 +154,7 @@ $logueado = !empty($_SESSION['usuario_id']);
     <h2>📋 Buscar y filtrar</h2>
     <p style="color:var(--color-texto);line-height:1.7;">
       En la sección <strong>Listado</strong> ves todos los reportes en tabla. Podés filtrar por
-      tipo, estado, barrio, gravedad y rango de fechas. Tocando una fila se expande con todos
+      tipo, categoría, estado, barrio, gravedad y rango de fechas. Tocando una fila se expande con todos
       los detalles, y desde ahí entrás al detalle completo con fotos.
     </p>
     <p style="color:var(--color-texto);line-height:1.7;margin-top:var(--espacio-sm);">

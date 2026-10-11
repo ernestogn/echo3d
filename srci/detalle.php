@@ -51,6 +51,8 @@ $dias_abiertos = (int)$inicio->diff($fin)->days;
 $fotos = db()->prepare('SELECT ruta_archivo FROM fotos WHERE incidencia_id = :id ORDER BY id');
 $fotos->execute([':id' => $id]);
 $fotos = $fotos->fetchAll();
+
+$cats_inc = categorias_de_incidencia($id);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -58,7 +60,7 @@ $fotos = $fotos->fetchAll();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Incidencia #<?= $id ?> — SRCI</title>
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011f">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011g">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
@@ -120,6 +122,12 @@ $fotos = $fotos->fetchAll();
       <?php endif; ?>
       <dt style="color:var(--color-texto-suave);font-weight:600;">Gravedad</dt>
       <dd><span class="gravedad-badge <?= clase_gravedad($inc['gravedad']) ?>"><?= esc(nombre_gravedad($inc['gravedad'])) ?></span></dd>
+      <dt style="color:var(--color-texto-suave);font-weight:600;">Categorías</dt>
+      <dd>
+        <?php if ($cats_inc): foreach ($cats_inc as $cat): ?>
+          <span class="categoria-badge" style="--cat-color:<?= esc(color_valido($cat['color']) ?? '#64748b') ?>"><?= esc(($cat['icono'] ?? '') . ' ' . $cat['nombre']) ?></span>
+        <?php endforeach; else: ?><span style="color:var(--color-texto-suave);">—</span><?php endif; ?>
+      </dd>
       <?php if ($inc['familias_afectadas'] !== null && $inc['familias_afectadas'] !== ''): ?>
         <dt style="color:var(--color-texto-suave);font-weight:600;">Familias afectadas</dt>
         <dd><?= (int)$inc['familias_afectadas'] ?></dd>

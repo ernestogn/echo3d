@@ -42,6 +42,10 @@ if ($metodo === 'GET') {
     $donde[]              = 'i.fecha_hora <= :fecha_hasta';
     $params[':fecha_hasta'] = $_GET['fecha_hasta'] . ' 23:59:59';
   }
+  if (!empty($_GET['categoria_id'])) {
+    $donde[]              = 'EXISTS (SELECT 1 FROM incidencia_categorias ic WHERE ic.incidencia_id = i.id AND ic.categoria_id = :categoria_id)';
+    $params[':categoria_id'] = (int)$_GET['categoria_id'];
+  }
 
   // Para el mapa: solo con coordenadas; las sin ubicar se ven en el listado
   $donde[] = 'i.latitud IS NOT NULL AND i.longitud IS NOT NULL';
@@ -66,7 +70,16 @@ if ($metodo === 'GET') {
 
   $stmt = db()->prepare($sql);
   $stmt->execute($params);
-  respuesta_json($stmt->fetchAll());
+  $filas = $stmt->fetchAll();
+
+  // Adjuntar categorias (etiquetas) a cada incidencia
+  $mapa_cats = categorias_por_incidencia(array_column($filas, 'id'));
+  foreach ($filas as &$fila) {
+    $fila['categorias'] = $mapa_cats[(int)$fila['id']] ?? [];
+  }
+  unset($fila);
+
+  respuesta_json($filas);
 }
 
 // POST: crear nueva incidencia
@@ -91,6 +104,10 @@ if ($metodo === 'POST') {
   $calleIntransitable = isset($datos['calle_intransitable']) ? (!empty($datos['calle_intransitable']) ? 1 : 0) : null;
   $responsable        = trim($datos['responsable_area'] ?? '');
   $contacto           = trim($datos['contacto_vecino'] ?? '');
+
+  // Categorias (etiquetas independientes del tipo, no excluyentes)
+  $categorias = $datos['categorias'] ?? [];
+  if (!is_array($categorias)) $categorias = [];
 
   if ($tipo_id === 0 || $latitud === 0.0 || $longitud === 0.0 || $direccion === '' || !in_array($gravedad, $gravedades_validas, true)) {
     respuesta_json(['error' => 'Faltan datos obligatorios (barrio, dirección y gravedad son obligatorios).'], 400);
@@ -157,6 +174,9 @@ if ($metodo === 'POST') {
     respuesta_json(['error' => 'No pudimos guardar el reporte.'], 500);
   }
   $id = (int)db()->lastInsertId();
+
+  // Guardar categorias (si no eligio ninguna, aplica la por defecto: Climaticos)
+  guardar_categorias_incidencia($id, $categorias);
 
   // Log de auditoria: quien cargo la incidencia (y si el barrio fue manual vs poligono)
   $detalle_crear = 'Cargo una incidencia';

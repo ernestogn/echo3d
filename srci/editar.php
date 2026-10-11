@@ -43,6 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $responsable        = trim($_POST['responsable_area'] ?? '');
   $contacto           = trim($_POST['contacto_vecino'] ?? '');
   $notas              = trim($_POST['notas'] ?? '');
+  $categorias_sel     = $_POST['categorias'] ?? [];
+  if (!is_array($categorias_sel)) $categorias_sel = [];
 
   if ($tipo_id === 0 || $barrio_id === 0 || $latitud === 0.0 || $longitud === 0.0 || $direccion === '' || !in_array($gravedad, $gravedades_validas, true)) {
     $mensaje  = 'Faltan datos obligatorios (tipo, barrio, coordenadas, dirección y gravedad).';
@@ -118,6 +120,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $detalle = $cambiados ? 'Edito: ' . implode('; ', $cambiados) : 'Guardo sin cambios';
       registrar_auditoria((int)$_SESSION['usuario_id'], 'editar', $id, $detalle);
 
+      // Categorias (etiquetas, no excluyentes)
+      $cats_antes = array_column(categorias_de_incidencia($id), 'id');
+      guardar_categorias_incidencia($id, $categorias_sel);
+      $cats_despues = array_column(categorias_de_incidencia($id), 'id');
+      if ($cats_antes != $cats_despues) {
+        registrar_auditoria((int)$_SESSION['usuario_id'], 'editar', $id, 'Categorías: [' . implode(',', $cats_antes) . '] → [' . implode(',', $cats_despues) . ']');
+      }
+
       $mensaje  = 'Incidencia actualizada.';
       $tipo_msg = 'exito';
     } catch (PDOException $e) {
@@ -129,6 +139,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $tipos_lista   = db()->query('SELECT id, nombre, icono FROM tipos_incidencia WHERE activo = 1 ORDER BY id')->fetchAll();
 $barrios_lista = db()->query('SELECT id, nombre FROM barrios WHERE activo = 1 ORDER BY nombre')->fetchAll();
+$categorias_lista = categorias_activas();
+$cats_sel_ids  = array_map('intval', array_column(categorias_de_incidencia($id), 'id'));
 $csrf          = csrf_token();
 ?>
 <!DOCTYPE html>
@@ -137,7 +149,7 @@ $csrf          = csrf_token();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Editar incidencia #<?= $id ?> — SRCI</title>
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011f">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011g">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
@@ -231,6 +243,18 @@ $csrf          = csrf_token();
         <div class="campo">
           <label for="e-familias">Familias afectadas</label>
           <input type="number" id="e-familias" name="familias_afectadas" min="0" max="9999" value="<?= esc($inc['familias_afectadas'] ?? '') ?>">
+        </div>
+
+        <div class="campo" style="grid-column:1 / -1;">
+          <label>Categorías <span style="font-weight:400;color:var(--color-texto-suave);">(podés elegir varias)</span></label>
+          <div class="chips-categoria">
+            <?php foreach ($categorias_lista as $cat): $activa = in_array((int)$cat['id'], $cats_sel_ids, true); ?>
+              <label class="chip-categoria <?= $activa ? 'activa' : '' ?>" style="--cat-color:<?= esc(color_valido($cat['color']) ?? '#64748b') ?>">
+                <input type="checkbox" name="categorias[]" value="<?= (int)$cat['id'] ?>" <?= $activa ? 'checked' : '' ?>>
+                <span><?= esc(($cat['icono'] ?? '') . ' ' . $cat['nombre']) ?></span>
+              </label>
+            <?php endforeach; ?>
+          </div>
         </div>
 
         <div class="campo">

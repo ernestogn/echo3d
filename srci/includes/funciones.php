@@ -154,6 +154,99 @@ function color_valido(?string $color): ?string
   return preg_match('/^#[0-9a-fA-F]{6}$/', $color) ? strtolower($color) : null;
 }
 
+// --- Categorias de incidencias (etiquetas independientes del tipo, no excluyentes) ---
+
+// Categorias activas (catalogo), cacheadas en static
+function categorias_activas(): array
+{
+  static $categorias = null;
+  if ($categorias === null) {
+    try {
+      $categorias = db()->query('SELECT id, clave, nombre, icono, color FROM categorias_incidencia WHERE activo = 1 ORDER BY id')->fetchAll();
+    } catch (Throwable $e) {
+      $categorias = [];
+    }
+  }
+  return $categorias;
+}
+
+// Id de la categoria por defecto (Climaticos); 0 si no existe
+function categoria_default_id(): int
+{
+  $st = db()->prepare('SELECT id FROM categorias_incidencia WHERE clave = :c LIMIT 1');
+  $st->execute([':c' => 'climaticos']);
+  return (int)($st->fetchColumn() ?: 0);
+}
+
+// Categorias asignadas a una incidencia (id, clave, nombre, icono, color)
+function categorias_de_incidencia(int $incidencia_id): array
+{
+  $st = db()->prepare(
+    'SELECT c.id, c.clave, c.nombre, c.icono, c.color
+       FROM incidencia_categorias ic
+       JOIN categorias_incidencia c ON c.id = ic.categoria_id
+      WHERE ic.incidencia_id = :id
+      ORDER BY c.id'
+  );
+  $st->execute([':id' => $incidencia_id]);
+  return $st->fetchAll();
+}
+
+// Asigna (reemplaza) las categorias de una incidencia. Ignora ids invalidos o
+// inactivos. Si no queda ninguna, aplica la categoria por defecto (Climaticos).
+function guardar_categorias_incidencia(int $incidencia_id, array $categoria_ids): void
+{
+  $validas = [];
+  $activas = [];
+  foreach (categorias_activas() as $c) {
+    $activas[(int)$c['id']] = true;
+  }
+  foreach ($categoria_ids as $cid) {
+    $cid = (int)$cid;
+    if ($cid > 0 && isset($activas[$cid]) && !in_array($cid, $validas, true)) {
+      $validas[] = $cid;
+    }
+  }
+  if (!$validas) {
+    $def = categoria_default_id();
+    if ($def > 0) $validas[] = $def;
+  }
+
+  db()->prepare('DELETE FROM incidencia_categorias WHERE incidencia_id = :id')->execute([':id' => $incidencia_id]);
+  if ($validas) {
+    $ins = db()->prepare('INSERT INTO incidencia_categorias (incidencia_id, categoria_id) VALUES (:i, :c)');
+    foreach ($validas as $cid) {
+      $ins->execute([':i' => $incidencia_id, ':c' => $cid]);
+    }
+  }
+}
+
+// Categorias de varias incidencias a la vez: [incidencia_id => [cats...]]
+function categorias_por_incidencia(array $incidencia_ids): array
+{
+  $incidencia_ids = array_values(array_unique(array_map('intval', $incidencia_ids)));
+  $incidencia_ids = array_filter($incidencia_ids, fn($v) => $v > 0);
+  if (!$incidencia_ids) return [];
+
+  $ph = implode(',', array_fill(0, count($incidencia_ids), '?'));
+  $st = db()->prepare(
+    "SELECT ic.incidencia_id, c.id, c.clave, c.nombre, c.icono, c.color
+       FROM incidencia_categorias ic
+       JOIN categorias_incidencia c ON c.id = ic.categoria_id
+      WHERE ic.incidencia_id IN ($ph)
+      ORDER BY c.id"
+  );
+  $st->execute($incidencia_ids);
+
+  $mapa = [];
+  foreach ($st->fetchAll() as $row) {
+    $iid = (int)$row['incidencia_id'];
+    unset($row['incidencia_id']);
+    $mapa[$iid][] = $row;
+  }
+  return $mapa;
+}
+
 // --- Espejo en Google Sheets (via Apps Script Web App) ---
 // Configurar en config.local.php (fuera de git):
 //   define('SRCI_SHEETS_WEBAPP_URL', 'https://script.google.com/macros/s/.../exec');

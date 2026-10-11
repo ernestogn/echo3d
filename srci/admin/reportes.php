@@ -76,6 +76,7 @@ $stmt->bindValue(':lim', $por_pagina, PDO::PARAM_INT);
 $stmt->bindValue(':off', $offset,     PDO::PARAM_INT);
 $stmt->execute();
 $filas = $stmt->fetchAll();
+$mapa_cats_admin = categorias_por_incidencia(array_column($filas, 'id'));
 $csrf  = csrf_token();
 ?>
 <!DOCTYPE html>
@@ -84,7 +85,7 @@ $csrf  = csrf_token();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin — Reportes · SRCI</title>
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011f">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011g">
 </head>
 <body>
 <nav class="nav-principal">
@@ -108,6 +109,7 @@ $csrf  = csrf_token();
     <a href="/srci/admin/reportes.php" class="admin-nav-item activo">📋 Reportes</a>
     <a href="/srci/admin/usuarios.php" class="admin-nav-item">👥 Usuarios</a>
     <a href="/srci/admin/tipos.php"    class="admin-nav-item">🏷️ Tipos</a>
+    <a href="/srci/admin/categorias.php" class="admin-nav-item">🗂️ Categorías</a>
     <a href="/srci/admin/barrios.php"  class="admin-nav-item">🏙️ Barrios</a>
     <a href="/srci/admin/auditoria.php" class="admin-nav-item">🧾 Auditoría</a>
   </aside>
@@ -165,14 +167,19 @@ $csrf  = csrf_token();
       <table class="tabla-incidencias">
         <thead>
           <tr>
-            <th>#</th><th>Tipo</th><th>Barrio</th><th>Dirección</th><th>Gravedad</th><th>Usuario</th><th>Fecha</th><th>Estado</th><th>Cambiar estado</th><th>Ver</th>
+            <th>#</th><th>Tipo</th><th>Categorías</th><th>Barrio</th><th>Dirección</th><th>Gravedad</th><th>Usuario</th><th>Fecha</th><th>Estado</th><th>Cambiar estado</th><th>Ver</th>
           </tr>
         </thead>
         <tbody>
-          <?php foreach ($filas as $f): ?>
+          <?php foreach ($filas as $f): $cats_f = $mapa_cats_admin[(int)$f['id']] ?? []; ?>
             <tr>
               <td><?= (int)$f['id'] ?></td>
               <td><?= esc($f['tipo']) ?></td>
+              <td>
+                <?php if ($cats_f): foreach ($cats_f as $cat): ?>
+                  <span class="categoria-badge" style="--cat-color:<?= esc(color_valido($cat['color']) ?? '#64748b') ?>"><?= esc(($cat['icono'] ?? '') . ' ' . $cat['nombre']) ?></span>
+                <?php endforeach; else: ?>—<?php endif; ?>
+              </td>
               <td><?= esc($f['barrio'] ?? '—') ?></td>
               <td><?= esc($f['direccion'] ?? '—') ?></td>
               <td><span class="gravedad-badge <?= clase_gravedad($f['gravedad']) ?>"><?= esc(nombre_gravedad($f['gravedad'])) ?></span></td>

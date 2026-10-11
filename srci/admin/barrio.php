@@ -212,7 +212,7 @@ $csrf = csrf_token();
   <title>Admin — <?= esc($barrio['nombre']) ?> · SRCI</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011f">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011g">
 </head>
 <body>
 <nav class="nav-principal">
@@ -236,6 +236,7 @@ $csrf = csrf_token();
     <a href="/srci/admin/reportes.php" class="admin-nav-item">📋 Reportes</a>
     <a href="/srci/admin/usuarios.php" class="admin-nav-item">👥 Usuarios</a>
     <a href="/srci/admin/tipos.php"    class="admin-nav-item">🏷️ Tipos</a>
+    <a href="/srci/admin/categorias.php" class="admin-nav-item">🗂️ Categorías</a>
     <a href="/srci/admin/barrios.php"  class="admin-nav-item activo">🏙️ Barrios</a>
     <a href="/srci/admin/auditoria.php" class="admin-nav-item">🧾 Auditoría</a>
   </aside>

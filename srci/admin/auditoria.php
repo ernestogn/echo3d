@@ -59,7 +59,7 @@ function clase_accion(string $accion): string
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin — Auditoría · SRCI</title>
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011f">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011g">
 </head>
 <body>
 <nav class="nav-principal">
@@ -83,6 +83,7 @@ function clase_accion(string $accion): string
     <a href="/srci/admin/reportes.php" class="admin-nav-item activo">📋 Reportes</a>
     <a href="/srci/admin/usuarios.php" class="admin-nav-item">👥 Usuarios</a>
     <a href="/srci/admin/tipos.php"    class="admin-nav-item">🏷️ Tipos</a>
+    <a href="/srci/admin/categorias.php" class="admin-nav-item">🗂️ Categorías</a>
     <a href="/srci/admin/barrios.php"  class="admin-nav-item">🏙️ Barrios</a>
     <a href="/srci/admin/auditoria.php" class="admin-nav-item">🧾 Auditoría</a>
   </aside>

@@ -38,7 +38,7 @@ Aplicacion web para que ciudadanos reporten incidencias urbanas geolocalizadas (
 ```
 srci/
 ├── index.php              Mapa principal (Leaflet + modal de reporte en 2 pasos)
-├── incidencias.php        Listado tabular con filtros, paginacion, filas expandibles (todos los campos), exportacion CSV/GeoJSON
+├── incidencias.php        Listado tabular con filtros (incl. categoria), paginacion, filas expandibles (todos los campos), columna de categorias, exportacion CSV/GeoJSON (incl. categorias)
 ├── detalle.php            Detalle de una incidencia + cambio de estado para admin
 ├── editar.php             Edicion completa de una incidencia (todos los campos, con CSRF)
 ├── login.php              Autenticacion por nombre + PIN de 4 digitos (teclado virtual)
@@ -54,18 +54,22 @@ srci/
 │   ├── esquema.sql        Esquema completo de DB + datos semilla de tipos, barrios y usuario admin
 │   ├── migracion_planilla.sql  Migracion: tabla barrios + campos nuevos en incidencias + 3 tipos nuevos
 │   ├── migracion_usuarios_barrios.sql  Migracion: barrios reales + tabla referentes_barrios
-│   └── migracion_barrios_categoria_color.sql  Migracion: categoria (formal|informal|asentamiento) + color de render de barrios
+│   ├── migracion_barrios_categoria_color.sql  Migracion: categoria (formal|informal|asentamiento) + color de render de barrios
+│   └── migracion_categorias_incidencia.sql  Migracion: categorias de incidencia (muchos-a-muchos, no excluyentes) + backfill a Climaticos
 │
 ├── includes/
 │   ├── db.php             Conexion PDO singleton (funcion db()), respuesta_json()
 │   ├── auth.php           Funciones de sesion: requiere_sesion(), requiere_admin(), csrf_token(), validar_csrf()
 │   └── funciones.php      Helpers: esc(), fecha_legible(), generar_pin(), guardar_foto(), enviar_pin_por_email(),
 │                          barrio_por_punto(), geojson_a_anillos() / anillos_a_geojson() / contar_anillos_poligono(),
-│                          nombre_categoria() / clase_categoria() / color_categoria() / color_valido()
+│                          nombre_categoria() / clase_categoria() / color_categoria() / color_valido(),
+│                          categorias_activas() / categoria_default_id() / categorias_de_incidencia() /
+│                          guardar_categorias_incidencia() / categorias_por_incidencia()
 │
 ├── api/
 │   ├── tipos.php          GET  /srci/api/tipos.php      — lista tipos activos (JSON)
 │   ├── barrios.php        GET  /srci/api/barrios.php    — lista barrios activos (JSON)
+│   ├── categorias.php     GET  /srci/api/categorias.php — lista categorias de incidencia activas (JSON)
 │   ├── poligonos.php      GET  /srci/api/poligonos.php  — poligonos de barrios activos: [{id, nombre, categoria, color, anillos}]
 │   ├── reportes.php       GET  /srci/api/reportes.php   — lista incidencias con filtros opcionales (solo con coordenadas; es el feed del mapa)
 │                          POST /srci/api/reportes.php   — crea nueva incidencia (JSON body)
@@ -75,9 +79,10 @@ srci/
 │   └── sin_ubicacion.php  GET  /srci/api/sin_ubicacion.php — conteo de incidencias sin coordenadas (chip del mapa)
 │
 ├── admin/
-│   ├── reportes.php       Panel admin: listado de reportes + cambio de estado via form POST
+│   ├── reportes.php       Panel admin: listado de reportes (con columna de categorias) + cambio de estado via form POST
 │   ├── usuarios.php       Panel admin: crear usuarios, editarlos (nombre/email/rol), regenerar PIN, activar/desactivar
 │   ├── tipos.php          Panel admin: crear tipos de incidencia, activar/desactivar
+│   ├── categorias.php     Panel admin: crear/editar/activar categorias de incidencia (nombre + icono + color)
 │   ├── barrios.php        Panel admin: crear/activar barrios + tabla con categoria, swatch de color, poligono, incidencias y referentes; link a barrio.php
 │   ├── barrio.php         Panel admin: detalle de un barrio (info reversa: datos, incidencias, ultimas, referentes),
 │   │                      edicion de nombre/estado/poligono (subir/pegar/dibujar GeoJSON, vista previa Leaflet.draw,
@@ -88,8 +93,8 @@ srci/
 │   ├── css/estilos.css    Sistema de diseno completo (variables CSS, dark mode, responsive)
 │   └── js/
 │       ├── login.js       Logica del teclado PIN numerico en login.php
-│       ├── mapa.js        Inicializacion Leaflet, carga marcadores agrupados POR BARRIO (un L.markerClusterGroup por barrio_id, asi no se fusionan puntos de distintos barrios; radio ajustable por zoom, sueltos a zoom 17+), iconos: color por gravedad + emoji del tipo; resueltas grises con check y zIndex bajo; en_gestion con anillo azul. Dibuja los limites de barrio (api/poligonos.php) con el color propio de cada barrio (p.color, fallback #4f46e5; hover-only)
-│       └── reporte.js     Modal de reporte: paso 1 (tipo) → paso 2 (mini-mapa + foto + notas)
+│       ├── mapa.js        Inicializacion Leaflet, carga marcadores agrupados POR BARRIO (un L.markerClusterGroup por barrio_id, asi no se fusionan puntos de distintos barrios; radio ajustable por zoom, sueltos a zoom 17+), iconos: color por gravedad + emoji del tipo; resueltas grises con check y zIndex bajo; en_gestion con anillo azul. Dibuja los limites de barrio (api/poligonos.php) con el color propio de cada barrio (p.color, fallback #4f46e5; hover-only). Filtro por categoria con dropdown (<select id> en #filtros-mapa, combina con AND con los chips de tipo y "Mis reportes") + badges de categoria en el popup
+│       └── reporte.js     Modal de reporte: paso 1 (tipo) → paso 2 (chips de categorias multiseleccion, por defecto Climaticos + mini-mapa + foto + notas)
 │
 └── uploads/
     └── .htaccess          Bloquea ejecucion de PHP en este directorio (critico de seguridad)
@@ -135,6 +140,13 @@ incidencias       id, usuario_id(FK), tipo_id(FK), latitud, longitud, barrio_id(
 fotos             id, incidencia_id(FK CASCADE), ruta_archivo, fecha_subida
 auditoria         id, usuario_id(FK SET NULL), accion(crear|editar|cambiar_estado|ocultar|restaurar|subir_foto),
                   incidencia_id, detalle, fecha_hora
+categorias_incidencia id, clave(UNIQUE), nombre, icono, color(VARCHAR(7) #rrggbb NULL), activo —
+                  categorias de incidencia (etiquetas INDEPENDIENTES del tipo, NO excluyentes). Semilla:
+                  climaticos(Climáticos 🌧️), calles_rotas(Calles rotas 🛣️), luminarias(Luminarias 💡),
+                  arbolado(Arbolado 🌳), basura(Basura 🗑️), agua_cloaca(Agua y cloaca 💧). "Climáticos" es la
+                  categoria por defecto. CRUD en admin/categorias.php; catalogo publico en api/categorias.php.
+incidencia_categorias incidencia_id(FK CASCADE), categoria_id(FK CASCADE) — PK(incidencia_id, categoria_id).
+                  Pivote muchos-a-muchos. La migracion hace backfill: TODAS las incidencias existentes quedan en Climáticos.
 ```
 
 **Regla:** nunca alterar el esquema sin proponer la migracion SQL primero y esperar confirmacion del humano.
@@ -156,6 +168,8 @@ Usuarios del relevamiento: cargados por script one-shot con username = email; el
 **Alineacion con la planilla de relevamiento** (`Planilla_relevamiento_barrios.xlsx`): el formulario pide Barrio, Direccion/calle y altura, Gravedad (obligatorios) y Familias afectadas, Servicio afectado, Calle intransitable, Responsable/area, Contacto vecino (opcionales). "Dias abiertos" se calcula (fecha_hora → fecha_resolucion o hoy). Estado: "En gestion" = `en_proceso`.
 
 **Espejo bidireccional con Google Sheets (planilla de relevamiento, gid 73522773):** via Apps Script Web App (`SRCI_SHEETS_WEBAPP_URL` + `SRCI_SHEETS_SECRET` en config.local.php). Ida (app → hoja): cada reporte/foto/cambio de estado envia fire-and-forget (`enviar_a_sheets()`, funciones.php; Apps Script responde 302 y el echo final se llama con GET — el payload viaja en user_content_key). Vuelta (hoja → app): el script `sincronizarEntrada()` (trigger cada 5 min) escanea filas de datos **sin tag en col T** y las importa via `api/sheets_entrada.php` (accion 'importar'); al importar escribe tag `APP-<id>` en col T — ese tag es el dedupe: filas de la app ya nacen taggeadas, filas importadas quedan taggeadas, ERROR-xxx si la importacion falla. Coordenadas de importados = NULL: no aparecen en el mapa (api/reportes.php GET filtra `latitud IS NOT NULL`), cuentan en `api/sin_ubicacion.php` (chip "📍 N sin ubicación" en la botonera del mapa) y se ubican desde editar.php; barrio inexistente se crea; "Relevado por" matchea usuario por nombre O email, fallback usuario dedicado 'Planilla' (inactivo). Cambiar el codigo del script requiere "Nueva version" en Administrar implementaciones.
+
+**Categorias de incidencia (`categorias_incidencia` + `incidencia_categorias`):** etiquetas **independientes del tipo** y **no excluyentes** (una incidencia puede tener varias). Se eligen al reportar (`index.php` + `reporte.js`: chips multiseleccion en el Paso 2, con **Climáticos pre-marcada**), se editan en `editar.php` (checkboxes `categorias[]`) y se muestran como badges en `incidencias.php` (columna + fila expandida), `admin/reportes.php` (columna), `detalle.php` y el popup del mapa. `api/reportes.php` POST acepta `categorias: [int]` (valida activas; si viene vacio aplica la por defecto) y su GET adjunta `categorias: [{id,clave,nombre,icono,color}]` a cada incidencia (segunda query via `categorias_por_incidencia()`). `incidencias.php` permite filtrar por `categoria_id` (subquery `EXISTS`) y exporta las categorias en CSV (`Categorías`) y GeoJSON (`properties.categorias`). El mapa filtra por categoria con un **dropdown** en `#filtros-mapa` (combina AND con tipo/mis reportes; `mapa.js` guarda `reg.categoriaIds`). La importacion de la planilla (`api/sheets_entrada.php`) asigna **Climáticos**. Helpers en `funciones.php`: `categorias_activas()`, `categoria_default_id()`, `categorias_de_incidencia($id)`, `guardar_categorias_incidencia($id, $ids)`, `categorias_por_incidencia($ids)`.
 
 **Ocultar (soft delete) + auditoria (REGLAS):** las incidencias **nunca se borran** de la BD. "Eliminar" = pasar a `oculto = 1` (solo admins, con CSRF y confirm). El mapa, listado y exportaciones filtran `oculto = 0`; el admin ve/restaura las ocultas desde `admin/reportes.php?ocultas=1`. Toda accion (crear, editar con detalle de campos cambiados, cambiar estado, ocultar, restaurar, subir foto) se registra en la tabla `auditoria` con `registrar_auditoria()` (`includes/funciones.php`) — visible en `/srci/admin/auditoria.php`.
 
@@ -239,16 +253,21 @@ echo $variable;                // PROHIBIDO
 **Auth:** sesion activa  
 **Response:** `[{id, nombre}, ...]` — solo barrios activos, orden por nombre
 
+### GET /srci/api/categorias.php
+**Auth:** sesion activa  
+**Response:** `[{id, clave, nombre, icono, color}, ...]` — solo categorias de incidencia activas, orden por id
+
 ### GET /srci/api/reportes.php
 **Auth:** sesion activa  
-**Params opcionales:** `tipo_id`, `estado`, `barrio_id`, `gravedad` (baja|media|alta|critica), `fecha_desde` (YYYY-MM-DD), `fecha_hasta` (YYYY-MM-DD)  
-**Response:** array de incidencias con joins (tipo_nombre, tipo_icono, tipo_clave, barrio_nombre, usuario_nombre, foto y campos nuevos: direccion, gravedad, familias_afectadas, servicio_afectado, calle_intransitable, responsable_area, contacto_vecino, fecha_resolucion)  
+**Params opcionales:** `tipo_id`, `estado`, `barrio_id`, `gravedad` (baja|media|alta|critica), `categoria_id`, `fecha_desde` (YYYY-MM-DD), `fecha_hasta` (YYYY-MM-DD)  
+**Response:** array de incidencias con joins (tipo_nombre, tipo_icono, tipo_clave, barrio_nombre, usuario_nombre, foto, campos nuevos: direccion, gravedad, familias_afectadas, servicio_afectado, calle_intransitable, responsable_area, contacto_vecino, fecha_resolucion) + `categorias: [{id, clave, nombre, icono, color}]`  
 **Limite:** 1000 registros (sin paginacion — para el mapa)
 
 ### POST /srci/api/reportes.php
 **Auth:** sesion activa  
-**Body JSON:** `{tipo_id: int, latitud: float, longitud: float, barrio_id: int, direccion: string, gravedad: "baja"|"media"|"alta"|"critica", familias_afectadas?: int, servicio_afectado?: string, calle_intransitable?: 0|1, responsable_area?: string, contacto_vecino?: string, notas?: string}`  
+**Body JSON:** `{tipo_id: int, latitud: float, longitud: float, barrio_id: int, direccion: string, gravedad: "baja"|"media"|"alta"|"critica", categorias?: [int], familias_afectadas?: int, servicio_afectado?: string, calle_intransitable?: 0|1, responsable_area?: string, contacto_vecino?: string, notas?: string}`  
 **Obligatorios:** tipo_id, latitud, longitud, barrio_id, direccion, gravedad  
+**Notas:** `categorias` es opcional; si viene vacio o con ids invalidos se aplica la categoria por defecto (Climáticos)  
 **Response exito:** `{ok: true, id: int}` HTTP 201  
 **Response error:** `{error: string}` HTTP 400 | 401 (relogin) | 422
 
@@ -272,8 +291,8 @@ echo $variable;                // PROHIBIDO
 El modal en `index.php` tiene 2 pasos gestionados por `reporte.js`:
 
 1. **Paso 1** (`#paso-tipo`): grilla de tipos cargada desde `/api/tipos.php`. El usuario selecciona uno.
-2. **Paso 2** (`#paso-detalles`): grid 2 columnas en desktop (FullHD sin scroll) — barrio (select de `/api/barrios.php`), direccion, gravedad, familias afectadas, servicio afectado, responsable/area, calle intransitable (checkbox), contacto vecino — mas mini-mapa Leaflet para marcar coordenadas, textarea de notas, zona de foto. En movil: una columna.
-3. Al enviar: primero POST a `/api/reportes.php`, luego (si hay foto) POST a `/api/subir_foto.php`. Validacion cliente: barrio, direccion y gravedad obligatorios.
+2. **Paso 2** (`#paso-detalles`): grid 2 columnas en desktop (FullHD sin scroll) — barrio (select de `/api/barrios.php`), direccion, gravedad, **categorias (chips multiseleccion de `/api/categorias.php`, con Climáticos pre-marcada)**, familias afectadas, servicio afectado, responsable/area, calle intransitable (checkbox), contacto vecino — mas mini-mapa Leaflet para marcar coordenadas, textarea de notas, zona de foto. En movil: una columna.
+3. Al enviar: primero POST a `/api/reportes.php` (incluye `categorias: [ids]`), luego (si hay foto) POST a `/api/subir_foto.php`. Validacion cliente: barrio, direccion y gravedad obligatorios.
 
 **Reporte por click en el mapa:** al hacer click sobre el mapa principal (`mapa.js`), se coloca un marcador de selección (`crearIconoSeleccion`, anillo indigo) y se abre el modal con esas coordenadas precargadas via `window.abrirReporteConCoordenada(latlng)` (expuesta por `reporte.js`). En el paso 2 el mini-mapa ya queda centrado en ese punto con su marcador; el usuario puede ajustarlo tocando el mini-mapa. Al cerrar el modal, `cerrarModal()` limpia el marcador del mapa principal via `window.removerMarcadorSeleccion()`.
 
@@ -317,6 +336,8 @@ Archivo: `assets/css/estilos.css` — Tema claro (sin dark mode, sin frameworks)
 | `.fila-expandida` | Fila expandible de la tabla con todos los campos |
 | `.estado-badge .estado-{estado}` | Badge de estado coloreado |
 | `.gravedad-badge .gravedad-{nivel}` | Badge de gravedad (baja=verde, media=ámbar, alta=naranja, crítica=rojo) |
+| `.categoria-badge` | Badge de categoria de incidencia (color propio via `--cat-color`) |
+| `.chips-categoria .chip-categoria` | Chips de seleccion multiple de categorias (modal y editar) |
 | `.mensaje .mensaje-{tipo}` | Feedback: exito, error, info |
 | `.spinner` | Indicador de carga animado |
 | `.modal-fondo .visible` | Modal deslizante desde abajo |

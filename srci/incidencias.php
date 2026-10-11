@@ -33,6 +33,7 @@ $tipo_id     = (int)($_GET['tipo_id']     ?? 0);
 $estado      = $_GET['estado']      ?? '';
 $barrio_id   = (int)($_GET['barrio_id']   ?? 0);
 $gravedad    = $_GET['gravedad']    ?? '';
+$categoria_id = (int)($_GET['categoria_id'] ?? 0);
 $fecha_desde = $_GET['fecha_desde'] ?? '';
 $fecha_hasta = $_GET['fecha_hasta'] ?? '';
 $pagina      = max(1, (int)($_GET['pagina'] ?? 1));
@@ -64,6 +65,10 @@ if ($gravedad !== '' && in_array($gravedad, $gravedades_validas, true)) {
   $donde[]           = 'i.gravedad = :gravedad';
   $params[':gravedad'] = $gravedad;
 }
+if ($categoria_id > 0) {
+  $donde[]                = 'EXISTS (SELECT 1 FROM incidencia_categorias ic WHERE ic.incidencia_id = i.id AND ic.categoria_id = :categoria_id)';
+  $params[':categoria_id'] = $categoria_id;
+}
 if ($fecha_desde !== '') {
   $donde[]              = 'i.fecha_hora >= :fecha_desde';
   $params[':fecha_desde'] = $fecha_desde . ' 00:00:00';
@@ -94,6 +99,12 @@ if ($exportar === 'csv' || $exportar === 'geojson') {
   $stmt->execute($params);
   $filas = $stmt->fetchAll();
 
+  // Categorias por incidencia (para CSV/GeoJSON)
+  $mapa_cats = categorias_por_incidencia(array_column($filas, 'id'));
+  $cats_texto = function (int $iid) use ($mapa_cats): string {
+    return implode(', ', array_map(fn($c) => $c['nombre'], $mapa_cats[$iid] ?? []));
+  };
+
   // Dias abiertos por fila (como la planilla)
   $dias_fila = function (array $f): int {
     $inicio = new DateTime($f['fecha_hora']);
@@ -106,7 +117,7 @@ if ($exportar === 'csv' || $exportar === 'geojson') {
     header('Content-Disposition: attachment; filename="incidencias_' . date('Y-m-d') . '.csv"');
     $salida = fopen('php://output', 'w');
     // Columnas alineadas con Planilla_relevamiento_barrios.xlsx
-    fputcsv($salida, ['N°','Fecha','Hora','Barrio','Dirección / calle y altura','Tipo de situación','Gravedad','Familias afectadas','Servicio afectado','Calle intransitable','Estado','Responsable / área','Fecha de resolución','Días abiertos','Relevado por','Contacto vecino / referente','Observaciones','Latitud','Longitud','Foto'], ';');
+    fputcsv($salida, ['N°','Fecha','Hora','Barrio','Dirección / calle y altura','Tipo de situación','Categorías','Gravedad','Familias afectadas','Servicio afectado','Calle intransitable','Estado','Responsable / área','Fecha de resolución','Días abiertos','Relevado por','Contacto vecino / referente','Observaciones','Latitud','Longitud','Foto'], ';');
     foreach ($filas as $f) {
       fputcsv($salida, [
         $f['id'],
@@ -115,6 +126,7 @@ if ($exportar === 'csv' || $exportar === 'geojson') {
         $f['barrio_nombre'] ?? '',
         $f['direccion'] ?? '',
         $f['tipo_nombre'],
+        $cats_texto((int)$f['id']),
         nombre_gravedad($f['gravedad']),
         $f['familias_afectadas'] ?? '',
         $f['servicio_afectado'] ?? '',
@@ -144,6 +156,7 @@ if ($exportar === 'csv' || $exportar === 'geojson') {
       'geometry'   => ['type' => 'Point', 'coordinates' => [(float)$f['longitud'], (float)$f['latitud']]],
       'properties' => [
         'id'       => $f['id'], 'tipo'    => $f['tipo_nombre'],
+        'categorias' => array_map(fn($c) => $c['nombre'], $mapa_cats[(int)$f['id']] ?? []),
         'estado'   => $f['estado'], 'fecha'   => $f['fecha_hora'],
         'barrio'   => $f['barrio_nombre'] ?? null,
         'direccion'=> $f['direccion'] ?? null,
@@ -188,12 +201,16 @@ $incidencias = $stmt->fetchAll();
 // Tipos y barrios para los selects de filtro
 $tipos_lista   = db()->query('SELECT id, nombre FROM tipos_incidencia WHERE activo=1 ORDER BY nombre')->fetchAll();
 $barrios_lista = db()->query('SELECT id, nombre FROM barrios WHERE activo=1 ORDER BY nombre')->fetchAll();
+$categorias_lista = categorias_activas();
+
+// Categorias por incidencia (para la columna y la fila expandida)
+$mapa_cats_tabla = categorias_por_incidencia(array_column($incidencias, 'id'));
 
 $nombre_usuario = esc((string)($_SESSION['nombre'] ?? ''));
 
 // URL base para filtros y paginacion
 function url_filtros(array $extras = []): string {
-  $base = ['tipo_id' => $_GET['tipo_id'] ?? '', 'estado' => $_GET['estado'] ?? '', 'barrio_id' => $_GET['barrio_id'] ?? '', 'gravedad' => $_GET['gravedad'] ?? '', 'fecha_desde' => $_GET['fecha_desde'] ?? '', 'fecha_hasta' => $_GET['fecha_hasta'] ?? ''];
+  $base = ['tipo_id' => $_GET['tipo_id'] ?? '', 'estado' => $_GET['estado'] ?? '', 'barrio_id' => $_GET['barrio_id'] ?? '', 'gravedad' => $_GET['gravedad'] ?? '', 'categoria_id' => $_GET['categoria_id'] ?? '', 'fecha_desde' => $_GET['fecha_desde'] ?? '', 'fecha_hasta' => $_GET['fecha_hasta'] ?? ''];
   $merged = array_merge($base, $extras);
   return '/srci/incidencias.php?' . http_build_query(array_filter($merged, fn($v) => $v !== '' && $v !== '0' && $v !== 0));
 }
@@ -205,7 +222,7 @@ function url_filtros(array $extras = []): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Listado de Incidencias — SRCI</title>
   <meta name="description" content="Listado completo de incidencias reportadas por los ciudadanos.">
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011f">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011g">
 </head>
 <body>
 
@@ -274,6 +291,17 @@ function url_filtros(array $extras = []): string {
       </select>
     </div>
     <div class="campo">
+      <label for="f-categoria">Categoría</label>
+      <select id="f-categoria" name="categoria_id">
+        <option value="">Todas las categorías</option>
+        <?php foreach ($categorias_lista as $cat): ?>
+          <option value="<?= (int)$cat['id'] ?>" <?= $categoria_id === (int)$cat['id'] ? 'selected' : '' ?>>
+            <?= esc(($cat['icono'] ?? '') . ' ' . $cat['nombre']) ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+    <div class="campo">
       <label for="f-estado">Estado</label>
       <select id="f-estado" name="estado">
         <option value="">Todos los estados</option>
@@ -311,6 +339,7 @@ function url_filtros(array $extras = []): string {
             <th>Fecha</th>
             <th>Hora</th>
             <th>Tipo</th>
+            <th>Categorías</th>
             <th>Barrio</th>
             <th>Dirección</th>
             <th>Gravedad</th>
@@ -325,12 +354,18 @@ function url_filtros(array $extras = []): string {
             $inicio = new DateTime($inc['fecha_hora']);
             $fin    = !empty($inc['fecha_resolucion']) ? new DateTime($inc['fecha_resolucion']) : new DateTime('now');
             $dias   = (int)$inicio->diff($fin)->days;
+            $cats_inc = $mapa_cats_tabla[(int)$inc['id']] ?? [];
           ?>
             <tr>
               <td><?= (int)$inc['id'] ?></td>
               <td style="white-space:nowrap;"><?= esc(date('d/m/y', strtotime($inc['fecha_hora']))) ?></td>
               <td style="white-space:nowrap;"><?= esc(date('H:i', strtotime($inc['fecha_hora']))) ?></td>
               <td><?= esc($inc['tipo_icono'] ?? '') ?> <?= esc($inc['tipo_nombre']) ?></td>
+              <td>
+                <?php if ($cats_inc): foreach ($cats_inc as $cat): ?>
+                  <span class="categoria-badge" style="--cat-color:<?= esc(color_valido($cat['color']) ?? '#64748b') ?>"><?= esc(($cat['icono'] ?? '') . ' ' . $cat['nombre']) ?></span>
+                <?php endforeach; else: ?>—<?php endif; ?>
+              </td>
               <td><?= esc($inc['barrio_nombre'] ?? '—') ?></td>
               <td style="max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<?= esc($inc['direccion'] ?? '') ?>"><?= esc($inc['direccion'] ?? '—') ?></td>
               <td><span class="gravedad-badge <?= clase_gravedad($inc['gravedad']) ?>"><?= esc(nombre_gravedad($inc['gravedad'])) ?></span></td>
@@ -353,12 +388,18 @@ function url_filtros(array $extras = []): string {
               </td>
             </tr>
             <tr class="fila-expandida" id="expandida-<?= (int)$inc['id'] ?>" style="display:none;">
-              <td colspan="11">
+              <td colspan="12">
                 <dl style="display:grid;grid-template-columns:170px 1fr;gap:6px var(--espacio-lg);font-size:.85rem;">
                   <dt style="color:var(--color-texto-suave);font-weight:600;">Dirección</dt>
                   <dd><?= esc($inc['direccion'] ?? '—') ?></dd>
                   <dt style="color:var(--color-texto-suave);font-weight:600;">Barrio</dt>
                   <dd><?= esc($inc['barrio_nombre'] ?? '—') ?></dd>
+                  <dt style="color:var(--color-texto-suave);font-weight:600;">Categorías</dt>
+                  <dd>
+                    <?php if ($cats_inc): foreach ($cats_inc as $cat): ?>
+                      <span class="categoria-badge" style="--cat-color:<?= esc(color_valido($cat['color']) ?? '#64748b') ?>"><?= esc(($cat['icono'] ?? '') . ' ' . $cat['nombre']) ?></span>
+                    <?php endforeach; else: ?>—<?php endif; ?>
+                  </dd>
                   <dt style="color:var(--color-texto-suave);font-weight:600;">Gravedad</dt>
                   <dd><span class="gravedad-badge <?= clase_gravedad($inc['gravedad']) ?>"><?= esc(nombre_gravedad($inc['gravedad'])) ?></span></dd>
                   <dt style="color:var(--color-texto-suave);font-weight:600;">Familias afectadas</dt>

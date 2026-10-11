@@ -349,6 +349,49 @@ h3 { font-size: 1.125rem; font-weight: 600; }
 .cat-asentamiento { background: rgba(220,38,38,.15);  color: #dc2626; }
 .cat-sin          { background: rgba(100,116,139,.15); color: #64748b; }
 
+/* Badges de categoria de incidencia (color propio via --cat-color) */
+.categoria-badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  margin: 0 4px 2px 0;
+  white-space: nowrap;
+  color: var(--cat-color, #64748b);
+  background: color-mix(in srgb, var(--cat-color, #64748b) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cat-color, #64748b) 35%, transparent);
+}
+
+/* Chips de seleccion multiple de categorias (modal y editar) */
+.chips-categoria {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip-categoria {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1.5px solid var(--color-borde);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--color-superficie);
+  color: var(--color-texto);
+  user-select: none;
+  transition: background-color var(--transicion), color var(--transicion), border-color var(--transicion);
+}
+.chip-categoria input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.chip-categoria.activa,
+.chip-categoria:has(input:checked) {
+  border-color: var(--cat-color, var(--color-acento));
+  color: var(--cat-color, var(--color-acento));
+  background: color-mix(in srgb, var(--cat-color, var(--color-acento)) 12%, transparent);
+}
+
 /* Incidencias ocultas */
 .badge-oculta {
   display: inline-block;
@@ -764,6 +807,20 @@ h3 { font-size: 1.125rem; font-weight: 600; }
   background: var(--color-acento);
   border-color: var(--color-acento);
   color: #ffffff;
+}
+#filtros-mapa .select-categoria-mapa {
+  flex: none;
+  background: #ffffff;
+  border: 1px solid var(--color-borde);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-texto);
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: var(--sombra-sm);
+  max-width: 180px;
 }
 
 /* Desktop: todas las opciones visibles en filas, sin scroll */
