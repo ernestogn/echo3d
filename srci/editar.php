@@ -138,6 +138,7 @@ $csrf          = csrf_token();
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Editar incidencia #<?= $id ?> — SRCI</title>
   <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010e">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
 
@@ -260,9 +261,15 @@ $csrf          = csrf_token();
         <?php if ($sin_ubicacion): ?>
           <div class="mensaje mensaje-info" style="grid-column:1 / -1;margin-bottom:var(--espacio-md);">
             <span>📍</span>
-            <span>Esta incidencia se importó de la planilla sin ubicación. Completá Latitud y Longitud para ubicarla en el mapa.</span>
+            <span>Esta incidencia se importó de la planilla sin ubicación. Tocá el mapa para ubicarla.</span>
           </div>
         <?php endif; ?>
+
+        <div class="campo" style="grid-column:1 / -1;">
+          <label>Ubicación en el mapa *</label>
+          <div id="mapa-ubicar" style="height:300px;border:1px solid var(--color-borde);border-radius:var(--radio-md);overflow:hidden;"></div>
+          <p style="font-size:.8rem;color:var(--color-texto-suave);margin-top:var(--espacio-xs);">Tocá el mapa para marcar el punto exacto. Podés arrastrar el marcador para ajustarlo.</p>
+        </div>
 
         <div class="campo">
           <label for="e-latitud">Latitud *</label>
@@ -295,5 +302,43 @@ $csrf          = csrf_token();
   </div>
 </main>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const inpEditarLat = document.getElementById('e-latitud');
+  const inpEditarLng = document.getElementById('e-longitud');
+  const mapaUbicar = L.map('mapa-ubicar', { zoomControl: true });
+  let marcadorUbicacion = null;
+
+  function setCoords(lat, lng) {
+    inpEditarLat.value = lat.toFixed(6);
+    inpEditarLng.value = lng.toFixed(6);
+  }
+  function crearMarcador(latlng) {
+    if (marcadorUbicacion) marcadorUbicacion.remove();
+    marcadorUbicacion = L.marker(latlng, { draggable: true }).addTo(mapaUbicar);
+    marcadorUbicacion.on('dragend', () => {
+      const p = marcadorUbicacion.getLatLng();
+      setCoords(p.lat, p.lng);
+    });
+    setCoords(latlng.lat, latlng.lng);
+  }
+
+  const latEditarIni = parseFloat((inpEditarLat.value || '').replace(',', '.'));
+  const lngEditarIni = parseFloat((inpEditarLng.value || '').replace(',', '.'));
+  if (!isNaN(latEditarIni) && !isNaN(lngEditarIni)) {
+    mapaUbicar.setView([latEditarIni, lngEditarIni], 16);
+    crearMarcador(L.latLng(latEditarIni, lngEditarIni));
+  } else {
+    mapaUbicar.setView([-32.48262351713079, -58.24455570742029], 13);
+  }
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap', maxZoom: 19
+  }).addTo(mapaUbicar);
+
+  mapaUbicar.on('click', (e) => {
+    crearMarcador(e.latlng);
+  });
+</script>
 </body>
 </html>
