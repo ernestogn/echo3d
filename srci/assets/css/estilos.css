@@ -564,6 +564,67 @@ h3 { font-size: 1.125rem; font-weight: 600; }
   box-sizing: border-box;
 }
 
+/* Control "Mi ubicacion" (Geolocation API) */
+.control-ubicacion a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  text-decoration: none;
+}
+.control-ubicacion a.buscando { opacity: .5; cursor: progress; }
+
+/* Punto azul pulsante que marca la ubicacion del dispositivo */
+.puntero-ubicacion {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #2563eb;
+  border: 3px solid #ffffff;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, .5), 0 1px 4px rgba(0, 0, 0, .35);
+  position: relative;
+}
+.puntero-ubicacion::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 3px solid rgba(37, 99, 235, .6);
+  animation: pulso-ubicacion 1.8s ease-out infinite;
+}
+@keyframes pulso-ubicacion {
+  0%   { transform: scale(.6); opacity: .9; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+/* Aviso flotante sobre el mapa */
+.aviso-mapa {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translate(-50%, -12px);
+  z-index: 600;
+  max-width: calc(100% - 140px);
+  background: rgba(30, 41, 59, .94);
+  color: #fff;
+  font-size: .82rem;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 999px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .3);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease;
+}
+.aviso-mapa.visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
 /* Botonera de filtros sobre el mapa */
 #filtros-mapa {
   position: absolute;

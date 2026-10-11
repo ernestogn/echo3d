@@ -270,6 +270,97 @@ function removerMarcadorSeleccion() {
   if (marcadorSeleccion) { marcadorSeleccion.remove(); marcadorSeleccion = null; }
 }
 
+// --- Boton "Mi ubicacion": geolocaliza el dispositivo (Geolocation API) ---
+let marcadorUbicacion = null;
+let circuloPrecision  = null;
+
+function crearIconoUbicacion() {
+  return L.divIcon({
+    html: '<div class="puntero-ubicacion"></div>',
+    className: '',
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+  });
+}
+
+// Aviso flotante discreto sobre el mapa (se oculta solo)
+function avisoMapa(texto, segundos) {
+  const cont = document.querySelector('.contenedor-mapa');
+  if (!cont) return;
+  let aviso = document.getElementById('aviso-mapa');
+  if (!aviso) {
+    aviso = document.createElement('div');
+    aviso.id = 'aviso-mapa';
+    aviso.className = 'aviso-mapa';
+    cont.appendChild(aviso);
+  }
+  aviso.textContent = texto;
+  aviso.classList.add('visible');
+  clearTimeout(aviso._timer);
+  aviso._timer = setTimeout(() => aviso.classList.remove('visible'), (segundos || 4) * 1000);
+}
+
+const ESTILO_PRECISION = { color: '#2563eb', weight: 1, opacity: 0.5, fillColor: '#2563eb', fillOpacity: 0.08 };
+
+function ubicarDispositivo(boton) {
+  if (!navigator.geolocation) {
+    avisoMapa('Tu dispositivo no permite obtener la ubicación.');
+    return;
+  }
+  if (boton) boton.classList.add('buscando');
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      if (boton) boton.classList.remove('buscando');
+      const ll        = L.latLng(pos.coords.latitude, pos.coords.longitude);
+      const exactitud = pos.coords.accuracy || 0;
+
+      if (!marcadorUbicacion) {
+        marcadorUbicacion = L.marker(ll, { icon: crearIconoUbicacion(), interactive: false, zIndexOffset: 1000 }).addTo(mapa);
+      } else {
+        marcadorUbicacion.setLatLng(ll);
+      }
+      if (!circuloPrecision) {
+        circuloPrecision = L.circle(ll, Object.assign({ radius: exactitud }, ESTILO_PRECISION)).addTo(mapa);
+      } else {
+        circuloPrecision.setLatLng(ll);
+        circuloPrecision.setRadius(exactitud);
+      }
+      mapa.setView(ll, Math.max(mapa.getZoom(), 16));
+    },
+    (err) => {
+      if (boton) boton.classList.remove('buscando');
+      const mensajes = {
+        1: 'No diste permiso para usar tu ubicación.',
+        2: 'No se pudo obtener tu ubicación.',
+        3: 'Se agotó el tiempo para obtener tu ubicación.',
+      };
+      avisoMapa(mensajes[err.code] || 'No se pudo obtener tu ubicación.');
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+  );
+}
+
+// Control propio arriba a la derecha (debajo del zoom)
+const ControlUbicacion = L.Control.extend({
+  onAdd() {
+    const cont = L.DomUtil.create('div', 'leaflet-bar control-ubicacion');
+    L.DomEvent.disableClickPropagation(cont);
+    L.DomEvent.disableScrollPropagation(cont);
+    const btn  = L.DomUtil.create('a', '', cont);
+    btn.href = '#';
+    btn.title = 'Mi ubicación';
+    btn.setAttribute('role', 'button');
+    btn.setAttribute('aria-label', 'Mi ubicación');
+    btn.innerHTML = '🎯';
+    L.DomEvent.on(btn, 'click', (e) => {
+      L.DomEvent.stop(e);
+      ubicarDispositivo(btn);
+    });
+    return cont;
+  },
+});
+new ControlUbicacion({ position: 'topright' }).addTo(mapa);
+
 cargarIncidencias();
 cargarFiltros();
 

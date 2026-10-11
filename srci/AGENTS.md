@@ -259,6 +259,8 @@ El modal en `index.php` tiene 2 pasos gestionados por `reporte.js`:
 
 **Reporte por click en el mapa:** al hacer click sobre el mapa principal (`mapa.js`), se coloca un marcador de selección (`crearIconoSeleccion`, anillo indigo) y se abre el modal con esas coordenadas precargadas via `window.abrirReporteConCoordenada(latlng)` (expuesta por `reporte.js`). En el paso 2 el mini-mapa ya queda centrado en ese punto con su marcador; el usuario puede ajustarlo tocando el mini-mapa. Al cerrar el modal, `cerrarModal()` limpia el marcador del mapa principal via `window.removerMarcadorSeleccion()`.
 
+**Geolocalización del dispositivo:** control "🎯 Mi ubicación" (`L.Control` propio en `mapa.js`, arriba a la derecha) que usa la Geolocation API nativa (`navigator.geolocation.getCurrentPosition`). Al tocarlo centra siempre en la posición, muestra el marcador azul pulsante (`.puntero-ubicacion`) y un `L.circle` con el radio de precisión (`coords.accuracy`). No se dispara automáticamente al cargar; los errores (permiso/no disponible/timeout) se avisan con un toast discreto (`.aviso-mapa`). Todo es client-side: no se envía nada al servidor.
+
 El mapa principal en `mapa.js` expone `window.mapaLeaflet` para que `reporte.js` pueda leer el centro actual al inicializar el mini-mapa.
 
 Los marcadores usan SVG inline con color segun estado: amarillo=pendiente, azul=en_proceso, verde=resuelto.

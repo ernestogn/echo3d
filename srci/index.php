@@ -13,7 +13,7 @@ $es_admin       = es_admin();
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mapa de Incidencias — SRCI</title>
   <meta name="description" content="Reporta incidencias urbanas en el mapa.">
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011b">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011c">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
@@ -187,7 +187,7 @@ $es_admin       = es_admin();
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script src="/srci/assets/js/mapa.js?v=20261011i"></script>
+<script src="/srci/assets/js/mapa.js?v=20261011j"></script>
 <script src="/srci/assets/js/reporte.js?v=20261011d"></script>
 <script>
   // Registrar Service Worker para soporte PWA/offline
