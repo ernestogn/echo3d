@@ -8,7 +8,7 @@ let barriosCargados = [];
 let poligonosBarrios = [];
 
 // Cargar poligonos de barrios (para pre-seleccionar el barrio segun el punto)
-fetch('/srci/api/poligonos.php')
+let poligonosListos = fetch('/srci/api/poligonos.php')
   .then((r) => r.json())
   .then((poligonos) => { poligonosBarrios = Array.isArray(poligonos) ? poligonos : []; })
   .catch(() => { poligonosBarrios = []; });
@@ -31,10 +31,13 @@ function barrioPorPunto(lat, lng) {
   return null;
 }
 
-// Pre-selecciona el barrio segun el punto marcado (el usuario lo puede cambiar)
+// Pre-selecciona el barrio segun el punto marcado (el usuario lo puede cambiar).
+// Espera a que los poligonos esten cargados si llego el click antes.
 function preseleccionarBarrio(lat, lng) {
-  const hit = barrioPorPunto(lat, lng);
-  if (hit) barrioSelect.value = hit.nombre;
+  poligonosListos.then(() => {
+    const hit = barrioPorPunto(lat, lng);
+    if (hit) barrioSelect.value = hit.nombre;
+  });
 }
 
 const modalFondo     = document.getElementById('modal-reporte');
