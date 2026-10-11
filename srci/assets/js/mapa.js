@@ -215,23 +215,22 @@ function removerMarcadorSeleccion() {
 cargarIncidencias();
 cargarFiltros();
 
-// Limites de barrios: relleno translucido + nombre al pasar el mouse.
-// El click sobre un poligono burbujea al mapa (mismo flujo de reporte) y
-// reporte.js pre-selecciona el barrio segun el punto.
+// Limites de barrios: ocultos por defecto, se resaltan solo al pasar el mouse
+// (borde + relleno tenue + nombre). El click sobre el barrio burbujea al mapa
+// (mismo flujo de reporte) y reporte.js pre-selecciona el barrio segun el punto.
 fetch('/srci/api/poligonos.php')
   .then((r) => r.json())
   .then((poligonos) => {
+    const base  = { color: '#4f46e5', weight: 0, opacity: 0, fillColor: '#4f46e5', fillOpacity: 0.01 };
+    const hover = { weight: 2, opacity: 0.6, fillOpacity: 0.08 };
     poligonos.forEach((p) => {
       p.anillos.forEach((anillo) => {
-        const poly = L.polygon(anillo, {
-          color: '#4f46e5',
-          weight: 2,
-          opacity: 0.5,
-          fillColor: '#4f46e5',
-          fillOpacity: 0.06,
-        });
+        const poly = L.polygon(anillo, base).addTo(mapa);
+        const el = poly.getElement && poly.getElement();
+        if (el) el.style.pointerEvents = 'fill';
         poly.bindTooltip('🏙️ ' + p.nombre, { direction: 'top', offset: [0, -4] });
-        poly.addTo(mapa);
+        poly.on('mouseover', () => poly.setStyle(hover));
+        poly.on('mouseout', () => poly.setStyle(base));
       });
     });
   })
