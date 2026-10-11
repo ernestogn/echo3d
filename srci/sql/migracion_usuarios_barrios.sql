@@ -20,6 +20,7 @@ INSERT INTO barrios (nombre) VALUES
   ('Villa Sartén'),
   ('San Cayetano'),
   ('Villa Mandarina'),
+  ('Las Mandarinas'),
   ('Puerto Viejo'),
   ('Colonia Perfección Sur'),
   ('Planta Emisora'),
