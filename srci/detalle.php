@@ -241,7 +241,6 @@ $fotos = $fotos->fetchAll();
       alert('No se pudo actualizar el estado. Intenta de nuevo.');
     }
   }
-  <?php endif; ?>
 </script>
 </body>
 </html>
