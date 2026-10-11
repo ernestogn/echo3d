@@ -13,7 +13,7 @@ $es_admin       = es_admin();
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mapa de Incidencias — SRCI</title>
   <meta name="description" content="Reporta incidencias urbanas en el mapa.">
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011c">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011d">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
@@ -37,7 +37,7 @@ $es_admin       = es_admin();
       <?php endif; ?>
     </div>
     <div class="nav-usuario">
-      <span>👤 <?= $nombre_usuario ?></span>
+      <a href="/srci/perfil.php" class="nav-perfil">👤 <?= $nombre_usuario ?></a>
       <a href="/srci/logout.php" class="boton boton-secundario boton-sm">Salir</a>
     </div>
   </div>

@@ -224,6 +224,82 @@ h3 { font-size: 1.125rem; font-weight: 600; }
   font-size: 0.875rem;
   color: var(--color-texto-suave);
 }
+.nav-perfil {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 200px;
+  padding: 0.35rem 0.7rem;
+  border-radius: var(--radio-sm);
+  color: var(--color-texto-suave);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color var(--transicion), background-color var(--transicion);
+}
+.nav-perfil:hover { color: var(--color-texto); background: rgba(15,23,42,.05); text-decoration: none; }
+.nav-perfil.activo { color: var(--color-acento); background: rgba(79,70,229,.08); }
+
+/* ============================================================
+   Perfil de usuario
+   ============================================================ */
+.perfil-encabezado {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-lg);
+  flex-wrap: wrap;
+  margin-bottom: var(--espacio-lg);
+}
+.perfil-avatar {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  flex: 0 0 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-acento), #7c3aed);
+}
+.perfil-avatar-iniciales {
+  color: #fff;
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+.perfil-avatar img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.perfil-datos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--espacio-md);
+  margin: 0;
+}
+.perfil-datos > div {
+  background: var(--color-fondo);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+  padding: var(--espacio-sm) var(--espacio-md);
+}
+.perfil-datos dt {
+  font-size: 0.78rem;
+  color: var(--color-texto-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.perfil-datos dd {
+  margin: var(--espacio-xs) 0 0;
+  font-weight: 600;
+  color: var(--color-texto);
+  word-break: break-word;
+}
 
 /* ============================================================
    Tarjeta / Panel

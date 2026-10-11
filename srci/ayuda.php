@@ -1,6 +1,7 @@
 <?php
 // Pagina publica de ayuda: no requiere sesion
 require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/funciones.php';
 iniciar_sesion();
 $logueado = !empty($_SESSION['usuario_id']);
 ?>
@@ -11,7 +12,7 @@ $logueado = !empty($_SESSION['usuario_id']);
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ayuda — SRCI</title>
   <meta name="description" content="Guia de uso del Sistema de Reporte Ciudadano de Incidencias.">
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010e">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011d">
 </head>
 <body>
 <nav class="nav-principal" role="navigation">
@@ -27,6 +28,7 @@ $logueado = !empty($_SESSION['usuario_id']);
     </div>
     <div class="nav-usuario">
       <?php if ($logueado): ?>
+        <a href="/srci/perfil.php" class="nav-perfil">👤 <?= esc((string)($_SESSION['nombre'] ?? '')) ?></a>
         <a href="/srci/logout.php" class="boton boton-secundario boton-sm">Salir</a>
       <?php else: ?>
         <a href="/srci/login.php" class="boton boton-primario boton-sm">Ingresar</a>

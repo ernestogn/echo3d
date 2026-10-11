@@ -58,7 +58,7 @@ $fotos = $fotos->fetchAll();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Incidencia #<?= $id ?> — SRCI</title>
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010e">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011d">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
@@ -72,6 +72,7 @@ $fotos = $fotos->fetchAll();
       <a href="/srci/ayuda.php"       class="nav-enlace">Ayuda</a>
     </div>
     <div class="nav-usuario">
+      <a href="/srci/perfil.php" class="nav-perfil">👤 <?= esc((string)($_SESSION['nombre'] ?? '')) ?></a>
       <a href="/srci/logout.php" class="boton boton-secundario boton-sm">Salir</a>
     </div>
   </div>

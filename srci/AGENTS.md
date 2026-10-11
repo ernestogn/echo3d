@@ -43,6 +43,7 @@ srci/
 ├── logout.php             Destruye la sesion y redirige a login.php
 ├── acceso.php             Magic link: token HMAC-SHA256 con vencimiento (7 dias) loguea sin PIN
 ├── error403.php           Pagina de error para acceso denegado (incluida por auth.php)
+├── perfil.php             Perfil privado del usuario logueado (datos, barrios, sus reportes, cambiar PIN; avatar Gravatar)
 ├── manifest.json          PWA manifest (icons: assets/img/icon-192.png y icon-512.png)
 ├── sw.js                  Service Worker — cache estatico basico para offline
 ├── .htaccess              Bloquea listado de directorio y acceso a /includes/
@@ -134,6 +135,8 @@ Usuario admin inicial: nombre=`admin`, PIN=`0000` (password_hash de PASSWORD_DEF
 Usuarios del relevamiento: cargados por script one-shot con username = email; el 10/10/2026 se aplico la planilla completa (`sql/actualizacion_nombres_planilla.sql`): **nombres reales** en `nombre`, **login SOLO por email** (`login.php` matchea `email = :login`; el `nombre` es solo display), y 11 referentes sin email cargados como inactivos con `email NULL` (cuando aporten email: admin lo edita en usuarios.php y usa "Activar + PIN"). Asignaciones de barrio en `referentes_barrios` (visible como columna "Barrios" en usuarios.php). Emails alternativos de la planilla (salamoniniangel@, marclaymarianela@, mosquedamario774@, pipoaminero@) no cargados: solo hay una columna email. PIN por email desde `admin@echo3dlaser.com.ar` (`enviar_pin_por_email()`). 4 admins: Guillaume, Marclay, Garay, admin. Despliegue por etapas: solo activos pueden loguear.
 
 **Sesion larga (auth.php):** `SESION_DURACION` = 90 dias, cookie persistente + **sliding** (`renovar_sesion()` en `requiere_sesion()` renueva la cookie en cada request) + `session.gc_maxlifetime` = 90 dias. La sesion permanece viva hasta logout explicito (`logout.php` destruye sesion y borra cookie). Si se quiere mas/menos, ajustar `SESION_DURACION`.
+
+**Perfil privado del usuario (`perfil.php`):** cualquier usuario logueado (`requiere_sesion()` + CSRF en el POST) ve sus datos (nombre, email, rol, estado, alta), sus barrios asignados (`referentes_barrios`) y sus reportes (`incidencias WHERE usuario_id = sesion AND oculto = 0`). Puede **cambiar su propio PIN**: exige el PIN actual (`password_verify`), valida `/^\d{4}$/` + repeticion, rechaza igual-al-actual, y audita `cambiar_pin`. **No** se edita el email (login) desde el perfil: solo un admin lo cambia en `admin/usuarios.php`. Avatar **Gravatar** read-only via `md5(strtolower(trim(email)))` (`?s=160&d=404`) con fallback local de iniciales; no se sube foto propia. Se llega tocando el chip `👤 <nombre>` de la barra (link en todas las paginas autenticadas). `admin/auditoria.php` mapea `cambiar_pin` en `accion_legible()`/`clase_accion()`.
 
 **Alineacion con la planilla de relevamiento** (`Planilla_relevamiento_barrios.xlsx`): el formulario pide Barrio, Direccion/calle y altura, Gravedad (obligatorios) y Familias afectadas, Servicio afectado, Calle intransitable, Responsable/area, Contacto vecino (opcionales). "Dias abiertos" se calcula (fecha_hora → fecha_resolucion o hoy). Estado: "En gestion" = `en_proceso`.
 

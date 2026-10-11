@@ -34,6 +34,7 @@ function accion_legible(string $accion): string
     'ocultar'        => 'Oculto',
     'restaurar'      => 'Restauro',
     'subir_foto'     => 'Subio foto',
+    'cambiar_pin'    => 'Cambio su PIN',
     default          => ucfirst($accion),
   };
 }
@@ -47,6 +48,7 @@ function clase_accion(string $accion): string
     'ocultar'        => 'aud-ocultar',
     'restaurar'      => 'aud-restaurar',
     'subir_foto'     => 'aud-foto',
+    'cambiar_pin'    => 'aud-editar',
     default          => '',
   };
 }
@@ -57,7 +59,7 @@ function clase_accion(string $accion): string
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin — Auditoría · SRCI</title>
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010e">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011d">
 </head>
 <body>
 <nav class="nav-principal">
@@ -69,6 +71,7 @@ function clase_accion(string $accion): string
       <a href="/srci/admin/reportes.php" class="nav-enlace activo">Admin</a>
     </div>
     <div class="nav-usuario">
+      <a href="/srci/perfil.php" class="nav-perfil">👤 <?= esc((string)($_SESSION['nombre'] ?? '')) ?></a>
       <a href="/srci/logout.php" class="boton boton-secundario boton-sm">Salir</a>
     </div>
   </div>

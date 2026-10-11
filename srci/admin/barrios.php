@@ -49,7 +49,7 @@ $csrf    = csrf_token();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin — Barrios · SRCI</title>
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261010e">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011d">
 </head>
 <body>
 <nav class="nav-principal">
@@ -61,6 +61,7 @@ $csrf    = csrf_token();
       <a href="/srci/admin/reportes.php" class="nav-enlace activo">Admin</a>
     </div>
     <div class="nav-usuario">
+      <a href="/srci/perfil.php" class="nav-perfil">👤 <?= esc((string)($_SESSION['nombre'] ?? '')) ?></a>
       <a href="/srci/logout.php" class="boton boton-secundario boton-sm">Salir</a>
     </div>
   </div>
