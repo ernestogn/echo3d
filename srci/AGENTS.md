@@ -45,7 +45,7 @@ srci/
 ├── logout.php             Destruye la sesion y redirige a login.php
 ├── acceso.php             Magic link: token HMAC-SHA256 con vencimiento (7 dias) loguea sin PIN
 ├── error403.php           Pagina de error para acceso denegado (incluida por auth.php)
-├── ayuda.php              Ayuda publica (sin sesion) + tarjeta admin-only "Activacion masiva": activa referentes inactivos con email valido y les envia link (30 dias) + PIN de respaldo, en lotes de 10 (POST lote_links + CSRF, flash por redirect, cada activacion audita "Lote masivo:...", exclusion rol=admin y emails .local)
+├── ayuda.php              Ayuda publica (guia de uso, sin sesion)
 ├── perfil.php             Perfil privado del usuario logueado (datos, barrios, sus reportes, cambiar PIN; avatar Gravatar)
 ├── manifest.json          PWA manifest (icons: assets/img/icon-192.png y icon-512.png)
 ├── sw.js                  Service Worker — cache estatico basico para offline
@@ -83,7 +83,10 @@ srci/
 │
 ├── admin/
 │   ├── reportes.php       Panel admin: listado de reportes (con columna de categorias) + cambio de estado via form POST
-│   ├── usuarios.php       Panel admin: crear usuarios, editarlos (nombre/email/rol), regenerar PIN, activar/desactivar
+│   ├── usuarios.php       Panel admin: crear usuarios, editarlos (nombre/email/rol), regenerar PIN, activar/desactivar +
+│   │                      tarjeta "Activacion masiva" (POST lote_links + CSRF): activa referentes inactivos con email
+│   │                      ruteable (excluye rol=admin y emails .local) y les envia link (30 dias) + PIN de respaldo via
+│   │                      enviar_activacion_por_email(), en lotes de 10 con flash por redirect; audita "Lote masivo:..."
 │   ├── tipos.php          Panel admin: crear tipos de incidencia, activar/desactivar
 │   ├── categorias.php     Panel admin: crear/editar/activar categorias de incidencia (nombre + icono + color + switch "visible para usuarios" por categoria)
 │   ├── barrios.php        Panel admin: crear/activar barrios + tabla con categoria, swatch de color, poligono, incidencias y referentes; link a barrio.php

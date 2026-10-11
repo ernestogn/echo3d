@@ -10,6 +10,11 @@ $tipo_msg = '';
 $magic_link   = '';
 $magic_nombre = '';
 
+// --- Activacion masiva en lotes (solo referentes con email ruteable) ---
+// Los administradores se activan uno por uno; emails no ruteables (.local) quedan fuera.
+define('LOTE_LINKS_TAMANO', 10);
+$SQL_LOTE_WHERE = "activo = 0 AND rol = 'usuario' AND email IS NOT NULL AND email <> '' AND email NOT LIKE '%@%.local'";
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   validar_csrf();
   $accion = $_POST['accion'] ?? '';
@@ -198,7 +203,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
     }
   }
+
+  // Activacion masiva: activa y envia link + PIN de respaldo a un lote de inactivos
+  if ($accion === 'lote_links') {
+    $inactivos = db()->query(
+      'SELECT id, nombre, email FROM usuarios
+        WHERE ' . $SQL_LOTE_WHERE . '
+        ORDER BY id
+        LIMIT ' . LOTE_LINKS_TAMANO
+    )->fetchAll();
+
+    $resultados = [];
+    foreach ($inactivos as $u) {
+      $pin = generar_pin();
+      // activo=1 + pin nuevo (condicion activo=0: nunca re-activar un ya activo)
+      db()->prepare('UPDATE usuarios SET activo = 1, pin_hash = :h WHERE id = :id AND activo = 0')
+         ->execute([':h' => password_hash($pin, PASSWORD_DEFAULT), ':id' => (int)$u['id']]);
+      $link    = generar_magic_link((int)$u['id']);
+      $enviado = enviar_activacion_por_email($u['email'], $u['nombre'], $link, $pin);
+      registrar_auditoria(
+        (int)$_SESSION['usuario_id'],
+        'activar',
+        null,
+        'Lote masivo: activo a ' . $u['nombre'] . ' (<' . $u['email'] . '>) — PIN nuevo + link de acceso (' . MAGIC_LINK_DIAS . ' dias)' . ($enviado ? '' : ' — EMAIL FALLO')
+      );
+      $resultados[] = ['nombre' => $u['nombre'], 'email' => $u['email'], 'ok' => $enviado];
+    }
+
+    // Flash + redirect: evita reenviar el lote al recargar
+    $_SESSION['lote_links_resultado'] = $resultados;
+    header('Location: /srci/admin/usuarios.php#lote');
+    exit;
+  }
 }
+
+// Resultado del ultimo lote (flash) + datos de la tarjeta de activacion masiva
+$resultado_lote = $_SESSION['lote_links_resultado'] ?? null;
+unset($_SESSION['lote_links_resultado']);
+
+$pendientes_email = (int)db()->query("SELECT COUNT(*) FROM usuarios WHERE {$SQL_LOTE_WHERE}")->fetchColumn();
+$sin_email_lista  = db()->query("SELECT nombre FROM usuarios WHERE activo = 0 AND (email IS NULL OR email = '') ORDER BY nombre")->fetchAll(PDO::FETCH_COLUMN);
+$historial_lotes  = db()->query("SELECT a.fecha_hora, a.detalle, u.nombre AS admin_nombre
+                                   FROM auditoria a
+                              LEFT JOIN usuarios u ON u.id = a.usuario_id
+                                  WHERE a.accion = 'activar' AND a.detalle LIKE 'Lote masivo:%'
+                               ORDER BY a.id DESC LIMIT 10")->fetchAll();
 
 $usuarios = db()->query(
   "SELECT u.id, u.nombre, u.email, u.rol, u.activo, u.creado_en,
@@ -297,6 +346,79 @@ $csrf = csrf_token();
           <button type="submit" class="boton boton-primario" style="align-self:flex-end;">Crear</button>
         </div>
       </form>
+    </div>
+
+    <!-- Activacion masiva en lotes -->
+    <div class="tarjeta" id="lote" style="margin-bottom:var(--espacio-xl);border-color:rgba(79,70,229,.35);">
+      <h2 style="margin-bottom:var(--espacio-md);">🚀 Activación masiva <span style="font-weight:400;color:var(--color-texto-suave);font-size:.85rem;">(lotes trazables)</span></h2>
+      <p style="color:var(--color-texto);line-height:1.7;margin-bottom:var(--espacio-md);">
+        Activa referentes inactivos y les envía por email un <strong>link de acceso directo</strong>
+        (válido <?= MAGIC_LINK_DIAS ?> días, entra sin PIN) más un <strong>PIN de respaldo</strong>.
+        Solo procesa cuentas de <strong>referentes</strong> con email válido; los
+        <strong>administradores</strong> se activan uno por uno con el botón "Activar + PIN" de la tabla.
+        Cada click procesa un lote de <?= LOTE_LINKS_TAMANO ?>; cada activación queda registrada en
+        <a href="/srci/admin/auditoria.php">Auditoría</a> con autor, fecha y resultado del envío.
+      </p>
+      <p style="color:var(--color-texto);line-height:1.7;margin-bottom:var(--espacio-md);">
+        📬 Pendientes con email: <strong><?= $pendientes_email ?></strong>
+        <?php if ($sin_email_lista): ?>
+          <br>🚫 Sin email (cargalo en la tabla de abajo para poder activarlos):
+          <strong><?= count($sin_email_lista) ?></strong> — <?= esc(implode(', ', $sin_email_lista)) ?>
+        <?php endif; ?>
+      </p>
+
+      <form method="POST" action="/srci/admin/usuarios.php" onsubmit="return confirm('¿Activar y enviar link a los próximos <?= min(LOTE_LINKS_TAMANO, $pendientes_email) ?> usuarios inactivos con email?');">
+        <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
+        <input type="hidden" name="accion"     value="lote_links">
+        <button type="submit" class="boton boton-primario" <?= $pendientes_email === 0 ? 'disabled' : '' ?>>
+          🚀 Activar y enviar link (lote de <?= min(LOTE_LINKS_TAMANO, $pendientes_email) ?>)
+        </button>
+        <?php if ($pendientes_email === 0): ?>
+          <span style="color:var(--color-verde);font-weight:600;">✅ No queda nadie pendiente con email</span>
+        <?php endif; ?>
+      </form>
+
+      <?php if (is_array($resultado_lote) && $resultado_lote):
+        $oks = count(array_filter($resultado_lote, fn($r) => $r['ok']));
+      ?>
+        <div class="mensaje mensaje-<?= $oks === count($resultado_lote) ? 'exito' : 'info' ?>" style="margin-top:var(--espacio-md);">
+          <span><?= $oks === count($resultado_lote) ? '✅' : '⚠️' ?></span>
+          <span>Último lote: <strong><?= $oks ?> de <?= count($resultado_lote) ?></strong> emails enviados.
+          Los usuarios ya están activos; si algún email falló, reenvialo desde la tabla (🔗 Link o Nuevo PIN).</span>
+        </div>
+        <div class="tabla-contenedor" style="margin-top:var(--espacio-md);">
+          <table class="tabla-incidencias">
+            <thead><tr><th>Usuario</th><th>Email</th><th>Resultado</th></tr></thead>
+            <tbody>
+              <?php foreach ($resultado_lote as $r): ?>
+                <tr>
+                  <td><?= esc($r['nombre']) ?></td>
+                  <td><?= esc($r['email']) ?></td>
+                  <td>
+                    <?php if ($r['ok']): ?>
+                      <span class="estado-badge estado-resuelto">✅ Activado + link enviado</span>
+                    <?php else: ?>
+                      <span class="estado-badge estado-pendiente">❌ Email falló — activado igual</span>
+                    <?php endif; ?>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      <?php endif; ?>
+
+      <?php if ($historial_lotes): ?>
+        <h3 style="margin-top:var(--espacio-lg);">🧾 Últimos lotes (trazabilidad)</h3>
+        <ul style="line-height:1.9;color:var(--color-texto);font-size:.88rem;padding-left:var(--espacio-lg);">
+          <?php foreach ($historial_lotes as $h): ?>
+            <li>
+              <strong><?= esc(fecha_legible($h['fecha_hora'])) ?></strong> — <?= esc($h['detalle']) ?>
+              <?php if ($h['admin_nombre']): ?><span style="color:var(--color-texto-suave);">(por <?= esc($h['admin_nombre']) ?>)</span><?php endif; ?>
+            </li>
+          <?php endforeach; ?>
+        </ul>
+      <?php endif; ?>
     </div>
 
     <!-- Buscador -->
