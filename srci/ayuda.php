@@ -86,7 +86,7 @@ $logueado = !empty($_SESSION['usuario_id']);
         <ul style="line-height:1.9;margin-top:var(--espacio-xs);">
           <li><strong>Barrio y dirección</strong> (obligatorios)</li>
           <li><strong>Gravedad</strong>: baja, media, alta o crítica (obligatoria)</li>
-          <li><strong>Categorías</strong>: podés marcar varias (por defecto, 🌧️ Climáticos)</li>
+          <li><strong>Categorías</strong>: no tenés que elegirlas ahora — el equipo SRCI las asigna al revisar cada reporte</li>
           <li>Opcionales: familias afectadas, servicio afectado, si la calle está intransitable, responsable/área y contacto del vecino</li>
           <li><strong>Ubicación</strong>: tocá el mini-mapa para poner el punto exacto (o marcá la ubicación tocando el mapa principal antes de reportar)</li>
           <li><strong>Foto</strong> (opcional, hasta 5 MB) y notas con más detalle</li>
@@ -114,9 +114,9 @@ $logueado = !empty($_SESSION['usuario_id']);
       <span class="categoria-badge" style="--cat-color:#0891b2">💧 Agua y cloaca</span>
     </div>
     <ul style="line-height:1.9;color:var(--color-texto);">
-      <li>Al reportar, en el <strong>Paso 2</strong>, elegís las categorías que correspondan (podés marcar varias).</li>
-      <li>La categoría <strong>Climáticos</strong> viene marcada por defecto.</li>
-      <li>En el <strong>mapa</strong> hay un <strong>desplegable</strong> para mostrar solo una categoría.</li>
+      <li>A cada reporte se le asigna al menos una categoría. La de <strong>Climáticos</strong> es la que se aplica por defecto.</li>
+      <li>Las categorías las asigna el <strong>equipo SRCI</strong> al crear o editar una incidencia; por ahora el vecino no las elige al reportar.</li>
+      <li>En el <strong>mapa</strong> hay un <strong>desplegable</strong> para ver solo las incidencias de una categoría.</li>
       <li>En el <strong>listado</strong> podés filtrar por categoría y la columna "Categorías" muestra las de cada reporte.</li>
       <li>Las exportaciones <strong>CSV</strong> y <strong>GeoJSON</strong> también incluyen las categorías.</li>
     </ul>

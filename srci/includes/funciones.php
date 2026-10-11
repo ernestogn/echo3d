@@ -170,6 +170,28 @@ function categorias_activas(): array
   return $categorias;
 }
 
+// Categorias marcadas como "visible a usuarios" (activas + visible_usuario = 1).
+// Por ahora todas vienen en 0: el selector de categorias es solo de admins.
+function categorias_visibles(): array
+{
+  static $visibles = null;
+  if ($visibles === null) {
+    try {
+      $visibles = db()->query('SELECT id, clave, nombre, icono, color FROM categorias_incidencia WHERE activo = 1 AND visible_usuario = 1 ORDER BY id')->fetchAll();
+    } catch (Throwable $e) {
+      $visibles = [];
+    }
+  }
+  return $visibles;
+}
+
+// True si hay categorias que los usuarios regulares pueden elegir.
+// Si es false, index.php no muestra el selector de categorias (solo admins).
+function hay_categorias_visibles(): bool
+{
+  return count(categorias_visibles()) > 0;
+}
+
 // Id de la categoria por defecto (Climaticos); 0 si no existe
 function categoria_default_id(): int
 {

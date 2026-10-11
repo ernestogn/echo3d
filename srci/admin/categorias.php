@@ -17,13 +17,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nombre = trim($_POST['nombre'] ?? '');
     $icono  = trim($_POST['icono']  ?? '');
     $color  = color_valido($_POST['color'] ?? '') ?? '#64748b';
+    $visible = (int)(($_POST['visible_usuario'] ?? 0) === '1');
     if ($clave === '' || $nombre === '') {
       $mensaje  = 'La clave y el nombre son obligatorios.';
       $tipo_msg = 'error';
     } else {
       try {
-        $stmt = db()->prepare('INSERT INTO categorias_incidencia (clave, nombre, icono, color) VALUES (:c, :n, :i, :col)');
-        $stmt->execute([':c' => $clave, ':n' => $nombre, ':i' => $icono !== '' ? $icono : null, ':col' => $color]);
+        $stmt = db()->prepare('INSERT INTO categorias_incidencia (clave, nombre, icono, color, visible_usuario) VALUES (:c, :n, :i, :col, :v)');
+        $stmt->execute([':c' => $clave, ':n' => $nombre, ':i' => $icono !== '' ? $icono : null, ':col' => $color, ':v' => $visible]);
         $mensaje  = "Categoría '{$nombre}' creada.";
         $tipo_msg = 'exito';
       } catch (PDOException $e) {
@@ -38,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nombre = trim($_POST['nombre'] ?? '');
     $icono  = trim($_POST['icono']  ?? '');
     $color  = color_valido($_POST['color'] ?? '');
+    $visible = (int)(($_POST['visible_usuario'] ?? 0) === '1');
 
     if ($id <= 0) {
       $mensaje  = 'Categoría invalida.';
@@ -46,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $mensaje  = 'El nombre es obligatorio.';
       $tipo_msg = 'error';
     } else {
-      $st = db()->prepare('SELECT nombre, icono, color FROM categorias_incidencia WHERE id = :id');
+      $st = db()->prepare('SELECT nombre, icono, color, visible_usuario FROM categorias_incidencia WHERE id = :id');
       $st->execute([':id' => $id]);
       $c = $st->fetch();
 
@@ -65,13 +67,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($color !== $c['color']) {
           $cambios[] = 'color: ' . ($c['color'] ?? '(auto)') . ' -> ' . ($color ?? '(auto)');
         }
+        if ($visible !== (int)$c['visible_usuario']) {
+          $cambios[] = $visible ? 'visible para usuarios' : 'oculta para usuarios';
+        }
 
         if (!$cambios) {
           $mensaje  = 'Sin cambios: los datos ya eran esos.';
           $tipo_msg = 'info';
         } else {
-          db()->prepare('UPDATE categorias_incidencia SET nombre = :n, icono = :i, color = :col WHERE id = :id')
-             ->execute([':n' => $nombre, ':i' => $icono_nuevo, ':col' => $color, ':id' => $id]);
+          db()->prepare('UPDATE categorias_incidencia SET nombre = :n, icono = :i, color = :col, visible_usuario = :v WHERE id = :id')
+             ->execute([':n' => $nombre, ':i' => $icono_nuevo, ':col' => $color, ':v' => $visible, ':id' => $id]);
           $mensaje  = "Categoría '{$nombre}' actualizada.";
           $tipo_msg = 'exito';
           registrar_auditoria(
@@ -93,9 +98,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $tipo_msg = 'exito';
     }
   }
+
+  if ($accion === 'toggle_visibilidad') {
+    $id = (int)($_POST['categoria_id'] ?? 0);
+    $st = db()->prepare('SELECT visible_usuario FROM categorias_incidencia WHERE id = :id');
+    $st->execute([':id' => $id]);
+    $visible = (int)$st->fetchColumn();
+    if ($visible === 0 || $visible === 1) {
+      db()->prepare('UPDATE categorias_incidencia SET visible_usuario = 1 - visible_usuario WHERE id = :id')->execute([':id' => $id]);
+      $mensaje  = $visible ? 'Categoría oculta para usuarios.' : 'Categoría visible para usuarios.';
+      $tipo_msg = 'exito';
+    }
+  }
 }
 
-$categorias = db()->query('SELECT id, clave, nombre, icono, color, activo FROM categorias_incidencia ORDER BY id')->fetchAll();
+$categorias = db()->query('SELECT id, clave, nombre, icono, color, activo, visible_usuario FROM categorias_incidencia ORDER BY id')->fetchAll();
 $csrf = csrf_token();
 ?>
 <!DOCTYPE html>
@@ -147,7 +164,9 @@ $csrf = csrf_token();
       <p style="color:var(--color-texto-suave);line-height:1.7;margin:0;">
         Las categorías son <strong>etiquetas independientes del tipo</strong> de incidencia y
         <strong>no excluyentes</strong>: un mismo reporte puede tener varias a la vez (ej: Basura + Agua y cloaca).
-        La categoría por defecto es <strong>Climáticos</strong>.
+        La categoría por defecto es <strong>Climáticos</strong>. Por ahora el selector de categorías
+        <strong>solo lo usan los administradores</strong>; si querés que una categoría la elija también el vecino
+        al reportar, marcala como <em>visible para usuarios</em> (además tiene que estar Activa).
       </p>
     </div>
 
@@ -156,7 +175,7 @@ $csrf = csrf_token();
       <form method="POST">
         <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
         <input type="hidden" name="accion"     value="crear">
-        <div class="grilla-form-4" style="grid-template-columns:1fr 1fr 120px 90px auto;">
+        <div class="grilla-form-4" style="grid-template-columns:1fr 1fr 120px 90px 150px auto;">
           <div class="campo">
             <label for="c-clave">Clave (única, sin espacios)</label>
             <input type="text" id="c-clave" name="clave" required placeholder="ej: alumbrado">
@@ -173,6 +192,12 @@ $csrf = csrf_token();
             <label for="c-color">Color</label>
             <input type="color" id="c-color" name="color" value="#64748b" style="width:100%;height:40px;padding:2px;cursor:pointer;">
           </div>
+          <div class="campo" style="align-self:flex-end;padding-bottom:8px;">
+            <label class="check-linea">
+              <input type="checkbox" id="c-visible" name="visible_usuario" value="1">
+              Visible para usuarios
+            </label>
+          </div>
           <button type="submit" class="boton boton-primario" style="align-self:flex-end;">Crear</button>
         </div>
       </form>
@@ -181,7 +206,7 @@ $csrf = csrf_token();
     <div class="tabla-contenedor">
       <table class="tabla-incidencias">
         <thead>
-          <tr><th>#</th><th>Clave</th><th>Nombre</th><th>Icono</th><th>Color</th><th>Estado</th><th>Acción</th></tr>
+          <tr><th>#</th><th>Clave</th><th>Nombre</th><th>Icono</th><th>Color</th><th>Estado</th><th>Usuarios</th><th>Acción</th></tr>
         </thead>
         <tbody>
           <?php foreach ($categorias as $c): ?>
@@ -201,14 +226,28 @@ $csrf = csrf_token();
                 </span>
               </td>
               <td>
+                <span class="estado-badge" style="<?= $c['visible_usuario'] ? 'background:rgba(79,70,229,.12);color:var(--color-acento)' : 'background:rgba(100,116,139,.12);color:var(--color-texto-suave)' ?>">
+                  <?= $c['visible_usuario'] ? '👁 Visible' : 'Oculta' ?>
+                </span>
+              </td>
+              <td>
                 <div style="display:flex;gap:var(--espacio-sm);flex-wrap:wrap;">
                   <button type="button" class="boton boton-secundario boton-sm" onclick="abrirModalEditar(this)"
                           data-id="<?= (int)$c['id'] ?>"
                           data-nombre="<?= esc($c['nombre']) ?>"
                           data-icono="<?= esc($c['icono'] ?? '') ?>"
-                          data-color="<?= esc(color_valido($c['color']) ?? '#64748b') ?>">
+                          data-color="<?= esc(color_valido($c['color']) ?? '#64748b') ?>"
+                          data-visible="<?= (int)$c['visible_usuario'] ?>">
                     ✏️ Editar
                   </button>
+                  <form method="POST" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
+                    <input type="hidden" name="accion"     value="toggle_visibilidad">
+                    <input type="hidden" name="categoria_id" value="<?= (int)$c['id'] ?>">
+                    <button type="submit" class="boton <?= $c['visible_usuario'] ? 'boton-secundario' : 'boton-exito' ?> boton-sm">
+                      <?= $c['visible_usuario'] ? '🙈 Ocultar a usuarios' : '👁 Mostrar a usuarios' ?>
+                    </button>
+                  </form>
                   <form method="POST" style="display:inline;">
                     <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
                     <input type="hidden" name="accion"     value="toggle">
@@ -252,6 +291,10 @@ $csrf = csrf_token();
           <input type="color" id="editar-color" name="color" style="width:100%;height:40px;padding:2px;cursor:pointer;">
         </div>
       </div>
+      <label class="check-linea" style="margin-bottom:var(--espacio-lg);">
+        <input type="checkbox" id="editar-visible" name="visible_usuario" value="1">
+        Visible para usuarios (la eligen también los vecinos al reportar)
+      </label>
       <button type="submit" class="boton boton-primario boton-bloque">Guardar cambios</button>
     </form>
   </div>
@@ -304,6 +347,7 @@ function abrirModalEditar(btn) {
   document.getElementById('editar-nombre').value = btn.dataset.nombre;
   document.getElementById('editar-icono').value  = btn.dataset.icono;
   document.getElementById('editar-color').value  = btn.dataset.color || '#64748b';
+  document.getElementById('editar-visible').checked = btn.dataset.visible === '1';
   document.getElementById('modal-editar').classList.add('visible');
 }
 function cerrarModalEditar() {

@@ -186,30 +186,37 @@ async function cargarFiltros() {
   const cont = document.getElementById('filtros-mapa');
   if (!cont) return;
 
-  // Filtro por categoria: dropdown aparte de los chips de tipo (combina con AND)
-  const selectCategoria = document.createElement('select');
-  selectCategoria.className = 'select-categoria-mapa';
-  selectCategoria.setAttribute('aria-label', 'Filtrar por categoría');
-  const optTodas = document.createElement('option');
-  optTodas.value = '';
-  optTodas.textContent = 'Todas las categorías';
-  selectCategoria.appendChild(optTodas);
-  selectCategoria.addEventListener('change', () => {
-    filtroCategoria = selectCategoria.value === '' ? null : parseInt(selectCategoria.value, 10);
-    aplicarFiltros();
-  });
-  cont.appendChild(selectCategoria);
-  fetch('/srci/api/categorias.php')
-    .then((r) => r.json())
-    .then((cats) => {
-      cats.forEach((cat) => {
-        const opt = document.createElement('option');
-        opt.value = cat.id;
-        opt.textContent = `${cat.icono || ''} ${cat.nombre}`.trim();
-        selectCategoria.appendChild(opt);
-      });
-    })
-    .catch(() => {});
+  // Filtro por categoria: dropdown aparte de los chips de tipo (combina con AND).
+  // Solo para admins, o si el admin marco categorias visibles para usuarios.
+  let selectCategoria = null;
+  if (window.SRCI_MOSTRAR_CATEGORIAS) {
+    selectCategoria = document.createElement('select');
+    selectCategoria.className = 'select-categoria-mapa';
+    selectCategoria.setAttribute('aria-label', 'Filtrar por categoría');
+    const optTodas = document.createElement('option');
+    optTodas.value = '';
+    optTodas.textContent = 'Todas las categorías';
+    selectCategoria.appendChild(optTodas);
+    selectCategoria.addEventListener('change', () => {
+      filtroCategoria = selectCategoria.value === '' ? null : parseInt(selectCategoria.value, 10);
+      aplicarFiltros();
+    });
+    cont.appendChild(selectCategoria);
+    const urlCat = window.SRCI_ES_ADMIN
+      ? '/srci/api/categorias.php'
+      : '/srci/api/categorias.php?visibles=1';
+    fetch(urlCat)
+      .then((r) => r.json())
+      .then((cats) => {
+        cats.forEach((cat) => {
+          const opt = document.createElement('option');
+          opt.value = cat.id;
+          opt.textContent = `${cat.icono || ''} ${cat.nombre}`.trim();
+          selectCategoria.appendChild(opt);
+        });
+      })
+      .catch(() => {});
+  }
 
   chipTodos = document.createElement('button');
   chipTodos.type = 'button';
@@ -219,7 +226,7 @@ async function cargarFiltros() {
     filtroTipo = null;
     filtroMios = false;
     filtroCategoria = null;
-    selectCategoria.value = '';
+    if (selectCategoria) selectCategoria.value = '';
     actualizarChips();
     aplicarFiltros();
   });

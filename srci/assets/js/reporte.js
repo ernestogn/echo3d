@@ -113,10 +113,16 @@ async function cargarBarrios() {
   }
 }
 
-// Cargar categorias de incidencia (etiquetas, multiseleccion) y construir los chips
+// Cargar categorias de incidencia (etiquetas, multiseleccion) y construir los chips.
+// Solo aparece el selector si index.php lo renderizo: los admins ven el catalogo
+// completo; los usuarios regulares solo ven las marcadas "visible a usuarios".
 async function cargarCategorias() {
+  if (!categoriasReporte) return;
   try {
-    const resp = await fetch('/srci/api/categorias.php');
+    const urlCat = window.SRCI_ES_ADMIN
+      ? '/srci/api/categorias.php'
+      : '/srci/api/categorias.php?visibles=1';
+    const resp = await fetch(urlCat);
     const cats = await resp.json();
     categoriasReporte.innerHTML = '';
     cats.forEach((cat) => {
@@ -142,10 +148,14 @@ async function cargarCategorias() {
   }
 }
 
-// Marca por defecto la categoria "Climaticos" y desmarca el resto
+// Marca por defecto la categoria "Climaticos" (o la primera, si no esta) y desmarca el resto
 function resetearCategorias() {
-  categoriasReporte.querySelectorAll('input[type=checkbox]').forEach((input) => {
-    input.checked = input.dataset.clave === 'climaticos';
+  if (!categoriasReporte) return;
+  const inputs = categoriasReporte.querySelectorAll('input[type=checkbox]');
+  if (!inputs.length) return;
+  const porDefault = categoriasReporte.querySelector('input[data-clave="climaticos"]') || inputs[0];
+  inputs.forEach((input) => {
+    input.checked = input === porDefault;
     input.parentElement.classList.toggle('activa', input.checked);
   });
 }
@@ -299,9 +309,11 @@ btnEnviar.addEventListener('click', async () => {
   btnEnviar.disabled   = true;
   btnEnviar.innerHTML  = '<span class="spinner"></span> Enviando...';
 
-  const categoriasElegidas = Array.from(
-    categoriasReporte.querySelectorAll('input[type=checkbox]:checked')
-  ).map((input) => parseInt(input.value));
+  const categoriasElegidas = categoriasReporte
+    ? Array.from(
+        categoriasReporte.querySelectorAll('input[type=checkbox]:checked')
+      ).map((input) => parseInt(input.value))
+    : [];
 
   try {
     // 1. Crear incidencia

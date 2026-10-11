@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/funciones.php';
 
@@ -48,7 +49,11 @@ $es_admin       = es_admin();
   <div id="filtros-mapa" role="toolbar" aria-label="Filtros del mapa"></div>
   <div id="mapa" role="main" aria-label="Mapa de incidencias"></div>
 </div>
-<script>const SRCI_USUARIO_ID = <?= (int)($_SESSION['usuario_id'] ?? 0) ?>;</script>
+<script>
+  const SRCI_USUARIO_ID = <?= (int)($_SESSION['usuario_id'] ?? 0) ?>;
+  window.SRCI_ES_ADMIN = <?= $es_admin ? 'true' : 'false' ?>;
+  window.SRCI_MOSTRAR_CATEGORIAS = <?= ($es_admin || hay_categorias_visibles()) ? 'true' : 'false' ?>;
+</script>
 
 <!-- Boton flotante: reportar -->
 <button class="fab-reportar" id="btn-abrir-reporte" type="button" aria-haspopup="dialog">
@@ -115,10 +120,12 @@ $es_admin       = es_admin();
         </select>
       </div>
 
+      <?php if ($es_admin || hay_categorias_visibles()): ?>
       <div class="campo campo-ancho" style="margin-bottom:var(--espacio-md);">
         <label>Categorías <span style="font-weight:400;color:var(--color-texto-suave);">(podés elegir varias)</span></label>
         <div id="categorias-reporte" class="chips-categoria"></div>
       </div>
+      <?php endif; ?>
 
       <div class="campo" style="margin-bottom:var(--espacio-md);">
         <label for="familias-reporte">Familias afectadas</label>
@@ -192,8 +199,8 @@ $es_admin       = es_admin();
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script src="/srci/assets/js/mapa.js?v=20261011l"></script>
-<script src="/srci/assets/js/reporte.js?v=20261011e"></script>
+<script src="/srci/assets/js/mapa.js?v=20261011m"></script>
+<script src="/srci/assets/js/reporte.js?v=20261011f"></script>
 <script>
   // Registrar Service Worker para soporte PWA/offline
   if ('serviceWorker' in navigator) {
