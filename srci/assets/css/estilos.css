@@ -536,6 +536,19 @@ h3 { font-size: 1.125rem; font-weight: 600; }
 }
 .contenedor-mapa { position: relative; }
 
+/* Sin recuadro de foco del navegador al hacer click en el mapa o sus capas */
+#mapa:focus,
+#mapa:focus-visible,
+.leaflet-container:focus,
+.leaflet-container:focus-visible,
+.leaflet-interactive:focus,
+.leaflet-interactive:focus-visible,
+.leaflet-pane svg:focus,
+.leaflet-pane path:focus,
+.leaflet-marker-icon:focus {
+  outline: none;
+}
+
 /* Botonera de filtros sobre el mapa */
 #filtros-mapa {
   position: absolute;

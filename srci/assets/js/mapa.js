@@ -227,7 +227,7 @@ fetch('/srci/api/poligonos.php')
       p.anillos.forEach((anillo) => {
         const poly = L.polygon(anillo, base).addTo(mapa);
         const el = poly.getElement && poly.getElement();
-        if (el) el.style.pointerEvents = 'fill';
+        if (el) { el.style.pointerEvents = 'fill'; el.style.outline = 'none'; }
         poly.bindTooltip('🏙️ ' + p.nombre, { direction: 'top', offset: [0, -4] });
         poly.on('mouseover', () => poly.setStyle(hover));
         poly.on('mouseout', () => poly.setStyle(base));
