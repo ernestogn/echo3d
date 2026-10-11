@@ -40,6 +40,26 @@ $pagina      = max(1, (int)($_GET['pagina'] ?? 1));
 $por_pagina  = 20;
 $offset      = ($pagina - 1) * $por_pagina;
 
+// --- Orden (columnas ordenables: fecha, barrio, gravedad) ---
+$orden_actual = $_GET['orden'] ?? 'fecha';
+$dir_actual   = $_GET['dir']   ?? 'desc';
+if (!in_array($orden_actual, ['fecha', 'barrio', 'gravedad'], true)) $orden_actual = 'fecha';
+if (!in_array($dir_actual, ['asc', 'desc'], true)) $dir_actual = 'desc';
+
+// Orden por defecto al hacer el primer click en cada columna
+$dir_default = ['fecha' => 'desc', 'barrio' => 'asc', 'gravedad' => 'desc'];
+$dir_sql = strtoupper($dir_actual);
+if ($orden_actual === 'barrio') {
+  // Los sin barrio siempre al final
+  $order_by = 'b.nombre IS NULL ASC, b.nombre ' . $dir_sql;
+} elseif ($orden_actual === 'gravedad') {
+  // Baja -> critica (asc) o critica -> baja (desc)
+  $order_by = "FIELD(i.gravedad,'baja','media','alta','critica') " . $dir_sql;
+} else {
+  $order_by = 'i.fecha_hora ' . $dir_sql;
+}
+$order_by .= ', i.id DESC';
+
 $donde  = [];
 $params = [];
 
@@ -192,7 +212,7 @@ $sql = "SELECT i.id, i.latitud, i.longitud, i.estado, i.fecha_hora, i.fecha_reso
         JOIN usuarios u         ON u.id = i.usuario_id
         LEFT JOIN barrios b     ON b.id = i.barrio_id
         {$clausula_where}
-        ORDER BY i.fecha_hora DESC
+        ORDER BY {$order_by}
         LIMIT {$por_pagina} OFFSET {$offset}";
 $stmt = db()->prepare($sql);
 $stmt->execute($params);
@@ -208,11 +228,23 @@ $mapa_cats_tabla = categorias_por_incidencia(array_column($incidencias, 'id'));
 
 $nombre_usuario = esc((string)($_SESSION['nombre'] ?? ''));
 
-// URL base para filtros y paginacion
+// URL base para filtros y paginacion (conserva el orden activo)
 function url_filtros(array $extras = []): string {
-  $base = ['tipo_id' => $_GET['tipo_id'] ?? '', 'estado' => $_GET['estado'] ?? '', 'barrio_id' => $_GET['barrio_id'] ?? '', 'gravedad' => $_GET['gravedad'] ?? '', 'categoria_id' => $_GET['categoria_id'] ?? '', 'fecha_desde' => $_GET['fecha_desde'] ?? '', 'fecha_hasta' => $_GET['fecha_hasta'] ?? ''];
+  $base = ['tipo_id' => $_GET['tipo_id'] ?? '', 'estado' => $_GET['estado'] ?? '', 'barrio_id' => $_GET['barrio_id'] ?? '', 'gravedad' => $_GET['gravedad'] ?? '', 'categoria_id' => $_GET['categoria_id'] ?? '', 'fecha_desde' => $_GET['fecha_desde'] ?? '', 'fecha_hasta' => $_GET['fecha_hasta'] ?? '', 'orden' => $_GET['orden'] ?? 'fecha', 'dir' => $_GET['dir'] ?? 'desc'];
   $merged = array_merge($base, $extras);
   return '/srci/incidencias.php?' . http_build_query(array_filter($merged, fn($v) => $v !== '' && $v !== '0' && $v !== 0));
+}
+
+// th ordenable: enlace que alterna la direccion; la activa lleva clase pastel + flecha
+function th_orden(string $clave, string $titulo, string $orden_actual, string $dir_actual, array $dir_default): string {
+  $es_activa = $orden_actual === $clave;
+  $dir = $es_activa
+    ? ($dir_actual === 'asc' ? 'desc' : 'asc')
+    : $dir_default[$clave];
+  $flecha = $es_activa ? ($dir_actual === 'asc' ? ' ▲' : ' ▼') : '';
+  $clase  = $es_activa ? ' class="orden-activa"' : '';
+  $url = url_filtros(['orden' => $clave, 'dir' => $dir]);
+  return '<th' . $clase . '><a class="th-orden" href="' . esc($url) . '" title="Ordenar por ' . esc($titulo) . '">' . esc($titulo) . $flecha . '</a></th>';
 }
 ?>
 <!DOCTYPE html>
@@ -222,7 +254,7 @@ function url_filtros(array $extras = []): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Listado de Incidencias — SRCI</title>
   <meta name="description" content="Listado completo de incidencias reportadas por los ciudadanos.">
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011g">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011h">
 </head>
 <body>
 
@@ -247,7 +279,7 @@ function url_filtros(array $extras = []): string {
   </div>
 </nav>
 
-<main class="pagina-contenedor">
+<main class="pagina-contenedor pagina-ancha">
   <div class="pagina-encabezado">
     <h1>Incidencias reportadas</h1>
     <div style="display:flex;gap:var(--espacio-sm);flex-wrap:wrap;">
@@ -258,6 +290,8 @@ function url_filtros(array $extras = []): string {
 
   <!-- Filtros -->
   <form class="filtros-barra" method="GET" action="/srci/incidencias.php">
+    <input type="hidden" name="orden" value="<?= esc($orden_actual) ?>">
+    <input type="hidden" name="dir"   value="<?= esc($dir_actual) ?>">
     <div class="campo">
       <label for="f-tipo">Tipo</label>
       <select id="f-tipo" name="tipo_id">
@@ -336,13 +370,13 @@ function url_filtros(array $extras = []): string {
         <thead>
           <tr>
             <th>#</th>
-            <th>Fecha</th>
+            <?= th_orden('fecha', 'Fecha', $orden_actual, $dir_actual, $dir_default) ?>
             <th>Hora</th>
             <th>Tipo</th>
             <th>Categorías</th>
-            <th>Barrio</th>
+            <?= th_orden('barrio', 'Barrio', $orden_actual, $dir_actual, $dir_default) ?>
             <th>Dirección</th>
-            <th>Gravedad</th>
+            <?= th_orden('gravedad', 'Gravedad', $orden_actual, $dir_actual, $dir_default) ?>
             <th>Estado</th>
             <th>Usuario</th>
             <th>Notas</th>
@@ -367,15 +401,15 @@ function url_filtros(array $extras = []): string {
                 <?php endforeach; else: ?>—<?php endif; ?>
               </td>
               <td><?= esc($inc['barrio_nombre'] ?? '—') ?></td>
-              <td style="max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<?= esc($inc['direccion'] ?? '') ?>"><?= esc($inc['direccion'] ?? '—') ?></td>
+              <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<?= esc($inc['direccion'] ?? '') ?>"><?= esc($inc['direccion'] ?? '—') ?></td>
               <td><span class="gravedad-badge <?= clase_gravedad($inc['gravedad']) ?>"><?= esc(nombre_gravedad($inc['gravedad'])) ?></span></td>
               <td><span class="estado-badge <?= clase_estado($inc['estado']) ?>"><?= esc(nombre_estado($inc['estado'])) ?></span></td>
               <td><?= esc($inc['usuario_nombre']) ?></td>
-              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<?= esc($inc['notas'] ?? '') ?>"><?= esc(substr($inc['notas'] ?? '', 0, 60)) ?></td>
+              <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<?= esc($inc['notas'] ?? '') ?>"><?= esc(substr($inc['notas'] ?? '', 0, 60)) ?></td>
               <td>
                 <div style="display:flex;gap:4px;">
                   <button type="button" class="boton boton-secundario boton-sm" onclick="toggleFila(<?= (int)$inc['id'] ?>)" aria-expanded="false" title="Ver todos los campos">▾</button>
-                  <a href="/srci/editar.php?id=<?= (int)$inc['id'] ?>" class="boton boton-primario boton-sm">Editar</a>
+                  <a href="/srci/editar.php?id=<?= (int)$inc['id'] ?>" class="boton boton-primario boton-sm" title="Editar">✏️</a>
                   <?php if (es_admin()): ?>
                     <form method="POST" style="display:inline;" onsubmit="return confirm('¿Ocultar esta incidencia? No se borra: pasa a ocultas.');">
                       <input type="hidden" name="csrf_token"    value="<?= esc($csrf) ?>">

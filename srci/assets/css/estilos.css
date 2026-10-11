@@ -436,7 +436,7 @@ h3 { font-size: 1.125rem; font-weight: 600; }
 }
 .tabla-incidencias th,
 .tabla-incidencias td {
-  padding: 0.75rem var(--espacio-md);
+  padding: 0.6rem var(--espacio-sm);
   text-align: left;
   border-bottom: 1px solid var(--color-borde);
 }
@@ -451,6 +451,17 @@ h3 { font-size: 1.125rem; font-weight: 600; }
 }
 .tabla-incidencias tr:last-child td { border-bottom: none; }
 .tabla-incidencias tr:hover td { background: rgba(15,23,42,.02); }
+
+/* Columnas ordenables: enlace en el th + columna activa en pastel */
+.tabla-incidencias th a.th-orden {
+  color: inherit;
+  text-decoration: none;
+}
+.tabla-incidencias th a.th-orden:hover { color: var(--color-acento); }
+.tabla-incidencias th.orden-activa {
+  background: rgba(79,70,229,.12);
+  color: var(--color-acento);
+}
 
 /* Fila expandible con todos los campos */
 .fila-expandida > td {
@@ -1050,6 +1061,10 @@ h3 { font-size: 1.125rem; font-weight: 600; }
   max-width: 90%;
   margin: 0 auto;
   padding: var(--espacio-xl) var(--espacio-lg);
+}
+/* Variante ancha (listado de incidencias: tabla sin scroll horizontal) */
+.pagina-contenedor.pagina-ancha {
+  max-width: 95%;
 }
 .pagina-encabezado {
   display: flex;
