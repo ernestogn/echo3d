@@ -425,7 +425,10 @@ const CENTRO  = <?= json_encode($centro) ?>;
 const ESTILO_POLI = { color: '#4f46e5', weight: 2, fillColor: '#4f46e5', fillOpacity: 0.15 };
 
 const mapa = L.map('mapa-barrio').setView(CENTRO, 14);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(mapa);
+const capaMapa = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' });
+const capaSatelite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Tiles © Esri — Esri, Maxar, Earthstar Geographics' });
+capaSatelite.addTo(mapa);
+L.control.layers({ 'Satélite': capaSatelite, 'Mapa': capaMapa }, null, { position: 'topright' }).addTo(mapa);
 
 const drawnItems   = L.featureGroup().addTo(mapa);
 let mapaModificado = false;
