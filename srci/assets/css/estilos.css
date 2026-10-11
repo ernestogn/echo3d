@@ -701,6 +701,22 @@ h3 { font-size: 1.125rem; font-weight: 600; }
   transform: translate(-50%, 0);
 }
 
+/* --- Admin: detalle de barrio --- */
+.barrio-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--espacio-lg);
+  margin-bottom: var(--espacio-xl);
+}
+.barrio-info-tarjeta h2 { font-size: 1rem; margin-bottom: var(--espacio-md); }
+.barrio-datos { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px var(--espacio-md); }
+.barrio-datos dt { color: var(--color-texto-suave); font-size: .85rem; }
+.barrio-datos dd { margin: 0; font-weight: 600; }
+.barrio-pills { display: flex; flex-wrap: wrap; gap: var(--espacio-sm); }
+.barrio-referentes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.barrio-referentes li { font-size: .9rem; }
+.mapa-barrio-edicion { height: 420px; width: 100%; border-radius: var(--radio-md); z-index: 1; }
+
 /* Botonera de filtros sobre el mapa */
 #filtros-mapa {
   position: absolute;

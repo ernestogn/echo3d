@@ -216,6 +216,113 @@ function barrio_por_punto(float $lat, float $lng): ?array
   return null;
 }
 
+// Convierte un GeoJSON (FeatureCollection/Feature/Polygon/MultiPolygon) al
+// formato interno de anillos [[[lat,lng],...], ...]. GeoJSON usa [lng,lat].
+// Devuelve ['ok'=>bool, 'anillos'=>array, 'error'=>string].
+// Nota: los huecos (agujeros) se descartan: el ray-casting no los soporta.
+function geojson_a_anillos(string $json): array
+{
+  $json = trim($json);
+  if ($json === '') {
+    return ['ok' => false, 'anillos' => [], 'error' => 'No se recibio ningun GeoJSON.'];
+  }
+  if (strlen($json) > 2 * 1024 * 1024) {
+    return ['ok' => false, 'anillos' => [], 'error' => 'El GeoJSON es demasiado grande (max 2 MB).'];
+  }
+  $data = json_decode($json, true);
+  if (!is_array($data)) {
+    return ['ok' => false, 'anillos' => [], 'error' => 'JSON invalido.'];
+  }
+
+  // Reunir las geometrias del documento
+  $geometrias = [];
+  if (!isset($data['type'])) {
+    return ['ok' => false, 'anillos' => [], 'error' => 'El GeoJSON no tiene el campo "type".'];
+  }
+  if ($data['type'] === 'FeatureCollection' && isset($data['features']) && is_array($data['features'])) {
+    foreach ($data['features'] as $f) {
+      if (is_array($f) && isset($f['geometry'])) $geometrias[] = $f['geometry'];
+      elseif (is_array($f) && isset($f['type'])) $geometrias[] = $f;
+    }
+  } elseif ($data['type'] === 'Feature' && isset($data['geometry'])) {
+    $geometrias[] = $data['geometry'];
+  } else {
+    $geometrias[] = $data; // geometria suelta (Polygon/MultiPolygon)
+  }
+
+  $anillos  = [];
+  $vertices = 0;
+  foreach ($geometrias as $g) {
+    if (!is_array($g) || !isset($g['type'], $g['coordinates'])) continue;
+    if ($g['type'] === 'Polygon') {
+      $poligonos = [$g['coordinates']];
+    } elseif ($g['type'] === 'MultiPolygon') {
+      $poligonos = $g['coordinates'];
+    } else {
+      continue; // ignora puntos, lineas, etc.
+    }
+    foreach ($poligonos as $poly) {
+      if (!is_array($poly) || !isset($poly[0]) || !is_array($poly[0])) continue;
+      $anillo = [];
+      foreach ($poly[0] as $pt) { // [0] = anillo exterior (se descartan huecos)
+        if (!is_array($pt) || count($pt) < 2) continue;
+        $lng = (float)$pt[0];
+        $lat = (float)$pt[1];
+        if ($lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) continue;
+        $anillo[] = [$lat, $lng];
+      }
+      if (count($anillo) >= 3) {
+        $anillos[] = $anillo;
+        $vertices += count($anillo);
+      }
+    }
+  }
+
+  if (!$anillos) {
+    return ['ok' => false, 'anillos' => [], 'error' => 'No se encontro ningun poligono valido.'];
+  }
+  if ($vertices > 20000) {
+    return ['ok' => false, 'anillos' => [], 'error' => 'El poligono tiene demasiados vertices (max 20000).'];
+  }
+  return ['ok' => true, 'anillos' => $anillos, 'error' => ''];
+}
+
+// Inverso: convierte anillos internos a una FeatureCollection GeoJSON
+// (cada anillo se exporta como su propio Polygon, con coordenadas [lng,lat]).
+function anillos_a_geojson(array $anillos): array
+{
+  $features = [];
+  foreach ($anillos as $anillo) {
+    if (!is_array($anillo) || count($anillo) < 3) continue;
+    $ring = [];
+    foreach ($anillo as $pt) {
+      if (!is_array($pt) || count($pt) < 2) continue;
+      $ring[] = [(float)$pt[1], (float)$pt[0]]; // [lng,lat]
+    }
+    if (count($ring) >= 3) {
+      $features[] = [
+        'type'       => 'Feature',
+        'properties' => new stdClass(),
+        'geometry'   => ['type' => 'Polygon', 'coordinates' => [$ring]],
+      ];
+    }
+  }
+  return ['type' => 'FeatureCollection', 'features' => $features];
+}
+
+// Cuenta anillos y vertices de un poligono interno (JSON [[[lat,lng],...],...])
+function contar_anillos_poligono(?string $poligono): array
+{
+  if ($poligono === null || $poligono === '') return ['anillos' => 0, 'vertices' => 0];
+  $anillos = json_decode($poligono, true);
+  if (!is_array($anillos)) return ['anillos' => 0, 'vertices' => 0];
+  $vertices = 0;
+  foreach ($anillos as $a) {
+    if (is_array($a)) $vertices += count($a);
+  }
+  return ['anillos' => count($anillos), 'vertices' => $vertices];
+}
+
 // Registra una accion en el log de auditoria (quien, cuando, que)
 // Nunca rompe el flujo principal si falla
 function registrar_auditoria(int $usuario_id, string $accion, ?int $incidencia_id, string $detalle = ''): void

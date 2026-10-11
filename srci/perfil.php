@@ -116,7 +116,7 @@ if ($iniciales === '') {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mi perfil — SRCI</title>
   <meta name="description" content="Tus datos, tu PIN y tus reportes en el SRCI.">
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011d">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011e">
 </head>
 <body>
 

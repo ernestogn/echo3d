@@ -24,6 +24,8 @@ Aplicacion web para que ciudadanos reporten incidencias urbanas geolocalizadas (
 | Mapa        | Leaflet 1.9.4 + OpenStreetMap       | Google Maps, Mapbox                             |
 
 **Excepcion aprobada por el cliente (2026-10-10):** `Leaflet.markercluster` 1.5.3 por CDN (unpkg) para el agrupamiento de marcadores del mapa. CSS y JS se cargan en `index.php`; el globo usa la clase propia `.cluster-incidencias`. Si el plugin no carga (offline), `mapa.js` cae a marcadores sueltos.
+
+**Excepcion aprobada por el cliente (2026-10-11):** `Leaflet.draw` 1.0.4 por CDN (unpkg) para dibujar/editar los poligonos de barrios. Solo se carga en `admin/barrio.php`; si el plugin no carga, siguen funcionando subir/pegar GeoJSON.
 | Sesiones    | session_start() nativo              | JWT, OAuth, librerias externas                  |
 | Fotos       | Disco local en `/uploads/`          | S3, CDN externo                                 |
 
@@ -56,7 +58,8 @@ srci/
 ├── includes/
 │   ├── db.php             Conexion PDO singleton (funcion db()), respuesta_json()
 │   ├── auth.php           Funciones de sesion: requiere_sesion(), requiere_admin(), csrf_token(), validar_csrf()
-│   └── funciones.php      Helpers: esc(), fecha_legible(), generar_pin(), guardar_foto(), enviar_pin_por_email()
+│   └── funciones.php      Helpers: esc(), fecha_legible(), generar_pin(), guardar_foto(), enviar_pin_por_email(),
+│                          barrio_por_punto(), geojson_a_anillos() / anillos_a_geojson() / contar_anillos_poligono()
 │
 ├── api/
 │   ├── tipos.php          GET  /srci/api/tipos.php      — lista tipos activos (JSON)
@@ -72,7 +75,10 @@ srci/
 │   ├── reportes.php       Panel admin: listado de reportes + cambio de estado via form POST
 │   ├── usuarios.php       Panel admin: crear usuarios, editarlos (nombre/email/rol), regenerar PIN, activar/desactivar
 │   ├── tipos.php          Panel admin: crear tipos de incidencia, activar/desactivar
-│   ├── barrios.php        Panel admin: crear barrios, activar/desactivar
+│   ├── barrios.php        Panel admin: crear/activar barrios + tabla con poligono, incidencias y referentes; link a barrio.php
+│   ├── barrio.php         Panel admin: detalle de un barrio (info reversa: datos, incidencias, ultimas, referentes),
+│   │                      edicion de nombre/estado/poligono (subir/pegar/dibujar GeoJSON, vista previa Leaflet.draw,
+│   │                      descargar/limpiar) y recalculo del barrio de incidencias sin barrio
 │   └── auditoria.php      Panel admin: log de auditoria (quien, cuando, que hizo)
 │
 ├── assets/
@@ -137,6 +143,8 @@ Usuarios del relevamiento: cargados por script one-shot con username = email; el
 **Sesion larga (auth.php):** `SESION_DURACION` = 90 dias, cookie persistente + **sliding** (`renovar_sesion()` en `requiere_sesion()` renueva la cookie en cada request) + `session.gc_maxlifetime` = 90 dias. La sesion permanece viva hasta logout explicito (`logout.php` destruye sesion y borra cookie). Si se quiere mas/menos, ajustar `SESION_DURACION`.
 
 **Perfil privado del usuario (`perfil.php`):** cualquier usuario logueado (`requiere_sesion()` + CSRF en el POST) ve sus datos (nombre, email, rol, estado, alta), sus barrios asignados (`referentes_barrios`) y sus reportes (`incidencias WHERE usuario_id = sesion AND oculto = 0`). Puede **cambiar su propio PIN**: exige el PIN actual (`password_verify`), valida `/^\d{4}$/` + repeticion, rechaza igual-al-actual, y audita `cambiar_pin`. **No** se edita el email (login) desde el perfil: solo un admin lo cambia en `admin/usuarios.php`. Avatar **Gravatar** read-only via `md5(strtolower(trim(email)))` (`?s=160&d=404`) con fallback local de iniciales; no se sube foto propia. Se llega tocando el chip `👤 <nombre>` de la barra (link en todas las paginas autenticadas). `admin/auditoria.php` mapea `cambiar_pin` en `accion_legible()`/`clase_accion()`.
+
+**Edicion de barrios y poligonos (`admin/barrio.php`):** pagina de detalle de un barrio (accesible con ✏️ Editar desde `admin/barrios.php`) que muestra info reversa (datos, conteos de incidencias por estado y gravedad, familias afectadas, sin ubicacion, incidencia abierta mas antigua, ultimas 12 incidencias con link a `detalle.php` y referentes asignados) y permite editar nombre/estado/poligono. El poligono se carga de tres formas que convergen en GeoJSON: subir archivo `.geojson/.json`, pegar texto, o dibujar/editar en el mapa (Leaflet + Leaflet.draw, `featureGroup` `drawnItems`). `anillos_a_geojson()` exporta el actual (boton ⬇ Descargar); `geojson_a_anillos()` normaliza lo entrante: acepta `FeatureCollection`/`Feature`/`Polygon`/`MultiPolygon`, convierte `[lng,lat] -> [lat,lng]`, aplana multipoligonos a anillos y **descarta huecos** (el ray-casting no los soporta); limites 2 MB / 20000 vertices. Se guarda en `barrios.poligono` (JSON `[[[lat,lng],...],...]`). El boton 🗑 Limpiar pone `poligono = NULL`. El boton 🔁 Recalcular corre `barrio_por_punto()` sobre las incidencias con `barrio_id IS NULL AND latitud IS NOT NULL` y les asigna barrio (solo local, no empuja a Sheets). Audita `editar` (con detalle de cambios) y `recalcular_barrios`.
 
 **Alineacion con la planilla de relevamiento** (`Planilla_relevamiento_barrios.xlsx`): el formulario pide Barrio, Direccion/calle y altura, Gravedad (obligatorios) y Familias afectadas, Servicio afectado, Calle intransitable, Responsable/area, Contacto vecino (opcionales). "Dias abiertos" se calcula (fecha_hora → fecha_resolucion o hoy). Estado: "En gestion" = `en_proceso`.
 

@@ -40,7 +40,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 }
 
-$barrios = db()->query('SELECT id, nombre, activo, creado_en FROM barrios ORDER BY nombre')->fetchAll();
+$barrios = db()->query(
+  'SELECT b.id, b.nombre, b.activo, b.creado_en,
+          (b.poligono IS NOT NULL AND b.poligono <> "") AS tiene_pol,
+          (SELECT COUNT(*) FROM incidencias i WHERE i.barrio_id = b.id AND i.oculto = 0) AS n_inc,
+          (SELECT COUNT(*) FROM referentes_barrios rb WHERE rb.barrio_id = b.id) AS n_ref
+   FROM barrios b ORDER BY b.nombre'
+)->fetchAll();
 $csrf    = csrf_token();
 ?>
 <!DOCTYPE html>
@@ -49,7 +55,7 @@ $csrf    = csrf_token();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin — Barrios · SRCI</title>
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011d">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011e">
 </head>
 <body>
 <nav class="nav-principal">
@@ -105,13 +111,22 @@ $csrf    = csrf_token();
     <div class="tabla-contenedor">
       <table class="tabla-incidencias">
         <thead>
-          <tr><th>#</th><th>Nombre</th><th>Creado</th><th>Estado</th><th>Acción</th></tr>
+          <tr><th>#</th><th>Nombre</th><th>Polígono</th><th>Incidencias</th><th>Referentes</th><th>Creado</th><th>Estado</th><th>Acción</th></tr>
         </thead>
         <tbody>
           <?php foreach ($barrios as $b): ?>
             <tr>
               <td><?= (int)$b['id'] ?></td>
               <td><?= esc($b['nombre']) ?></td>
+              <td style="text-align:center;"><?= $b['tiene_pol'] ? '✔' : '<span style="color:var(--color-texto-suave);">—</span>' ?></td>
+              <td style="text-align:center;">
+                <?php if ((int)$b['n_inc'] > 0): ?>
+                  <a href="/srci/incidencias.php?barrio_id=<?= (int)$b['id'] ?>"><?= (int)$b['n_inc'] ?></a>
+                <?php else: ?>
+                  <span style="color:var(--color-texto-suave);">0</span>
+                <?php endif; ?>
+              </td>
+              <td style="text-align:center;"><?= (int)$b['n_ref'] ?></td>
               <td><?= esc(fecha_legible($b['creado_en'])) ?></td>
               <td>
                 <span class="estado-badge" style="<?= $b['activo'] ? 'background:rgba(34,197,94,.15);color:var(--color-verde)' : 'background:rgba(239,68,68,.15);color:var(--color-rojo)' ?>">
@@ -119,14 +134,17 @@ $csrf    = csrf_token();
                 </span>
               </td>
               <td>
-                <form method="POST" style="display:inline;">
-                  <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
-                  <input type="hidden" name="accion"     value="toggle">
-                  <input type="hidden" name="barrio_id"  value="<?= (int)$b['id'] ?>">
-                  <button type="submit" class="boton <?= $b['activo'] ? 'boton-peligro' : 'boton-exito' ?> boton-sm">
-                    <?= $b['activo'] ? 'Desactivar' : 'Activar' ?>
-                  </button>
-                </form>
+                <div style="display:flex;gap:var(--espacio-sm);flex-wrap:wrap;">
+                  <a href="/srci/admin/barrio.php?id=<?= (int)$b['id'] ?>" class="boton boton-primario boton-sm">✏️ Editar</a>
+                  <form method="POST" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
+                    <input type="hidden" name="accion"     value="toggle">
+                    <input type="hidden" name="barrio_id"  value="<?= (int)$b['id'] ?>">
+                    <button type="submit" class="boton <?= $b['activo'] ? 'boton-peligro' : 'boton-exito' ?> boton-sm">
+                      <?= $b['activo'] ? 'Desactivar' : 'Activar' ?>
+                    </button>
+                  </form>
+                </div>
               </td>
             </tr>
           <?php endforeach; ?>
