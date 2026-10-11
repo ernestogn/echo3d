@@ -253,13 +253,7 @@ $csrf = csrf_token();
           </dd>
           <dt>Alta</dt><dd><?= esc(fecha_legible($barrio['creado_en'])) ?></dd>
           <dt>Polígono</dt>
-          <dd>
-            <?php if ($conteo['anillos'] > 0): ?>
-              <?= (int)$conteo['anillos'] ?> anillo(s) · <?= (int)$conteo['vertices'] ?> vértice(s)
-            <?php else: ?>
-              <span style="color:var(--color-texto-suave);">Sin polígono</span>
-            <?php endif; ?>
-          </dd>
+          <dd><?= $conteo['anillos'] > 0 ? 'Sí' : '<span style="color:var(--color-texto-suave);">No</span>' ?></dd>
         </dl>
       </div>
 
