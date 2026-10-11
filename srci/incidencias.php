@@ -261,7 +261,7 @@ function td_orden(string $clave, string $orden_actual): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Listado de Incidencias — SRCI</title>
   <meta name="description" content="Listado completo de incidencias reportadas por los ciudadanos.">
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011j">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011k">
 </head>
 <body>
 

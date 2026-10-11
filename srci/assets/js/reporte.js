@@ -404,10 +404,14 @@ btnVolver.addEventListener('click', () => {
   pasoTipo.style.display     = '';
 });
 
-// Arrastrar el modal desde el encabezado
+// Arrastrar el modal desde el encabezado.
+// Solo en desktop (>=900px y puntero fino): en movil el modal es pantalla
+// completa y sin arrastre, asi nunca queda desplazado "en cualquier lado".
+const MODAL_ARRASTRA = window.matchMedia('(min-width: 900px) and (pointer: fine)');
 let arrastre = null;
 
 encabezadoModal.addEventListener('pointerdown', (e) => {
+  if (!MODAL_ARRASTRA.matches) return;
   if (e.target.closest('.modal-cerrar')) return;
   arrastre = { x0: e.clientX, y0: e.clientY };
   modalCaja.style.transition = 'none';

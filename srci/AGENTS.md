@@ -314,6 +314,8 @@ El modal en `index.php` tiene 2 pasos gestionados por `reporte.js`:
 
 El mapa principal en `mapa.js` expone `window.mapaLeaflet` para que `reporte.js` pueda leer el centro actual al inicializar el mini-mapa.
 
+**Modal en movil (<900px):** `#modal-reporte` ocupa TODA la ventana (`height: 100dvh`, sin bordes, `overflow-x: hidden`, `overscroll-behavior: contain`, `env(safe-area-inset-bottom)` en el padding) y queda centrado; el arrastre por el encabezado se deshabilita (`MODAL_ARRASTRA = matchMedia('(min-width: 900px) and (pointer: fine)')` en `reporte.js`), asi nunca queda desplazado "en cualquier lado". En desktop sigue siendo hoja inferior (480px; 760px y 2 columnas >=900px) arrastrable por el encabezado.
+
 Los marcadores usan SVG inline con color segun estado: amarillo=pendiente, azul=en_proceso, verde=resuelto.
 
 ---
