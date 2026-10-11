@@ -22,6 +22,8 @@ Aplicacion web para que ciudadanos reporten incidencias urbanas geolocalizadas (
 | Servidor    | LiteSpeed Web Server (lsphp)        | Apache, Nginx, Docker                           |
 | Frontend    | HTML5, CSS3 vanilla, JS vanilla     | React, Vue, Angular, jQuery, Bootstrap, Tailwind|
 | Mapa        | Leaflet 1.9.4 + OpenStreetMap       | Google Maps, Mapbox                             |
+
+**Excepcion aprobada por el cliente (2026-10-10):** `Leaflet.markercluster` 1.5.3 por CDN (unpkg) para el agrupamiento de marcadores del mapa. CSS y JS se cargan en `index.php`; el globo usa la clase propia `.cluster-incidencias`. Si el plugin no carga (offline), `mapa.js` cae a marcadores sueltos.
 | Sesiones    | session_start() nativo              | JWT, OAuth, librerias externas                  |
 | Fotos       | Disco local en `/uploads/`          | S3, CDN externo                                 |
 
@@ -76,7 +78,7 @@ srci/
 │   ├── css/estilos.css    Sistema de diseno completo (variables CSS, dark mode, responsive)
 │   └── js/
 │       ├── login.js       Logica del teclado PIN numerico en login.php
-│       ├── mapa.js        Inicializacion Leaflet, carga marcadores, iconos: color por gravedad + emoji del tipo; resueltas grises con check y zIndex bajo; en_gestion con anillo azul
+│       ├── mapa.js        Inicializacion Leaflet, carga marcadores agrupados (Leaflet.markercluster; radio ajustable por zoom, sueltos a zoom 18+), iconos: color por gravedad + emoji del tipo; resueltas grises con check y zIndex bajo; en_gestion con anillo azul
 │       └── reporte.js     Modal de reporte: paso 1 (tipo) → paso 2 (mini-mapa + foto + notas)
 │
 └── uploads/

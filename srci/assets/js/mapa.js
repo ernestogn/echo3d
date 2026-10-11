@@ -24,6 +24,36 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
 }).addTo(mapa);
 
+// Agrupamiento de marcadores (Leaflet.markercluster): se ajusta solo segun zoom
+// y densidad. El radio en px se achica a medida que acercas; cerca del maximo
+// (zoom 18+) se muestran todos los puntos sueltos. Si el plugin no cargo, se
+// cae al comportamiento anterior (marcadores sueltos).
+const grupoCluster = (typeof L.markerClusterGroup === 'function')
+  ? L.markerClusterGroup({
+      maxClusterRadius: (zoom) => {
+        if (zoom <= 12) return 120;
+        if (zoom <= 14) return 90;
+        if (zoom <= 16) return 60;
+        return 45;
+      },
+      disableClusteringAtZoom: 18,
+      spiderfyOnMaxZoom: true,
+      showCoverageOnHover: false,
+      removeOutsideVisibleBounds: true,
+      chunkedLoading: true,
+      iconCreateFunction: (cluster) => {
+        const n   = cluster.getChildCount();
+        const tam = n < 10 ? 40 : n < 100 ? 50 : 60;
+        return L.divIcon({
+          html: `<div class="cluster-incidencias" style="width:${tam}px;height:${tam}px;">${n}</div>`,
+          className: '',
+          iconSize: [tam, tam],
+        });
+      },
+    })
+  : null;
+if (grupoCluster) grupoCluster.addTo(mapa);
+
 // Icono del marcador: color = gravedad, emoji = tipo, resueltas grises con ✓,
 // en gestion con anillo azul
 function crearIcono(inc) {
@@ -56,14 +86,24 @@ let todosLosMarcadores = [];
 let filtroTipo = null;
 let filtroMios = false;
 
+// Agrega/quita un marcador respetando el agrupamiento (o suelto si no hay plugin)
+function mostrarMarcador(marker) {
+  if (grupoCluster) grupoCluster.addLayer(marker);
+  else if (!mapa.hasLayer(marker)) marker.addTo(mapa);
+}
+function ocultarMarcador(marker) {
+  if (grupoCluster) grupoCluster.removeLayer(marker);
+  else if (mapa.hasLayer(marker)) mapa.removeLayer(marker);
+}
+
 function aplicarFiltros() {
   todosLosMarcadores.forEach(({ marker, tipoId, usuarioId }) => {
     const okTipo = filtroTipo === null || tipoId === filtroTipo;
     const okMios = !filtroMios || usuarioId === SRCI_USUARIO_ID;
     if (okTipo && okMios) {
-      if (!mapa.hasLayer(marker)) marker.addTo(mapa);
-    } else if (mapa.hasLayer(marker)) {
-      mapa.removeLayer(marker);
+      mostrarMarcador(marker);
+    } else {
+      ocultarMarcador(marker);
     }
   });
 }
