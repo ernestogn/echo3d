@@ -60,7 +60,7 @@ $cats_inc = categorias_de_incidencia($id);
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Incidencia #<?= $id ?> — SRCI</title>
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011i">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011j">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>

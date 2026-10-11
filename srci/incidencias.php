@@ -40,14 +40,14 @@ $pagina      = max(1, (int)($_GET['pagina'] ?? 1));
 $por_pagina  = 20;
 $offset      = ($pagina - 1) * $por_pagina;
 
-// --- Orden (columnas ordenables: fecha, barrio, gravedad) ---
+// --- Orden (columnas ordenables: id, fecha, barrio, gravedad) ---
 $orden_actual = $_GET['orden'] ?? 'fecha';
 $dir_actual   = $_GET['dir']   ?? 'desc';
-if (!in_array($orden_actual, ['fecha', 'barrio', 'gravedad'], true)) $orden_actual = 'fecha';
+if (!in_array($orden_actual, ['id', 'fecha', 'barrio', 'gravedad'], true)) $orden_actual = 'fecha';
 if (!in_array($dir_actual, ['asc', 'desc'], true)) $dir_actual = 'desc';
 
 // Orden por defecto al hacer el primer click en cada columna
-$dir_default = ['fecha' => 'desc', 'barrio' => 'asc', 'gravedad' => 'desc'];
+$dir_default = ['id' => 'desc', 'fecha' => 'desc', 'barrio' => 'asc', 'gravedad' => 'desc'];
 $dir_sql = strtoupper($dir_actual);
 if ($orden_actual === 'barrio') {
   // Los sin barrio siempre al final
@@ -55,6 +55,8 @@ if ($orden_actual === 'barrio') {
 } elseif ($orden_actual === 'gravedad') {
   // Baja -> critica (asc) o critica -> baja (desc)
   $order_by = "FIELD(i.gravedad,'baja','media','alta','critica') " . $dir_sql;
+} elseif ($orden_actual === 'id') {
+  $order_by = 'i.id ' . $dir_sql;
 } else {
   $order_by = 'i.fecha_hora ' . $dir_sql;
 }
@@ -259,7 +261,7 @@ function td_orden(string $clave, string $orden_actual): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Listado de Incidencias — SRCI</title>
   <meta name="description" content="Listado completo de incidencias reportadas por los ciudadanos.">
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011i">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011j">
 </head>
 <body>
 
@@ -370,11 +372,20 @@ function td_orden(string $clave, string $orden_actual): string {
       <span>No hay incidencias que coincidan con los filtros seleccionados.</span>
     </div>
   <?php else: ?>
+    <?php
+    $nombres_orden = ['id' => 'N°', 'fecha' => 'Fecha', 'barrio' => 'Barrio', 'gravedad' => 'Gravedad'];
+    $flecha_orden  = $dir_actual === 'asc' ? '▲' : '▼';
+    ?>
+    <div class="leyenda-orden" role="status">
+      <span aria-hidden="true">⇅</span>
+      Ordenada por: <strong><?= esc($nombres_orden[$orden_actual]) ?> <?= $flecha_orden ?></strong>
+      <span style="font-weight:400;opacity:.75;">(tocá el título de una columna para cambiar)</span>
+    </div>
     <div class="tabla-contenedor">
       <table class="tabla-incidencias" id="tabla-incidencias">
         <thead>
           <tr>
-            <th>#</th>
+            <?= th_orden('id', '#', $orden_actual, $dir_actual, $dir_default) ?>
             <?= th_orden('fecha', 'Fecha', $orden_actual, $dir_actual, $dir_default) ?>
             <th>Hora</th>
             <th>Tipo</th>
@@ -396,7 +407,7 @@ function td_orden(string $clave, string $orden_actual): string {
             $cats_inc = $mapa_cats_tabla[(int)$inc['id']] ?? [];
           ?>
             <tr>
-              <td><?= (int)$inc['id'] ?></td>
+              <td<?= td_orden('id', $orden_actual) ?>><?= (int)$inc['id'] ?></td>
               <td<?= td_orden('fecha', $orden_actual) ?> style="white-space:nowrap;"><?= esc(date('d/m/y', strtotime($inc['fecha_hora']))) ?></td>
               <td style="white-space:nowrap;"><?= esc(date('H:i', strtotime($inc['fecha_hora']))) ?></td>
               <td><?= esc($inc['tipo_icono'] ?? '') ?> <?= esc($inc['tipo_nombre']) ?></td>

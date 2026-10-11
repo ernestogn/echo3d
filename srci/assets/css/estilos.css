@@ -466,6 +466,21 @@ h3 { font-size: 1.125rem; font-weight: 600; }
 .tabla-incidencias td.orden-activa { background: rgba(79,70,229,.08); }
 .tabla-incidencias tr:hover td.orden-activa { background: rgba(79,70,229,.16); }
 
+/* Leyenda de orden arriba de la tabla */
+.leyenda-orden {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 var(--espacio-sm);
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: rgba(79,70,229,.10);
+  border: 1px solid rgba(79,70,229,.18);
+  color: var(--color-acento);
+  font-size: .8rem;
+  font-weight: 600;
+}
+
 /* Fila expandible con todos los campos */
 .fila-expandida > td {
   background: rgba(79,70,229,.03);
