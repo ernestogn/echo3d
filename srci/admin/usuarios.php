@@ -351,8 +351,7 @@ $csrf = csrf_token();
                     <input type="hidden" name="csrf_token"  value="<?= esc($csrf) ?>">
                     <input type="hidden" name="accion"      value="nuevo_pin">
                     <input type="hidden" name="usuario_id"  value="<?= (int)$u['id'] ?>">
-                    <button type="submit" class="boton boton-secundario boton-sm"
-                            onclick="return confirm('¿Generar nuevo PIN para <?= esc(addslashes($u['nombre'])) ?>?')">
+                    <button type="submit" class="boton boton-secundario boton-sm">
                       🔑 Nuevo PIN
                     </button>
                   </form>
