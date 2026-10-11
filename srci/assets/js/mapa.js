@@ -215,6 +215,29 @@ function removerMarcadorSeleccion() {
 cargarIncidencias();
 cargarFiltros();
 
+// Limites de barrios: relleno casi transparente + nombre al pasar el mouse.
+// El click sobre un poligono burbujea al mapa (mismo flujo de reporte) y
+// reporte.js pre-selecciona el barrio segun el punto.
+fetch('/srci/api/poligonos.php')
+  .then((r) => r.json())
+  .then((poligonos) => {
+    poligonos.forEach((p) => {
+      p.anillos.forEach((anillo) => {
+        const poly = L.polygon(anillo, {
+          color: '#4f46e5',
+          weight: 1,
+          opacity: 0.3,
+          fillColor: '#4f46e5',
+          fillOpacity: 0.04,
+          dashArray: '4 4',
+        });
+        poly.bindTooltip('🏙️ ' + p.nombre, { sticky: true, direction: 'top' });
+        poly.addTo(mapa);
+      });
+    });
+  })
+  .catch(() => {});
+
 // Exponer mapa globalmente para que reporte.js lo use
 window.mapaLeaflet = mapa;
 window.removerMarcadorSeleccion = removerMarcadorSeleccion;

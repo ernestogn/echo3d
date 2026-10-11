@@ -5,6 +5,37 @@ let coordSeleccionada = null;
 let miniMapa = null;
 let miniMarcador = null;
 let barriosCargados = [];
+let poligonosBarrios = [];
+
+// Cargar poligonos de barrios (para pre-seleccionar el barrio segun el punto)
+fetch('/srci/api/poligonos.php')
+  .then((r) => r.json())
+  .then((poligonos) => { poligonosBarrios = Array.isArray(poligonos) ? poligonos : []; })
+  .catch(() => { poligonosBarrios = []; });
+
+// Ray casting: barrio que contiene el punto (misma logica que barrio_por_punto en PHP)
+function barrioPorPunto(lat, lng) {
+  for (const p of poligonosBarrios) {
+    for (const anillo of p.anillos) {
+      let dentro = false;
+      for (let i = 0, j = anillo.length - 1; i < anillo.length; j = i++) {
+        const xi = anillo[i][0], yi = anillo[i][1]; // x = lat, y = lng
+        const xj = anillo[j][0], yj = anillo[j][1];
+        if (((yi > lng) !== (yj > lng)) && (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi)) {
+          dentro = !dentro;
+        }
+      }
+      if (dentro) return p;
+    }
+  }
+  return null;
+}
+
+// Pre-selecciona el barrio segun el punto marcado (el usuario lo puede cambiar)
+function preseleccionarBarrio(lat, lng) {
+  const hit = barrioPorPunto(lat, lng);
+  if (hit) barrioSelect.value = hit.nombre;
+}
 
 const modalFondo     = document.getElementById('modal-reporte');
 const btnAbrir       = document.getElementById('btn-abrir-reporte');
@@ -172,6 +203,7 @@ function mostrarPasoDetalles() {
       coordTexto.textContent = `Lat: ${e.latlng.lat.toFixed(6)}, Lng: ${e.latlng.lng.toFixed(6)}`;
       if (miniMarcador) miniMarcador.remove();
       miniMarcador = L.marker(e.latlng).addTo(miniMapa);
+      preseleccionarBarrio(e.latlng.lat, e.latlng.lng);
     });
 
     // Si el usuario hizo click en el mapa principal, precargar ese punto
@@ -179,6 +211,9 @@ function mostrarPasoDetalles() {
       miniMapa.setView(coordSeleccionada, 16);
       miniMarcador = L.marker(coordSeleccionada).addTo(miniMapa);
       coordTexto.textContent = `Lat: ${coordSeleccionada.lat.toFixed(6)}, Lng: ${coordSeleccionada.lng.toFixed(6)}`;
+    }
+    if (coordSeleccionada) {
+      preseleccionarBarrio(coordSeleccionada.lat, coordSeleccionada.lng);
     }
   } else {
     // Refrescar layout del mapa al mostrarlo

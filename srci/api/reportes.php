@@ -92,7 +92,7 @@ if ($metodo === 'POST') {
   $responsable        = trim($datos['responsable_area'] ?? '');
   $contacto           = trim($datos['contacto_vecino'] ?? '');
 
-  if ($tipo_id === 0 || $latitud === 0.0 || $longitud === 0.0 || $barrio_id === 0 || $direccion === '' || !in_array($gravedad, $gravedades_validas, true)) {
+  if ($tipo_id === 0 || $latitud === 0.0 || $longitud === 0.0 || $direccion === '' || !in_array($gravedad, $gravedades_validas, true)) {
     respuesta_json(['error' => 'Faltan datos obligatorios (barrio, dirección y gravedad son obligatorios).'], 400);
   }
   if ($servicio !== '' && !in_array($servicio, $servicios_validos, true)) {
@@ -109,11 +109,21 @@ if ($metodo === 'POST') {
     respuesta_json(['error' => 'Tipo de incidencia no valido.'], 400);
   }
 
-  // Verificar que el barrio exista y este activo
-  $st = db()->prepare('SELECT id FROM barrios WHERE id = :id AND activo = 1');
-  $st->execute([':id' => $barrio_id]);
-  if (!$st->fetch()) {
-    respuesta_json(['error' => 'Barrio no valido.'], 400);
+  // Barrio: el poligono pre-selecciona, el usuario confirma.
+  // Si no viene barrio_id, se detecta por punto-en-poligono.
+  $barrio_detectado = barrio_por_punto($latitud, $longitud);
+  if ($barrio_id === 0 && $barrio_detectado) {
+    $barrio_id = $barrio_detectado['id'];
+  }
+  if ($barrio_id > 0) {
+    $st = db()->prepare('SELECT id, nombre FROM barrios WHERE id = :id AND activo = 1');
+    $st->execute([':id' => $barrio_id]);
+    if (!$st->fetch()) {
+      respuesta_json(['error' => 'Barrio no valido.'], 400);
+    }
+  }
+  if ($barrio_id === 0) {
+    respuesta_json(['error' => 'Elegí el barrio (el punto no cae en ningun barrio delimitado).'], 400);
   }
 
   try {
@@ -148,8 +158,14 @@ if ($metodo === 'POST') {
   }
   $id = (int)db()->lastInsertId();
 
-  // Log de auditoria: quien cargo la incidencia
-  registrar_auditoria((int)$_SESSION['usuario_id'], 'crear', $id, 'Cargo una incidencia');
+  // Log de auditoria: quien cargo la incidencia (y si el barrio fue manual vs poligono)
+  $detalle_crear = 'Cargo una incidencia';
+  if ($barrio_detectado && $barrio_detectado['id'] !== $barrio_id) {
+    $detalle_crear .= ' — barrio elegido manualmente (poligono detectaba ' . $barrio_detectado['nombre'] . ')';
+  } elseif (!$barrio_detectado) {
+    $detalle_crear .= ' — barrio manual (punto sin poligono)';
+  }
+  registrar_auditoria((int)$_SESSION['usuario_id'], 'crear', $id, $detalle_crear);
 
   // Espejo en Google Sheets: fila nueva en la planilla de relevamiento
   $st_tipo   = db()->prepare('SELECT nombre FROM tipos_incidencia WHERE id = :id');

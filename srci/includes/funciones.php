@@ -179,6 +179,43 @@ function sincronizar_hoja(): array
   }
 }
 
+// --- Barrios delimitados por poligono (ray casting, WGS84) ---
+
+// Devuelve ['id' => int, 'nombre' => string] si el punto cae dentro del
+// poligono de un barrio; null si no. Poligonos cacheados en static.
+function barrio_por_punto(float $lat, float $lng): ?array
+{
+  static $poligonos = null;
+  if ($poligonos === null) {
+    $poligonos = [];
+    try {
+      foreach (db()->query('SELECT id, nombre, poligono FROM barrios WHERE poligono IS NOT NULL') as $b) {
+        $pol = json_decode((string)$b['poligono'], true);
+        if (is_array($pol) && $pol) {
+          $poligonos[] = ['id' => (int)$b['id'], 'nombre' => $b['nombre'], 'anillos' => $pol];
+        }
+      }
+    } catch (Throwable $e) {
+      $poligonos = [];
+    }
+  }
+  foreach ($poligonos as $p) {
+    foreach ($p['anillos'] as $anillo) {
+      $n = count($anillo); $dentro = false;
+      for ($i = 0, $j = $n - 1; $i < $n; $j = $i++) {
+        $xi = $anillo[$i][0]; $yi = $anillo[$i][1]; // x = lat, y = lng
+        $xj = $anillo[$j][0]; $yj = $anillo[$j][1];
+        if ((($yi > $lng) != ($yj > $lng)) &&
+            ($lat < ($xj - $xi) * ($lng - $yi) / ($yj - $yi) + $xi)) {
+          $dentro = !$dentro;
+        }
+      }
+      if ($dentro) return ['id' => $p['id'], 'nombre' => $p['nombre']];
+    }
+  }
+  return null;
+}
+
 // Registra una accion en el log de auditoria (quien, cuando, que)
 // Nunca rompe el flujo principal si falla
 function registrar_auditoria(int $usuario_id, string $accion, ?int $incidencia_id, string $detalle = ''): void

@@ -106,7 +106,11 @@ define('SRCI_MAGIC_SECRET', 'secreto_aleatorio_64_hex');  // firma los magic lin
 ```sql
 usuarios          id, nombre(UNIQUE), email, pin_hash, rol(usuario|admin), activo, creado_en
 tipos_incidencia  id, clave(UNIQUE), nombre, icono, activo
-barrios           id, nombre(UNIQUE), activo, creado_en
+barrios           id, nombre(UNIQUE), poligono(TEXT NULL: JSON [[[lat,lng],...],...]), activo, creado_en —
+                  el poligono (relevamiento QGIS del cliente, WGS84) delimita el barrio: barrio_por_punto() en funciones.php
+                  hace ray-casting y api/reportes.php asigna el barrio si el cliente no mando uno (poligono pre-selecciona,
+                  usuario confirma; mismatch queda en auditoria). api/poligonos.php sirve los poligonos para el mapa
+                  (limites suaves + tooltip) y para el ray-casting del cliente (reporte.js pre-selecciona).
 referentes_barrios usuario_id(FK CASCADE), barrio_id(FK CASCADE) — PK(usuario_id, barrio_id)
 incidencias       id, usuario_id(FK), tipo_id(FK), latitud, longitud, barrio_id(FK barrios, NULL),
                   direccion, gravedad(baja|media|alta|critica), familias_afectadas,
