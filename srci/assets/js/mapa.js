@@ -31,12 +31,12 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 const grupoCluster = (typeof L.markerClusterGroup === 'function')
   ? L.markerClusterGroup({
       maxClusterRadius: (zoom) => {
-        if (zoom <= 12) return 120;
-        if (zoom <= 14) return 90;
-        if (zoom <= 16) return 60;
-        return 45;
+        if (zoom <= 12) return 90;
+        if (zoom <= 14) return 65;
+        if (zoom <= 16) return 48;
+        return 35;
       },
-      disableClusteringAtZoom: 18,
+      disableClusteringAtZoom: 17,
       spiderfyOnMaxZoom: true,
       showCoverageOnHover: false,
       removeOutsideVisibleBounds: true,
