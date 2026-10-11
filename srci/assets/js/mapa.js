@@ -370,9 +370,10 @@ cargarFiltros();
 fetch('/srci/api/poligonos.php')
   .then((r) => r.json())
   .then((poligonos) => {
-    const base  = { color: '#4f46e5', weight: 0, opacity: 0, fillColor: '#4f46e5', fillOpacity: 0.01 };
-    const hover = { weight: 2, opacity: 0.6, fillOpacity: 0.08 };
     poligonos.forEach((p) => {
+      const color = /^#[0-9a-fA-F]{6}$/.test(p.color || '') ? p.color : '#4f46e5';
+      const base  = { color, weight: 0, opacity: 0, fillColor: color, fillOpacity: 0.01 };
+      const hover = { weight: 2, opacity: 0.6, fillOpacity: 0.08 };
       p.anillos.forEach((anillo) => {
         const poly = L.polygon(anillo, base).addTo(mapa);
         const el = poly.getElement && poly.getElement();

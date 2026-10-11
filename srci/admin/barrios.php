@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $barrios = db()->query(
-  'SELECT b.id, b.nombre, b.activo, b.creado_en,
+  'SELECT b.id, b.nombre, b.activo, b.creado_en, b.categoria, b.color,
           (b.poligono IS NOT NULL AND b.poligono <> "") AS tiene_pol,
           (SELECT COUNT(*) FROM incidencias i WHERE i.barrio_id = b.id AND i.oculto = 0) AS n_inc,
           (SELECT COUNT(*) FROM referentes_barrios rb WHERE rb.barrio_id = b.id) AS n_ref
@@ -55,7 +55,7 @@ $csrf    = csrf_token();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin — Barrios · SRCI</title>
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011e">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011f">
 </head>
 <body>
 <nav class="nav-principal">
@@ -119,14 +119,21 @@ $csrf    = csrf_token();
     <div class="tabla-contenedor">
       <table class="tabla-incidencias">
         <thead>
-          <tr><th>#</th><th>Nombre</th><th>Polígono</th><th>Incidencias</th><th>Referentes</th><th>Creado</th><th>Estado</th><th>Acción</th></tr>
+          <tr><th>#</th><th>Nombre</th><th>Categoría</th><th>Polígono</th><th>Incidencias</th><th>Referentes</th><th>Creado</th><th>Estado</th><th>Acción</th></tr>
         </thead>
         <tbody>
           <?php foreach ($barrios as $b): ?>
             <tr>
               <td><?= (int)$b['id'] ?></td>
               <td><?= esc($b['nombre']) ?></td>
-              <td style="text-align:center;"><?= $b['tiene_pol'] ? '✔' : '<span style="color:var(--color-texto-suave);">—</span>' ?></td>
+              <td><span class="estado-badge <?= esc(clase_categoria($b['categoria'])) ?>"><?= esc(nombre_categoria($b['categoria'])) ?></span></td>
+              <td style="text-align:center;">
+                <?php if ($b['tiene_pol']): ?>
+                  <span style="display:inline-block;width:13px;height:13px;border-radius:3px;background:<?= esc(color_valido($b['color']) ?? color_categoria($b['categoria'])) ?>;vertical-align:middle;border:1px solid var(--color-borde);margin-right:5px;"></span>✔
+                <?php else: ?>
+                  <span style="color:var(--color-texto-suave);">—</span>
+                <?php endif; ?>
+              </td>
               <td style="text-align:center;">
                 <?php if ((int)$b['n_inc'] > 0): ?>
                   <a href="/srci/incidencias.php?barrio_id=<?= (int)$b['id'] ?>"><?= (int)$b['n_inc'] ?></a>

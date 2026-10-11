@@ -53,17 +53,20 @@ srci/
 ├── sql/
 │   ├── esquema.sql        Esquema completo de DB + datos semilla de tipos, barrios y usuario admin
 │   ├── migracion_planilla.sql  Migracion: tabla barrios + campos nuevos en incidencias + 3 tipos nuevos
-│   └── migracion_usuarios_barrios.sql  Migracion: barrios reales + tabla referentes_barrios
+│   ├── migracion_usuarios_barrios.sql  Migracion: barrios reales + tabla referentes_barrios
+│   └── migracion_barrios_categoria_color.sql  Migracion: categoria (formal|informal|asentamiento) + color de render de barrios
 │
 ├── includes/
 │   ├── db.php             Conexion PDO singleton (funcion db()), respuesta_json()
 │   ├── auth.php           Funciones de sesion: requiere_sesion(), requiere_admin(), csrf_token(), validar_csrf()
 │   └── funciones.php      Helpers: esc(), fecha_legible(), generar_pin(), guardar_foto(), enviar_pin_por_email(),
-│                          barrio_por_punto(), geojson_a_anillos() / anillos_a_geojson() / contar_anillos_poligono()
+│                          barrio_por_punto(), geojson_a_anillos() / anillos_a_geojson() / contar_anillos_poligono(),
+│                          nombre_categoria() / clase_categoria() / color_categoria() / color_valido()
 │
 ├── api/
 │   ├── tipos.php          GET  /srci/api/tipos.php      — lista tipos activos (JSON)
 │   ├── barrios.php        GET  /srci/api/barrios.php    — lista barrios activos (JSON)
+│   ├── poligonos.php      GET  /srci/api/poligonos.php  — poligonos de barrios activos: [{id, nombre, categoria, color, anillos}]
 │   ├── reportes.php       GET  /srci/api/reportes.php   — lista incidencias con filtros opcionales (solo con coordenadas; es el feed del mapa)
 │                          POST /srci/api/reportes.php   — crea nueva incidencia (JSON body)
 │   ├── subir_foto.php     POST /srci/api/subir_foto.php — sube foto (multipart/form-data)
@@ -75,7 +78,7 @@ srci/
 │   ├── reportes.php       Panel admin: listado de reportes + cambio de estado via form POST
 │   ├── usuarios.php       Panel admin: crear usuarios, editarlos (nombre/email/rol), regenerar PIN, activar/desactivar
 │   ├── tipos.php          Panel admin: crear tipos de incidencia, activar/desactivar
-│   ├── barrios.php        Panel admin: crear/activar barrios + tabla con poligono, incidencias y referentes; link a barrio.php
+│   ├── barrios.php        Panel admin: crear/activar barrios + tabla con categoria, swatch de color, poligono, incidencias y referentes; link a barrio.php
 │   ├── barrio.php         Panel admin: detalle de un barrio (info reversa: datos, incidencias, ultimas, referentes),
 │   │                      edicion de nombre/estado/poligono (subir/pegar/dibujar GeoJSON, vista previa Leaflet.draw,
 │   │                      descargar/limpiar) y recalculo del barrio de incidencias sin barrio
@@ -85,7 +88,7 @@ srci/
 │   ├── css/estilos.css    Sistema de diseno completo (variables CSS, dark mode, responsive)
 │   └── js/
 │       ├── login.js       Logica del teclado PIN numerico en login.php
-│       ├── mapa.js        Inicializacion Leaflet, carga marcadores agrupados POR BARRIO (un L.markerClusterGroup por barrio_id, asi no se fusionan puntos de distintos barrios; radio ajustable por zoom, sueltos a zoom 17+), iconos: color por gravedad + emoji del tipo; resueltas grises con check y zIndex bajo; en_gestion con anillo azul
+│       ├── mapa.js        Inicializacion Leaflet, carga marcadores agrupados POR BARRIO (un L.markerClusterGroup por barrio_id, asi no se fusionan puntos de distintos barrios; radio ajustable por zoom, sueltos a zoom 17+), iconos: color por gravedad + emoji del tipo; resueltas grises con check y zIndex bajo; en_gestion con anillo azul. Dibuja los limites de barrio (api/poligonos.php) con el color propio de cada barrio (p.color, fallback #4f46e5; hover-only)
 │       └── reporte.js     Modal de reporte: paso 1 (tipo) → paso 2 (mini-mapa + foto + notas)
 │
 └── uploads/
@@ -115,11 +118,15 @@ define('SRCI_MAGIC_SECRET', 'secreto_aleatorio_64_hex');  // firma los magic lin
 ```sql
 usuarios          id, nombre(UNIQUE), email, pin_hash, rol(usuario|admin), activo, creado_en
 tipos_incidencia  id, clave(UNIQUE), nombre, icono, activo
-barrios           id, nombre(UNIQUE), poligono(TEXT NULL: JSON [[[lat,lng],...],...]), activo, creado_en —
+barrios           id, nombre(UNIQUE), poligono(TEXT NULL: JSON [[[lat,lng],...],...]),
+                  categoria(ENUM formal|informal|asentamiento NULL), color(VARCHAR(7) #rrggbb NULL), activo, creado_en —
                   el poligono (relevamiento QGIS del cliente, WGS84) delimita el barrio: barrio_por_punto() en funciones.php
                   hace ray-casting y api/reportes.php asigna el barrio si el cliente no mando uno (poligono pre-selecciona,
                   usuario confirma; mismatch queda en auditoria). api/poligonos.php sirve los poligonos para el mapa
                   (limites suaves + tooltip) y para el ray-casting del cliente (reporte.js pre-selecciona).
+                  categoria clasifica el barrio (formal=catastro, informal, asentamiento); color es el hex de render del
+                  poligono en el mapa (NULL = usar color_categoria(categoria): formal #2563eb, informal #d97706,
+                  asentamiento #dc2626, sin categoria #4f46e5).
 referentes_barrios usuario_id(FK CASCADE), barrio_id(FK CASCADE) — PK(usuario_id, barrio_id)
 incidencias       id, usuario_id(FK), tipo_id(FK), latitud, longitud, barrio_id(FK barrios, NULL),
                   direccion, gravedad(baja|media|alta|critica), familias_afectadas,
@@ -144,7 +151,7 @@ Usuarios del relevamiento: cargados por script one-shot con username = email; el
 
 **Perfil privado del usuario (`perfil.php`):** cualquier usuario logueado (`requiere_sesion()` + CSRF en el POST) ve sus datos (nombre, email, rol, estado, alta), sus barrios asignados (`referentes_barrios`) y sus reportes (`incidencias WHERE usuario_id = sesion AND oculto = 0`). Puede **cambiar su propio PIN**: exige el PIN actual (`password_verify`), valida `/^\d{4}$/` + repeticion, rechaza igual-al-actual, y audita `cambiar_pin`. **No** se edita el email (login) desde el perfil: solo un admin lo cambia en `admin/usuarios.php`. Avatar **Gravatar** read-only via `md5(strtolower(trim(email)))` (`?s=160&d=404`) con fallback local de iniciales; no se sube foto propia. Se llega tocando el chip `👤 <nombre>` de la barra (link en todas las paginas autenticadas). `admin/auditoria.php` mapea `cambiar_pin` en `accion_legible()`/`clase_accion()`.
 
-**Edicion de barrios y poligonos (`admin/barrio.php`):** pagina de detalle de un barrio (accesible con ✏️ Editar desde `admin/barrios.php`) que muestra info reversa (datos, conteos de incidencias por estado y gravedad, familias afectadas, sin ubicacion, incidencia abierta mas antigua, ultimas 12 incidencias con link a `detalle.php` y referentes asignados) y permite editar nombre/estado/poligono. El poligono se carga de tres formas que convergen en GeoJSON: subir archivo `.geojson/.json`, pegar texto, o dibujar/editar en el mapa (Leaflet + Leaflet.draw, `featureGroup` `drawnItems`); el mapa de edicion usa **capa satelite Esri World Imagery** por defecto con selector Mapa/Satelite (`L.control.layers`). `anillos_a_geojson()` exporta el actual (boton ⬇ Descargar); `geojson_a_anillos()` normaliza lo entrante: acepta `FeatureCollection`/`Feature`/`Polygon`/`MultiPolygon`, convierte `[lng,lat] -> [lat,lng]`, aplana multipoligonos a anillos y **descarta huecos** (el ray-casting no los soporta); limites 2 MB / 20000 vertices. Se guarda en `barrios.poligono` (JSON `[[[lat,lng],...],...]`). El boton 🗑 Limpiar pone `poligono = NULL`. El boton 🔁 Recalcular corre `barrio_por_punto()` sobre las incidencias con `barrio_id IS NULL AND latitud IS NOT NULL` y les asigna barrio (solo local, no empuja a Sheets). Audita `editar` (con detalle de cambios) y `recalcular_barrios`.
+**Edicion de barrios y poligonos (`admin/barrio.php`):** pagina de detalle de un barrio (accesible con ✏️ Editar desde `admin/barrios.php`) que muestra info reversa (datos, conteos de incidencias por estado y gravedad, familias afectadas, sin ubicacion, incidencia abierta mas antigua, ultimas 12 incidencias con link a `detalle.php` y referentes asignados) y permite editar **nombre/estado/categoria/color/poligono**. La **categoria** (select: sin categoría / Formal (catastro) / Informal / Asentamiento) y el **color** (`<input type="color">` con boton "Usar color de la categoria") se guardan en `barrios.categoria` / `barrios.color`; el color se valida con `color_valido()` (`^#[0-9a-fA-F]{6}$`, lowercase) y si queda NULL el mapa usa `color_categoria(categoria)`. El color se ve en vivo sobre el poligono dibujado (`drawnItems.setStyle`) y NO activa `mapaModificado` (o sea, cambiar solo el color no reenvia el poligono). El poligono se carga de tres formas que convergen en GeoJSON: subir archivo `.geojson/.json`, pegar texto, o dibujar/editar en el mapa (Leaflet + Leaflet.draw, `featureGroup` `drawnItems`); el mapa de edicion usa **capa satelite Esri World Imagery** por defecto con selector Mapa/Satelite (`L.control.layers`). `anillos_a_geojson()` exporta el actual (boton ⬇ Descargar); `geojson_a_anillos()` normaliza lo entrante: acepta `FeatureCollection`/`Feature`/`Polygon`/`MultiPolygon`, convierte `[lng,lat] -> [lat,lng]`, aplana multipoligonos a anillos y **descarta huecos** (el ray-casting no los soporta); limites 2 MB / 20000 vertices. Se guarda en `barrios.poligono` (JSON `[[[lat,lng],...],...]`). El boton 🗑 Limpiar pone `poligono = NULL`. El boton 🔁 Recalcular corre `barrio_por_punto()` sobre las incidencias con `barrio_id IS NULL AND latitud IS NOT NULL` y les asigna barrio (solo local, no empuja a Sheets). Audita `editar` (con detalle de cambios) y `recalcular_barrios`.
 
 **Alineacion con la planilla de relevamiento** (`Planilla_relevamiento_barrios.xlsx`): el formulario pide Barrio, Direccion/calle y altura, Gravedad (obligatorios) y Familias afectadas, Servicio afectado, Calle intransitable, Responsable/area, Contacto vecino (opcionales). "Dias abiertos" se calcula (fecha_hora → fecha_resolucion o hoy). Estado: "En gestion" = `en_proceso`.
 

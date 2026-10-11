@@ -113,6 +113,47 @@ function clase_gravedad(?string $gravedad): string
   };
 }
 
+// Devuelve el nombre legible de la categoria del barrio
+function nombre_categoria(?string $categoria): string
+{
+  return match($categoria) {
+    'formal'       => 'Formal',
+    'informal'     => 'Informal',
+    'asentamiento' => 'Asentamiento',
+    default        => 'Sin categoría',
+  };
+}
+
+// Devuelve clase CSS segun categoria del barrio
+function clase_categoria(?string $categoria): string
+{
+  return match($categoria) {
+    'formal'       => 'cat-formal',
+    'informal'     => 'cat-informal',
+    'asentamiento' => 'cat-asentamiento',
+    default        => 'cat-sin',
+  };
+}
+
+// Color sugerido por categoria (fallback del render del poligono)
+function color_categoria(?string $categoria): string
+{
+  return match($categoria) {
+    'formal'       => '#2563eb',
+    'informal'     => '#d97706',
+    'asentamiento' => '#dc2626',
+    default        => '#4f46e5',
+  };
+}
+
+// Valida/normaliza un color hex #rrggbb; null si no es valido
+function color_valido(?string $color): ?string
+{
+  if ($color === null || $color === '') return null;
+  $color = trim($color);
+  return preg_match('/^#[0-9a-fA-F]{6}$/', $color) ? strtolower($color) : null;
+}
+
 // --- Espejo en Google Sheets (via Apps Script Web App) ---
 // Configurar en config.local.php (fuera de git):
 //   define('SRCI_SHEETS_WEBAPP_URL', 'https://script.google.com/macros/s/.../exec');

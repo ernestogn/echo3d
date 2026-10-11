@@ -343,6 +343,12 @@ h3 { font-size: 1.125rem; font-weight: 600; }
 .gravedad-alta    { background: rgba(249,115,22,.15); color: #c2410c; }
 .gravedad-critica { background: rgba(239,68,68,.15);  color: #b91c1c; }
 
+/* Badges de categoria de barrio */
+.cat-formal       { background: rgba(37,99,235,.15);  color: #2563eb; }
+.cat-informal     { background: rgba(217,119,6,.15);  color: #b45309; }
+.cat-asentamiento { background: rgba(220,38,38,.15);  color: #dc2626; }
+.cat-sin          { background: rgba(100,116,139,.15); color: #64748b; }
+
 /* Incidencias ocultas */
 .badge-oculta {
   display: inline-block;

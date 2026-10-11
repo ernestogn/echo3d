@@ -15,7 +15,7 @@ if ($id <= 0) {
 }
 
 $cargar_barrio = function () use ($id) {
-  $st = db()->prepare('SELECT id, nombre, poligono, activo, creado_en FROM barrios WHERE id = :id');
+  $st = db()->prepare('SELECT id, nombre, poligono, categoria, color, activo, creado_en FROM barrios WHERE id = :id');
   $st->execute([':id' => $id]);
   return $st->fetch();
 };
@@ -41,9 +41,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $accion = $_POST['accion'] ?? '';
 
   if ($accion === 'guardar') {
-    $nombre  = trim($_POST['nombre'] ?? '');
-    $activo  = isset($_POST['activo']) ? 1 : 0;
-    $geojson = (string)($_POST['geojson'] ?? '');
+    $nombre    = trim($_POST['nombre'] ?? '');
+    $activo    = isset($_POST['activo']) ? 1 : 0;
+    $categoria = (string)($_POST['categoria'] ?? '');
+    $geojson   = (string)($_POST['geojson'] ?? '');
+
+    if (!in_array($categoria, ['formal', 'informal', 'asentamiento'], true)) {
+      $categoria = null;
+    }
+    $color = color_valido($_POST['color'] ?? '');
 
     if ($nombre === '') {
       $mensaje  = 'El nombre del barrio es obligatorio.';
@@ -63,6 +69,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if ($activo !== (int)$barrio['activo']) {
           $cambios[] = 'estado: ' . ($barrio['activo'] ? 'activo' : 'inactivo') . ' -> ' . ($activo ? 'activo' : 'inactivo');
+        }
+        if ($categoria !== $barrio['categoria']) {
+          $cambios[] = 'categoría: ' . nombre_categoria($barrio['categoria']) . ' -> ' . nombre_categoria($categoria);
+        }
+        if ($color !== $barrio['color']) {
+          $cambios[] = 'color: ' . ($barrio['color'] ?? '(auto)') . ' -> ' . ($color ?? '(auto)');
         }
 
         // Poligono: solo si el cliente dibujo/cargo algo (geojson no vacio)
@@ -86,8 +98,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mensaje  = 'Sin cambios: los datos ya eran esos.';
             $tipo_msg = 'info';
           } else {
-            db()->prepare('UPDATE barrios SET nombre = :n, activo = :a, poligono = :p WHERE id = :id')
-               ->execute([':n' => $nombre, ':a' => $activo, ':p' => $poligono, ':id' => $id]);
+            db()->prepare('UPDATE barrios SET nombre = :n, activo = :a, categoria = :cat, color = :col, poligono = :p WHERE id = :id')
+               ->execute([':n' => $nombre, ':a' => $activo, ':cat' => $categoria, ':col' => $color, ':p' => $poligono, ':id' => $id]);
             registrar_auditoria(
               (int)$_SESSION['usuario_id'],
               'editar',
@@ -188,6 +200,8 @@ if ($anillos) {
 }
 $centro = $lat_prom !== null ? [$lat_prom, $lng_prom] : [-32.48262351713079, -58.24455570742029];
 
+$color_actual = color_valido($barrio['color']) ?? color_categoria($barrio['categoria']);
+
 $csrf = csrf_token();
 ?>
 <!DOCTYPE html>
@@ -198,7 +212,7 @@ $csrf = csrf_token();
   <title>Admin — <?= esc($barrio['nombre']) ?> · SRCI</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011e">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011f">
 </head>
 <body>
 <nav class="nav-principal">
@@ -252,8 +266,13 @@ $csrf = csrf_token();
             </span>
           </dd>
           <dt>Alta</dt><dd><?= esc(fecha_legible($barrio['creado_en'])) ?></dd>
+          <dt>Categoría</dt>
+          <dd><span class="estado-badge <?= esc(clase_categoria($barrio['categoria'])) ?>"><?= esc(nombre_categoria($barrio['categoria'])) ?></span></dd>
           <dt>Polígono</dt>
-          <dd><?= $conteo['anillos'] > 0 ? 'Sí' : '<span style="color:var(--color-texto-suave);">No</span>' ?></dd>
+          <dd>
+            <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:<?= esc($color_actual) ?>;vertical-align:middle;border:1px solid var(--color-borde);margin-right:6px;"></span>
+            <?= $conteo['anillos'] > 0 ? 'Sí' : '<span style="color:var(--color-texto-suave);">No</span>' ?>
+          </dd>
         </dl>
       </div>
 
@@ -349,6 +368,25 @@ $csrf = csrf_token();
           </div>
         </div>
 
+        <div class="grilla-form-2" style="align-items:flex-end;margin-bottom:var(--espacio-md);">
+          <div class="campo">
+            <label for="e-categoria">Categoría</label>
+            <select id="e-categoria" name="categoria">
+              <option value="" <?= $barrio['categoria'] === null ? 'selected' : '' ?>>Sin categoría</option>
+              <option value="formal"       <?= $barrio['categoria'] === 'formal'       ? 'selected' : '' ?>>Formal (catastro)</option>
+              <option value="informal"     <?= $barrio['categoria'] === 'informal'     ? 'selected' : '' ?>>Informal</option>
+              <option value="asentamiento" <?= $barrio['categoria'] === 'asentamiento' ? 'selected' : '' ?>>Asentamiento</option>
+            </select>
+          </div>
+          <div class="campo">
+            <label for="e-color">Color del polígono en el mapa</label>
+            <div style="display:flex;gap:var(--espacio-sm);align-items:center;">
+              <input type="color" id="e-color" name="color" value="<?= esc($color_actual) ?>" style="width:56px;height:40px;padding:2px;cursor:pointer;">
+              <button type="button" id="btn-color-cat" class="boton boton-secundario boton-sm">Usar color de la categoría</button>
+            </div>
+          </div>
+        </div>
+
         <div style="margin-bottom:var(--espacio-sm);display:flex;flex-wrap:wrap;gap:var(--espacio-sm);align-items:center;">
           <label class="boton boton-secundario boton-sm" style="cursor:pointer;margin:0;">
             📁 Subir GeoJSON
@@ -416,7 +454,11 @@ $csrf = csrf_token();
 <script>
 const ANILLOS = <?= json_encode($anillos, JSON_UNESCAPED_SLASHES) ?>;
 const CENTRO  = <?= json_encode($centro) ?>;
-const ESTILO_POLI = { color: '#4f46e5', weight: 2, fillColor: '#4f46e5', fillOpacity: 0.15 };
+const inputColor = document.getElementById('e-color');
+function estiloPoli() {
+  const c = (inputColor && inputColor.value) ? inputColor.value : '#4f46e5';
+  return { color: c, weight: 2, fillColor: c, fillOpacity: 0.15 };
+}
 
 const mapa = L.map('mapa-barrio').setView(CENTRO, 14);
 const capaMapa = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' });
@@ -428,20 +470,35 @@ const drawnItems   = L.featureGroup().addTo(mapa);
 let mapaModificado = false;
 
 ANILLOS.forEach(function (a) {
-  if (Array.isArray(a) && a.length >= 3) L.polygon(a, ESTILO_POLI).addTo(drawnItems);
+  if (Array.isArray(a) && a.length >= 3) L.polygon(a, estiloPoli()).addTo(drawnItems);
 });
 if (drawnItems.getLayers().length) mapa.fitBounds(drawnItems.getBounds().pad(0.15));
+
+// Cambiar el color actualiza en vivo los poligonos del mapa
+if (inputColor) {
+  inputColor.addEventListener('input', function () { drawnItems.setStyle(estiloPoli()); });
+}
+// Boton "Usar color de la categoria"
+const COLOR_CATEGORIA = { 'formal': '#2563eb', 'informal': '#d97706', 'asentamiento': '#dc2626', '': '#4f46e5' };
+const selCategoria = document.getElementById('e-categoria');
+const btnColorCat  = document.getElementById('btn-color-cat');
+if (btnColorCat && inputColor) {
+  btnColorCat.addEventListener('click', function () {
+    inputColor.value = COLOR_CATEGORIA[selCategoria ? selCategoria.value : ''] || '#4f46e5';
+    drawnItems.setStyle(estiloPoli());
+  });
+}
 
 if (L.Control && L.Control.Draw) {
   mapa.addControl(new L.Control.Draw({
     position: 'topleft',
     edit: { featureGroup: drawnItems, remove: true },
     draw: {
-      polygon: { allowIntersection: false, showArea: true, shapeOptions: ESTILO_POLI },
+      polygon: { allowIntersection: false, showArea: true, shapeOptions: estiloPoli() },
       polyline: false, rectangle: false, circle: false, circlemarker: false, marker: false
     }
   }));
-  mapa.on(L.Draw.Event.CREATED, function (e) { drawnItems.addLayer(e.layer); mapaModificado = true; });
+  mapa.on(L.Draw.Event.CREATED, function (e) { e.layer.setStyle(estiloPoli()); drawnItems.addLayer(e.layer); mapaModificado = true; });
   mapa.on(L.Draw.Event.EDITED,  function () { mapaModificado = true; });
   mapa.on(L.Draw.Event.DELETED, function () { mapaModificado = true; });
 } else {
@@ -492,7 +549,7 @@ function aplicarGeojsonTexto(txt) {
   catch (err) { aviso('El texto no es un GeoJSON válido.', 'err'); return; }
   if (!anillos.length) { aviso('No se encontró ningún polígono válido.', 'err'); return; }
   drawnItems.clearLayers();
-  anillos.forEach(function (a) { L.polygon(a, ESTILO_POLI).addTo(drawnItems); });
+  anillos.forEach(function (a) { L.polygon(a, estiloPoli()).addTo(drawnItems); });
   mapa.fitBounds(drawnItems.getBounds().pad(0.15));
   mapaModificado = true;
   aviso('Polígono cargado en el mapa. Revisá y guardá.', 'ok');
