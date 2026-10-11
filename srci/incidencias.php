@@ -246,6 +246,11 @@ function th_orden(string $clave, string $titulo, string $orden_actual, string $d
   $url = url_filtros(['orden' => $clave, 'dir' => $dir]);
   return '<th' . $clase . '><a class="th-orden" href="' . esc($url) . '" title="Ordenar por ' . esc($titulo) . '">' . esc($titulo) . $flecha . '</a></th>';
 }
+
+// class pastel para las celdas de la columna que lleva el orden
+function td_orden(string $clave, string $orden_actual): string {
+  return $orden_actual === $clave ? ' class="orden-activa"' : '';
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -254,7 +259,7 @@ function th_orden(string $clave, string $titulo, string $orden_actual, string $d
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Listado de Incidencias — SRCI</title>
   <meta name="description" content="Listado completo de incidencias reportadas por los ciudadanos.">
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011h">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011i">
 </head>
 <body>
 
@@ -392,7 +397,7 @@ function th_orden(string $clave, string $titulo, string $orden_actual, string $d
           ?>
             <tr>
               <td><?= (int)$inc['id'] ?></td>
-              <td style="white-space:nowrap;"><?= esc(date('d/m/y', strtotime($inc['fecha_hora']))) ?></td>
+              <td<?= td_orden('fecha', $orden_actual) ?> style="white-space:nowrap;"><?= esc(date('d/m/y', strtotime($inc['fecha_hora']))) ?></td>
               <td style="white-space:nowrap;"><?= esc(date('H:i', strtotime($inc['fecha_hora']))) ?></td>
               <td><?= esc($inc['tipo_icono'] ?? '') ?> <?= esc($inc['tipo_nombre']) ?></td>
               <td>
@@ -400,9 +405,9 @@ function th_orden(string $clave, string $titulo, string $orden_actual, string $d
                   <span class="categoria-badge" style="--cat-color:<?= esc(color_valido($cat['color']) ?? '#64748b') ?>"><?= esc(($cat['icono'] ?? '') . ' ' . $cat['nombre']) ?></span>
                 <?php endforeach; else: ?>—<?php endif; ?>
               </td>
-              <td><?= esc($inc['barrio_nombre'] ?? '—') ?></td>
+              <td<?= td_orden('barrio', $orden_actual) ?>><?= esc($inc['barrio_nombre'] ?? '—') ?></td>
               <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<?= esc($inc['direccion'] ?? '') ?>"><?= esc($inc['direccion'] ?? '—') ?></td>
-              <td><span class="gravedad-badge <?= clase_gravedad($inc['gravedad']) ?>"><?= esc(nombre_gravedad($inc['gravedad'])) ?></span></td>
+              <td<?= td_orden('gravedad', $orden_actual) ?>><span class="gravedad-badge <?= clase_gravedad($inc['gravedad']) ?>"><?= esc(nombre_gravedad($inc['gravedad'])) ?></span></td>
               <td><span class="estado-badge <?= clase_estado($inc['estado']) ?>"><?= esc(nombre_estado($inc['estado'])) ?></span></td>
               <td><?= esc($inc['usuario_nombre']) ?></td>
               <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<?= esc($inc['notas'] ?? '') ?>"><?= esc(substr($inc['notas'] ?? '', 0, 60)) ?></td>

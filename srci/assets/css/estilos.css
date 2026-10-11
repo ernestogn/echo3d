@@ -462,6 +462,9 @@ h3 { font-size: 1.125rem; font-weight: 600; }
   background: rgba(79,70,229,.12);
   color: var(--color-acento);
 }
+/* Toda la columna que lleva el orden queda pintada (pastel) */
+.tabla-incidencias td.orden-activa { background: rgba(79,70,229,.08); }
+.tabla-incidencias tr:hover td.orden-activa { background: rgba(79,70,229,.16); }
 
 /* Fila expandible con todos los campos */
 .fila-expandida > td {
