@@ -78,7 +78,7 @@ srci/
 │   ├── css/estilos.css    Sistema de diseno completo (variables CSS, dark mode, responsive)
 │   └── js/
 │       ├── login.js       Logica del teclado PIN numerico en login.php
-│       ├── mapa.js        Inicializacion Leaflet, carga marcadores agrupados (Leaflet.markercluster; radio ajustable por zoom, sueltos a zoom 18+), iconos: color por gravedad + emoji del tipo; resueltas grises con check y zIndex bajo; en_gestion con anillo azul
+│       ├── mapa.js        Inicializacion Leaflet, carga marcadores agrupados POR BARRIO (un L.markerClusterGroup por barrio_id, asi no se fusionan puntos de distintos barrios; radio ajustable por zoom, sueltos a zoom 17+), iconos: color por gravedad + emoji del tipo; resueltas grises con check y zIndex bajo; en_gestion con anillo azul
 │       └── reporte.js     Modal de reporte: paso 1 (tipo) → paso 2 (mini-mapa + foto + notas)
 │
 └── uploads/

@@ -24,35 +24,47 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
 }).addTo(mapa);
 
-// Agrupamiento de marcadores (Leaflet.markercluster): se ajusta solo segun zoom
-// y densidad. El radio en px se achica a medida que acercas; cerca del maximo
-// (zoom 18+) se muestran todos los puntos sueltos. Si el plugin no cargo, se
-// cae al comportamiento anterior (marcadores sueltos).
-const grupoCluster = (typeof L.markerClusterGroup === 'function')
-  ? L.markerClusterGroup({
-      maxClusterRadius: (zoom) => {
-        if (zoom <= 12) return 90;
-        if (zoom <= 14) return 65;
-        if (zoom <= 16) return 48;
-        return 35;
-      },
-      disableClusteringAtZoom: 17,
-      spiderfyOnMaxZoom: true,
-      showCoverageOnHover: false,
-      removeOutsideVisibleBounds: true,
-      chunkedLoading: true,
-      iconCreateFunction: (cluster) => {
-        const n   = cluster.getChildCount();
-        const tam = n < 10 ? 40 : n < 100 ? 50 : 60;
-        return L.divIcon({
-          html: `<div class="cluster-incidencias" style="width:${tam}px;height:${tam}px;">${n}</div>`,
-          className: '',
-          iconSize: [tam, tam],
-        });
-      },
-    })
-  : null;
-if (grupoCluster) grupoCluster.addTo(mapa);
+// Agrupamiento de marcadores (Leaflet.markercluster) SEPARADO POR BARRIO:
+// cada barrio tiene su propio grupo de cluster, asi los puntos de un barrio
+// nunca se fusionan con los de otro (la agrupacion queda limitada al barrio).
+// El radio en px se ajusta segun zoom/densidad; a zoom 17+ se muestran sueltos.
+// Si el plugin no cargo, se cae a marcadores sueltos.
+const SOPORTA_CLUSTER = typeof L.markerClusterGroup === 'function';
+
+const OPCIONES_CLUSTER = {
+  maxClusterRadius: (zoom) => {
+    if (zoom <= 12) return 90;
+    if (zoom <= 14) return 65;
+    if (zoom <= 16) return 48;
+    return 35;
+  },
+  disableClusteringAtZoom: 17,
+  spiderfyOnMaxZoom: true,
+  showCoverageOnHover: false,
+  removeOutsideVisibleBounds: true,
+  chunkedLoading: true,
+  iconCreateFunction: (cluster) => {
+    const n   = cluster.getChildCount();
+    const tam = n < 10 ? 40 : n < 100 ? 50 : 60;
+    return L.divIcon({
+      html: `<div class="cluster-incidencias" style="width:${tam}px;height:${tam}px;">${n}</div>`,
+      className: '',
+      iconSize: [tam, tam],
+    });
+  },
+};
+
+// Un grupo de cluster por barrio (clave = barrio_id, o 'sin' si no tiene)
+const gruposPorBarrio = {};
+function grupoDeBarrio(clave) {
+  if (!SOPORTA_CLUSTER) return null;
+  if (!gruposPorBarrio[clave]) {
+    const grupo = L.markerClusterGroup(OPCIONES_CLUSTER);
+    grupo.addTo(mapa);
+    gruposPorBarrio[clave] = grupo;
+  }
+  return gruposPorBarrio[clave];
+}
 
 // Icono del marcador: color = gravedad, emoji = tipo, resueltas grises con ✓,
 // en gestion con anillo azul
@@ -86,24 +98,24 @@ let todosLosMarcadores = [];
 let filtroTipo = null;
 let filtroMios = false;
 
-// Agrega/quita un marcador respetando el agrupamiento (o suelto si no hay plugin)
-function mostrarMarcador(marker) {
-  if (grupoCluster) grupoCluster.addLayer(marker);
-  else if (!mapa.hasLayer(marker)) marker.addTo(mapa);
+// Agrega/quita un marcador respetando el agrupamiento de su barrio (o suelto si no hay plugin)
+function mostrarMarcador(reg) {
+  if (reg.grupo) reg.grupo.addLayer(reg.marker);
+  else if (!mapa.hasLayer(reg.marker)) reg.marker.addTo(mapa);
 }
-function ocultarMarcador(marker) {
-  if (grupoCluster) grupoCluster.removeLayer(marker);
-  else if (mapa.hasLayer(marker)) mapa.removeLayer(marker);
+function ocultarMarcador(reg) {
+  if (reg.grupo) reg.grupo.removeLayer(reg.marker);
+  else if (mapa.hasLayer(reg.marker)) mapa.removeLayer(reg.marker);
 }
 
 function aplicarFiltros() {
-  todosLosMarcadores.forEach(({ marker, tipoId, usuarioId }) => {
-    const okTipo = filtroTipo === null || tipoId === filtroTipo;
-    const okMios = !filtroMios || usuarioId === SRCI_USUARIO_ID;
+  todosLosMarcadores.forEach((reg) => {
+    const okTipo = filtroTipo === null || reg.tipoId === filtroTipo;
+    const okMios = !filtroMios || reg.usuarioId === SRCI_USUARIO_ID;
     if (okTipo && okMios) {
-      mostrarMarcador(marker);
+      mostrarMarcador(reg);
     } else {
-      ocultarMarcador(marker);
+      ocultarMarcador(reg);
     }
   });
 }
@@ -134,7 +146,13 @@ async function cargarIncidencias() {
         ${foto}
         <div class="popup-enlace" style="margin-top:6px;"><a href="/srci/detalle.php?id=${inc.id}">Ver detalle →</a></div>
       `);
-      todosLosMarcadores.push({ marker: marcador, tipoId: inc.tipo_id, usuarioId: inc.usuario_id });
+      const claveBarrio = (inc.barrio_id !== null && inc.barrio_id !== undefined) ? String(inc.barrio_id) : 'sin';
+      todosLosMarcadores.push({
+        marker: marcador,
+        tipoId: inc.tipo_id,
+        usuarioId: inc.usuario_id,
+        grupo: grupoDeBarrio(claveBarrio),
+      });
     });
     aplicarFiltros();
   } catch (err) {
