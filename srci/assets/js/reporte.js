@@ -73,7 +73,6 @@ function autocompletarContacto() {
     contactoAutoPrevio = true;
   }
 }
-}
 
 const modalFondo     = document.getElementById('modal-reporte');
 const btnCerrar      = document.getElementById('btn-cerrar-modal');
@@ -258,7 +257,7 @@ if (window.visualViewport) {
 function actualizarTag() {
   const tag = document.getElementById('build-tag');
   if (!tag) return;
-  tag.textContent = 'v20261024';
+  tag.textContent = 'v20261025';
 }
 
 // Abrir el modal con una ubicacion ya marcada (click en el mapa principal)
