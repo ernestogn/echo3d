@@ -54,7 +54,25 @@ function preseleccionarBarrio(lat, lng) {
   poligonosListos.then(() => {
     const hit = barrioPorPunto(lat, lng);
     if (hit) barrioSelect.value = hit.nombre;
+    autocompletarContacto();
   });
+}
+
+// Autocompleta "Contacto vecino / referente" con los referentes del barrio
+// elegido (tabla referentes_barrios, via api/barrios.php). No pisa lo que la
+// persona escribio a mano: solo reemplaza si el valor actual fue autocompletado.
+let contactoAutoPrevio = false;
+
+function autocompletarContacto() {
+  const nombre = barrioSelect.value.trim();
+  if (nombre === '') return;
+  const hit = barriosCargados.find((b) => b.nombre === nombre);
+  if (!hit || !hit.referentes) return;
+  if (contactoInput.value.trim() === '' || contactoAutoPrevio) {
+    contactoInput.value = hit.referentes;
+    contactoAutoPrevio = true;
+  }
+}
 }
 
 const modalFondo     = document.getElementById('modal-reporte');
@@ -241,7 +259,7 @@ if (window.visualViewport) {
 function actualizarTag() {
   const tag = document.getElementById('build-tag');
   if (!tag) return;
-  tag.textContent = 'v20261022';
+  tag.textContent = 'v20261023';
 }
 
 // Abrir el modal con una ubicacion ya marcada (click en el mapa principal)
@@ -287,6 +305,7 @@ function resetearModal() {
   responsableSelect.value = '';
   calleCheck.checked   = false;
   contactoInput.value  = '';
+  contactoAutoPrevio = false;
   resetearCategorias();
 }
 
@@ -492,8 +511,13 @@ modalFondo.addEventListener('click', (e) => { if (e.target === modalFondo) cerra
 btnSiguienteUbicacion.addEventListener('click', () => mostrarPaso('tipo'));
 btnVolverTipo.addEventListener('click', () => mostrarPaso('ubicacion'));
 btnVolver.addEventListener('click', () => mostrarPaso('tipo'));
-barrioSelect.addEventListener('input', actualizarBtnUbicacion);
+barrioSelect.addEventListener('input', () => {
+  actualizarBtnUbicacion();
+  autocompletarContacto();
+});
 direccionInput.addEventListener('input', actualizarBtnUbicacion);
+// Si la persona escribe el contacto a mano, dejamos de autocompletarlo
+contactoInput.addEventListener('input', () => { contactoAutoPrevio = false; });
 
 // Elegir/corregir la ubicacion: cierra el modal para tocar el mapa principal
 // (al tocarlo, el modal vuelve a abrirse con el punto, barrio y direccion).

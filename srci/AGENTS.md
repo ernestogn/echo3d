@@ -269,7 +269,7 @@ echo $variable;                // PROHIBIDO
 
 ### GET /srci/api/barrios.php
 **Auth:** sesion activa  
-**Response:** `[{id, nombre}, ...]` — solo barrios activos, orden por nombre
+**Response:** `[{id, nombre, referentes}, ...]` — barrios activos por nombre; `referentes` = nombres (GROUP_CONCAT) de los referentes activos asignados al barrio (referentes_barrios + usuarios); lo usa el reporte para precargar el contacto
 
 ### GET /srci/api/categorias.php
 **Auth:** sesion activa  
@@ -310,6 +310,7 @@ echo $variable;                // PROHIBIDO
 El modal en `index.php` tiene 3 pasos gestionados por `reporte.js` (`mostrarPaso('ubicacion'|'tipo'|'detalles')`, cada paso con su indicador "Paso N de 3"):
 
 1. **Paso 1 — Ubicación** (`#paso-ubicacion`): SIN mini-mapa (eliminado: confundia; la posicion se elige tocando el mapa principal, que abre el modal con el punto precargado). Muestra las coordenadas y el boton "🗺️ Elegir / corregir la ubicacion en el mapa" (`#btn-elegir-mapa`: cierra el modal + `avisoMapa()` para tocar el mapa, que lo reabre con el punto). **Barrio detectado** y **dirección detectada** se completan al marcar el punto. El botón "Siguiente →" (`#btn-siguiente-ubicacion`) se habilita solo con punto + barrio + dirección (`actualizarBtnUbicacion()`).
+1b. **Contacto vecino precargado (2026-10-13):** `api/barrios.php` devuelve `referentes` (nombres de referentes activos por barrio) y `reporte.js` (`autocompletarContacto()`) precarga el campo "Contacto vecino / referente" del paso 3 al elegir el barrio (al detectarlo por poligono o al escribirlo). NO pisa lo escrito a mano: solo reemplaza si el valor actual fue autocompletado (flag `contactoAutoPrevio`, se apaga al tipear).
 2. **Paso 2 — Tipo** (`#paso-tipo`): grilla de iconos de `/api/tipos.php`. **Al tocar un icono avanza solo** al paso 3 (`seleccionarTipo()` → `mostrarPaso('detalles')`), sin botón intermedio. Botón "← Volver" al paso 1 (`#btn-volver-tipo`).
 3. **Paso 3 — Gravedad y datos** (`#paso-detalles`): **gravedad como BOTONERA de 4 colores** (`.botonera-gravedad` con `.btn-gravedad` + `data-valor`, hidden input `#gravedad-reporte`), luego categorías (solo admins, ver sección Categorías), familias, servicio, responsable, calle intransitable, contacto, notas, foto. Botón "← Volver" al paso 2 (`#btn-volver`) y "Enviar reporte" (POST `/api/reportes.php` + foto a `/api/subir_foto.php`).
 
