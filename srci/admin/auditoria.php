@@ -59,7 +59,7 @@ function clase_accion(string $accion): string
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin — Auditoría · SRCI</title>
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011l">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261012a">
 </head>
 <body>
 <nav class="nav-principal">

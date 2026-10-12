@@ -149,7 +149,7 @@ $csrf          = csrf_token();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Editar incidencia #<?= $id ?> — SRCI</title>
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261011l">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261012a">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>

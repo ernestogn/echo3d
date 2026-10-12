@@ -597,10 +597,10 @@ h3 { font-size: 1.125rem; font-weight: 600; }
 .modal-fondo.modal-centrado .modal-caja {
   border-radius: var(--radio-lg);
 }
-/* Movil/tablet (<900px): el modal de reporte ocupa TODA la ventana, centrado
+/* Movil/tablet (<1024px): el modal de reporte ocupa TODA la ventana, centrado
    y sin desborde (100dvh respeta barra del navegador y teclado). Sin arrastre:
    reporte.js lo deshabilita, asi el modal nunca queda "en cualquier lado". */
-@media (max-width: 899px) {
+@media (max-width: 1024px) {
   #modal-reporte.modal-fondo {
     align-items: center;
     padding: 0;

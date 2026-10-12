@@ -405,9 +405,9 @@ btnVolver.addEventListener('click', () => {
 });
 
 // Arrastrar el modal desde el encabezado.
-// Solo en desktop (>=900px y puntero fino): en movil el modal es pantalla
-// completa y sin arrastre, asi nunca queda desplazado "en cualquier lado".
-const MODAL_ARRASTRA = window.matchMedia('(min-width: 900px) and (pointer: fine)');
+// Solo en desktop (>1024px y puntero fino): en tablet/celular el modal es
+// pantalla completa y sin arrastre, asi nunca queda desplazado.
+const MODAL_ARRASTRA = window.matchMedia('(min-width: 1025px) and (pointer: fine)');
 let arrastre = null;
 
 encabezadoModal.addEventListener('pointerdown', (e) => {
