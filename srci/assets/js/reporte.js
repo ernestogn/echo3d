@@ -188,10 +188,37 @@ function abrirModal() {
   resetearModal();
   // Visibilidad por estilos inline: el panel esta anclado con geometria inline
   // y no depende de ninguna clase de la hoja de estilos.
+  ajustarPanelAVista();
+  actualizarTag();
   modalFondo.style.opacity = '1';
   modalFondo.style.pointerEvents = 'all';
   modalCaja.style.transform = 'translateY(0)';
   document.body.style.overflow = 'hidden';
+}
+
+// Ajusta el panel al viewport VISUAL (lo que realmente se ve en pantalla),
+// inmune a zoom de pagina, teclado o layouts expandidos por contenido ancho.
+function ajustarPanelAVista() {
+  const vv = window.visualViewport;
+  if (!vv) return; // navegadores viejos: quedan los estilos inline base (100%)
+  modalCaja.style.width = Math.round(vv.width) + 'px';
+  modalCaja.style.height = Math.round(vv.height) + 'px';
+  modalCaja.style.left = Math.round(vv.offsetLeft) + 'px';
+  modalCaja.style.top = Math.round(vv.offsetTop) + 'px';
+}
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', ajustarPanelAVista);
+  window.visualViewport.addEventListener('scroll', ajustarPanelAVista);
+}
+
+// Etiqueta de build con medidas en vivo (diagnostico de viewport)
+function actualizarTag() {
+  const tag = document.getElementById('build-tag');
+  if (!tag) return;
+  const vv = window.visualViewport;
+  const r = modalCaja.getBoundingClientRect();
+  const vvTxt = vv ? Math.round(vv.width) + 'x' + Math.round(vv.height) : 'n/d';
+  tag.textContent = 'v20261014 · vw' + window.innerWidth + ' · vv' + vvTxt + ' · panel' + Math.round(r.width) + 'x' + Math.round(r.height);
 }
 
 // Abrir el modal con una ubicacion ya marcada (click en el mapa principal)
