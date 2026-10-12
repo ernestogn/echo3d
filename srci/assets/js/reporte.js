@@ -229,7 +229,7 @@ if (window.visualViewport) {
 function actualizarTag() {
   const tag = document.getElementById('build-tag');
   if (!tag) return;
-  tag.textContent = 'v20261018';
+  tag.textContent = 'v20261019';
 }
 
 // Abrir el modal con una ubicacion ya marcada (click en el mapa principal)
@@ -407,7 +407,7 @@ btnEnviar.addEventListener('click', async () => {
     mostrarMensaje('Escribí la dirección (calle y altura).', 'error');
     return;
   }
-  if (!gravedadSelect.value) {
+  if (!['baja', 'media', 'alta', 'critica'].includes(gravedadSelect.value)) {
     mostrarMensaje('Elegí la gravedad de la situación.', 'error');
     return;
   }
@@ -513,7 +513,7 @@ direccionInput.addEventListener('input', actualizarBtnUbicacion);
 // Botonera de gravedad: 4 niveles de color en lugar de select
 document.querySelectorAll('#botonera-gravedad .btn-gravedad').forEach((btn) => {
   btn.addEventListener('click', () => {
-    gravedadSelect.value = btn.dataset.valor;
+    gravedadSelect.value = btn.dataset.valor || '';
     document.querySelectorAll('#botonera-gravedad .btn-gravedad').forEach((x) => {
       x.classList.toggle('seleccionado', x === btn);
     });

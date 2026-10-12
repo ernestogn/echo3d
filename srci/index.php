@@ -67,7 +67,7 @@ $es_admin       = es_admin();
   <div id="panel-reporte"
        style="position:fixed;top:0;left:0;width:100%;height:100%;background:#ffffff;margin:0;padding:16px;overflow-y:auto;overflow-x:hidden;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);box-sizing:border-box;">
     <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;margin:-16px -16px 16px;padding:8px 16px;position:sticky;top:0;background:#ffffff;z-index:5;">
-      <h2 id="modal-titulo" style="font-size:1.15rem;font-weight:600;color:#334155;">Nueva incidencia <span id="build-tag" style="font-size:.62rem;font-weight:400;color:#94a3b8;vertical-align:super;" title="Build actual">v20261018</span></h2>
+      <h2 id="modal-titulo" style="font-size:1.15rem;font-weight:600;color:#334155;">Nueva incidencia <span id="build-tag" style="font-size:.62rem;font-weight:400;color:#94a3b8;vertical-align:super;" title="Build actual">v20261019</span></h2>
       <button id="btn-cerrar-modal" aria-label="Cerrar" style="background:none;border:none;font-size:1.5rem;line-height:1;color:#94a3b8;cursor:pointer;padding:4px;">×</button>
     </div>
 
@@ -129,10 +129,10 @@ $es_admin       = es_admin();
         <label>Gravedad *</label>
         <input type="hidden" id="gravedad-reporte" value="">
         <div class="botonera-gravedad" id="botonera-gravedad" role="radiogroup" aria-label="Gravedad de la incidencia">
-          <button type="button" class="btn-gravedad g-baja"><span class="punto-gravedad" aria-hidden="true"></span><span>Baja</span></button>
-          <button type="button" class="btn-gravedad g-media"><span class="punto-gravedad" aria-hidden="true"></span><span>Media</span></button>
-          <button type="button" class="btn-gravedad g-alta"><span class="punto-gravedad" aria-hidden="true"></span><span>Alta</span></button>
-          <button type="button" class="btn-gravedad g-critica"><span class="punto-gravedad" aria-hidden="true"></span><span>Crítica</span></button>
+          <button type="button" class="btn-gravedad g-baja" data-valor="baja"><span class="punto-gravedad" aria-hidden="true"></span><span>Baja</span></button>
+          <button type="button" class="btn-gravedad g-media" data-valor="media"><span class="punto-gravedad" aria-hidden="true"></span><span>Media</span></button>
+          <button type="button" class="btn-gravedad g-alta" data-valor="alta"><span class="punto-gravedad" aria-hidden="true"></span><span>Alta</span></button>
+          <button type="button" class="btn-gravedad g-critica" data-valor="critica"><span class="punto-gravedad" aria-hidden="true"></span><span>Crítica</span></button>
         </div>
       </div>
 
@@ -216,6 +216,6 @@ $es_admin       = es_admin();
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="/srci/assets/js/mapa.js?v=20261011m"></script>
-<script src="/srci/assets/js/reporte.js?v=20261018"></script>
+<script src="/srci/assets/js/reporte.js?v=20261019"></script>
 </body>
 </html>
