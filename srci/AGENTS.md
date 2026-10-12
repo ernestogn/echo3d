@@ -78,8 +78,8 @@ srci/
 │   ├── categorias.php     GET  /srci/api/categorias.php            — lista categorias de incidencia activas (JSON; ?visibles=1 = solo las marcadas para usuarios)
 │   ├── geocode.php        GET  /srci/api/geocode.php?lat=&lon= — geocodificacion inversa (punto -> direccion) via
 │   │                      Nominatim/OSM, con proxy + cache en archivos (sys_get_temp_dir/srci-geocode, 30 dias, redondeo a
-│   │                      4 decimales). SOLO devuelve "calle numero": si falta el numero o la calle responde {ok:false}
-│   │                      (no se sugiere nada; la ciudad no se incluye, todas las direcciones son de Concepcion del Uruguay).
+│   │                      4 decimales). Devuelve "calle numero" o solo "calle" si no hay altura; si no hay calle responde
+│   │                      {ok:false} (la ciudad no se incluye, todas las direcciones son de Concepcion del Uruguay).
 │   ├── poligonos.php      GET  /srci/api/poligonos.php  — poligonos de barrios activos: [{id, nombre, categoria, color, anillos}]
 │   ├── reportes.php       GET  /srci/api/reportes.php   — lista incidencias con filtros opcionales (solo con coordenadas; es el feed del mapa)
 │                          POST /srci/api/reportes.php   — crea nueva incidencia (JSON body)
@@ -319,7 +319,7 @@ Validación cliente: barrio, dirección y gravedad obligatorios (además del pun
 
 **Geolocalización del dispositivo:** control "🎯 Mi ubicación" (`L.Control` propio en `mapa.js`, arriba a la derecha) que usa la Geolocation API nativa (`navigator.geolocation.getCurrentPosition`). Al tocarlo centra siempre en la posición, muestra el marcador azul pulsante (`.puntero-ubicacion`) y un `L.circle` con el radio de precisión (`coords.accuracy`). No se dispara automáticamente al cargar; los errores (permiso/no disponible/timeout) se avisan con un toast discreto (`.aviso-mapa`). Todo es client-side: no se envía nada al servidor.
 
-**Geocodificacion inversa (punto -> direccion, 2026-10-13):** al marcar el punto en el mini-mapa (o precargarlo por click en el mapa principal), `reporte.js` (`colocarPunto()` -> `sugerirDireccion()`, con AbortController para cancelar pedidos previos) consulta `api/geocode.php` (proxy a Nominatim/OSM con User-Agent identificable, timeout 4s y cache en archivos 30 dias; politica de Nominatim: max 1 req/seg). SOLO sugiere "calle numero" si OSM tiene ambos; sin numero no sugiere nada (el campo queda manual). Si el campo Direccion esta VACIO se autocompleta; si ya tiene texto se muestra el boton "📍 Usar direccion detectada: ..." que no pisa lo escrito. Si OSM falla, todo queda manual como siempre (el envio no depende del geocode). resetearModal limpia la sugerencia y aborta pedidos pendientes.
+**Geocodificacion inversa (punto -> direccion, 2026-10-13):** al marcar el punto en el mini-mapa (o precargarlo por click en el mapa principal), `reporte.js` (`colocarPunto()` -> `sugerirDireccion()`, con AbortController para cancelar pedidos previos) consulta `api/geocode.php` (proxy a Nominatim/OSM con User-Agent identificable, timeout 4s y cache en archivos 30 dias; politica de Nominatim: max 1 req/seg). Sugiere "calle numero" o solo "calle" si no hay altura; sin calle no sugiere nada (el campo queda manual). Si el campo Direccion esta VACIO se autocompleta; si ya tiene texto se muestra el boton "📍 Usar direccion detectada: ..." que no pisa lo escrito. Si OSM falla, todo queda manual como siempre (el envio no depende del geocode). resetearModal limpia la sugerencia y aborta pedidos pendientes.
 
 El mapa principal en `mapa.js` expone `window.mapaLeaflet` para que `reporte.js` pueda leer el centro actual al inicializar el mini-mapa.
 
