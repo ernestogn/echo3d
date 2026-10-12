@@ -55,7 +55,7 @@ const notasReporte   = document.getElementById('notas-reporte');
 const fotoInput      = document.getElementById('foto-input');
 const vistaPreviaMapa = document.getElementById('vista-previa-foto');
 const mensajeDiv     = document.getElementById('mensaje-reporte');
-const modalCaja      = modalFondo.querySelector('.modal-caja');
+const modalCaja      = document.getElementById('panel-reporte');
 const barrioSelect   = document.getElementById('barrio-reporte');
 const listaBarrios   = document.getElementById('lista-barrios');
 const direccionInput = document.getElementById('direccion-reporte');
@@ -186,7 +186,11 @@ function seleccionarTipo(tarjeta) {
 
 function abrirModal() {
   resetearModal();
-  modalFondo.classList.add('visible');
+  // Visibilidad por estilos inline: el panel esta anclado con geometria inline
+  // y no depende de ninguna clase de la hoja de estilos.
+  modalFondo.style.opacity = '1';
+  modalFondo.style.pointerEvents = 'all';
+  modalCaja.style.transform = 'translateY(0)';
   document.body.style.overflow = 'hidden';
 }
 
@@ -198,10 +202,10 @@ function abrirConCoordenada(latlng) {
 window.abrirReporteConCoordenada = abrirConCoordenada;
 
 function cerrarModal() {
-  modalFondo.classList.remove('visible');
+  modalFondo.style.opacity = '0';
+  modalFondo.style.pointerEvents = 'none';
+  modalCaja.style.transform = 'translateY(100%)';
   document.body.style.overflow = '';
-  modalCaja.style.transform  = '';
-  modalCaja.style.transition = '';
   if (typeof window.removerMarcadorSeleccion === 'function') {
     window.removerMarcadorSeleccion();
   }

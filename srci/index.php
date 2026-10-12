@@ -14,7 +14,7 @@ $es_admin       = es_admin();
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mapa de Incidencias — SRCI</title>
   <meta name="description" content="Reporta incidencias urbanas en el mapa.">
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261012c">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261013">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
@@ -61,12 +61,14 @@ $es_admin       = es_admin();
   Reportar incidencia
 </button>
 
-<!-- Modal de reporte -->
-<div class="modal-fondo" id="modal-reporte" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
-  <div class="modal-caja">
-    <div class="modal-encabezado">
-      <h2 id="modal-titulo">Nueva incidencia <span style="font-size:.62rem;font-weight:400;color:#94a3b8;vertical-align:super;" title="Build actual del modal">v20261012b</span></h2>
-      <button class="modal-cerrar" id="btn-cerrar-modal" aria-label="Cerrar">×</button>
+<!-- Modal de reporte: pantalla completa con geometria INLINE (universal, a prueba de caches) -->
+<div id="modal-reporte" role="dialog" aria-modal="true" aria-labelledby="modal-titulo"
+     style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:1000;background:rgba(15,23,42,.45);opacity:0;pointer-events:none;transition:opacity .2s;">
+  <div id="panel-reporte"
+       style="position:fixed;top:0;left:0;width:100%;height:100%;background:#ffffff;margin:0;padding:16px;overflow-y:auto;overflow-x:hidden;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);box-sizing:border-box;">
+    <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;margin:-16px -16px 16px;padding:8px 16px;position:sticky;top:0;background:#ffffff;z-index:5;">
+      <h2 id="modal-titulo" style="font-size:1rem;font-weight:600;color:#334155;">Nueva incidencia <span style="font-size:.62rem;font-weight:400;color:#94a3b8;vertical-align:super;" title="Build actual del modal">v20261013</span></h2>
+      <button id="btn-cerrar-modal" aria-label="Cerrar" style="background:none;border:none;font-size:1.5rem;line-height:1;color:#94a3b8;cursor:pointer;padding:4px;">×</button>
     </div>
 
     <!-- Paso 1: elegir tipo -->
@@ -200,6 +202,6 @@ $es_admin       = es_admin();
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="/srci/assets/js/mapa.js?v=20261011m"></script>
-<script src="/srci/assets/js/reporte.js?v=20261012c"></script>
+<script src="/srci/assets/js/reporte.js?v=20261013"></script>
 </body>
 </html>

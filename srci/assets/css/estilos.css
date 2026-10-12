@@ -55,6 +55,7 @@ body {
   color: var(--color-texto);
   min-height: 100vh;
   line-height: 1.6;
+  overflow-x: hidden;
 }
 
 a { color: var(--color-acento); text-decoration: none; }
@@ -597,41 +598,10 @@ h3 { font-size: 1.125rem; font-weight: 600; }
 .modal-fondo.modal-centrado .modal-caja {
   border-radius: var(--radio-lg);
 }
-/* El modal de reporte SIEMPRE ocupa TODA la ventana (celular, tablet y desktop):
-   anclado con position:fixed + inset:0, asi fisicamente no puede desbordarse ni
-   quedar "en cualquier lado". Sin arrastre (eliminado: no tenia sentido a
-   pantalla completa). En pantallas anchas el contenido se acomoda en 2 columnas. */
-#modal-reporte.modal-fondo {
-  align-items: stretch;
-  padding: 0;
-}
-#modal-reporte .modal-caja {
-  position: fixed;
-  inset: 0;
-  max-width: none;
-  width: 100%;
-  min-width: 0;
-  max-height: none;
-  border-radius: 0;
-  overflow-x: hidden;
-  overscroll-behavior: contain;
-  padding-bottom: calc(var(--espacio-md) + env(safe-area-inset-bottom, 0px));
-}
-/* Nada del contenido puede empujar el ancho del modal: se achica o envuelve */
-#modal-reporte .modal-caja > * {
-  max-width: 100%;
-  min-width: 0;
-}
-#modal-reporte .campo input,
-#modal-reporte .campo select,
-#modal-reporte .campo textarea {
-  min-width: 0;
-}
-#modal-reporte .modal-encabezado {
-  cursor: default;
-  touch-action: auto;
-  border-radius: 0;
-}
+/* El modal de reporte (#modal-reporte + #panel-reporte en index.php) es
+   PANTALLA COMPLETA con geometria INLINE: no depende de esta hoja de estilos,
+   asi ningun cache de CSS puede deformarlo. Sus clases (.campo, .tipo-tarjeta,
+   .chips-categoria, etc.) siguen viniendo de aca. */
 /* Encabezado minimalista plano + zona de arrastre */
 .modal-caja .modal-encabezado {
   background: #ffffff;
@@ -723,7 +693,7 @@ h3 { font-size: 1.125rem; font-weight: 600; }
   width: 100%;
   z-index: 1;
 }
-.contenedor-mapa { position: relative; }
+.contenedor-mapa { position: relative; overflow: hidden; }
 
 /* Sin recuadro de foco del navegador al hacer click en el mapa o sus capas */
 #mapa:focus,
