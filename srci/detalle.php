@@ -226,7 +226,15 @@ $cats_inc = categorias_de_incidencia($id);
 </script>
 <?php endif; ?>
 <script>
+  let cambiandoEstado = false;
   async function cambiarEstado(id, estado) {
+    if (cambiandoEstado) return; // evita clicks de mas mientras se guarda
+    cambiandoEstado = true;
+    const botones = document.querySelectorAll('[id^="btn-estado-"]');
+    const btn = document.getElementById('btn-estado-' + estado);
+    const original = btn.innerHTML;
+    botones.forEach(b => { b.disabled = true; });
+    btn.innerHTML = '<span class="spinner"></span> Guardando...';
     try {
       const resp = await fetch('/srci/api/estado.php', {
         method: 'POST',
@@ -240,7 +248,7 @@ $cats_inc = categorias_de_incidencia($id);
         msg.style.color = 'var(--color-verde)';
         msg.style.display = 'block';
         document.querySelectorAll('[id^="btn-estado-"]').forEach(b => b.classList.replace('boton-primario','boton-secundario'));
-        document.getElementById('btn-estado-' + estado).classList.replace('boton-secundario','boton-primario');
+        btn.classList.replace('boton-secundario','boton-primario');
       } else {
         msg.textContent = datos.error || 'Error al cambiar estado.';
         msg.style.color = 'var(--color-rojo)';
@@ -248,6 +256,10 @@ $cats_inc = categorias_de_incidencia($id);
       }
     } catch(e) {
       alert('No se pudo actualizar el estado. Intenta de nuevo.');
+    } finally {
+      botones.forEach(b => { b.disabled = false; });
+      btn.innerHTML = original;
+      cambiandoEstado = false;
     }
   }
 </script>
