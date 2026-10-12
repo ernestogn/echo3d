@@ -47,7 +47,7 @@
 /* Reset basico */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { font-size: 16px; scroll-behavior: smooth; }
+html { font-size: 17px; scroll-behavior: smooth; }
 
 body {
   font-family: 'Inter', system-ui, sans-serif;
@@ -602,6 +602,31 @@ h3 { font-size: 1.125rem; font-weight: 600; }
    PANTALLA COMPLETA con geometria INLINE: no depende de esta hoja de estilos,
    asi ningun cache de CSS puede deformarlo. Sus clases (.campo, .tipo-tarjeta,
    .chips-categoria, etc.) siguen viniendo de aca. */
+
+/* Reporte: tipografia AGRANDADA — la usa gente grande (personas mayores) */
+#panel-reporte .campo label { font-size: 1rem; }
+#panel-reporte .campo input,
+#panel-reporte .campo select,
+#panel-reporte .campo textarea {
+  font-size: 1.1rem;
+  min-height: 54px;
+}
+#panel-reporte .boton {
+  font-size: 1.1rem;
+  min-height: 54px;
+}
+#panel-reporte .grilla-tipos { gap: var(--espacio-md); }
+#panel-reporte .tipo-tarjeta {
+  padding: var(--espacio-md);
+  gap: var(--espacio-sm);
+}
+#panel-reporte .tipo-tarjeta-icono { font-size: 1.7rem; }
+#panel-reporte .tipo-tarjeta-nombre { font-size: 1rem; line-height: 1.35; }
+#panel-reporte .check-linea { font-size: 1.05rem; }
+#panel-reporte .check-linea input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+}
 /* Encabezado minimalista plano + zona de arrastre */
 .modal-caja .modal-encabezado {
   background: #ffffff;

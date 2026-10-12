@@ -121,7 +121,7 @@ $csrf = csrf_token();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin — Categorías · SRCI</title>
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261013">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261014">
 </head>
 <body>
 <nav class="nav-principal">

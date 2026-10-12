@@ -261,7 +261,7 @@ function td_orden(string $clave, string $orden_actual): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Listado de Incidencias — SRCI</title>
   <meta name="description" content="Listado completo de incidencias reportadas por los ciudadanos.">
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261013">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261014">
 </head>
 <body>
 
@@ -417,11 +417,11 @@ function td_orden(string $clave, string $orden_actual): string {
                 <?php endforeach; else: ?>—<?php endif; ?>
               </td>
               <td<?= td_orden('barrio', $orden_actual) ?>><?= esc($inc['barrio_nombre'] ?? '—') ?></td>
-              <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<?= esc($inc['direccion'] ?? '') ?>"><?= esc($inc['direccion'] ?? '—') ?></td>
+              <td style="max-width:126px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<?= esc($inc['direccion'] ?? '') ?>"><?= esc($inc['direccion'] ?? '—') ?></td>
               <td<?= td_orden('gravedad', $orden_actual) ?>><span class="gravedad-badge <?= clase_gravedad($inc['gravedad']) ?>"><?= esc(nombre_gravedad($inc['gravedad'])) ?></span></td>
               <td><span class="estado-badge <?= clase_estado($inc['estado']) ?>"><?= esc(nombre_estado($inc['estado'])) ?></span></td>
               <td><?= esc($inc['usuario_nombre']) ?></td>
-              <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<?= esc($inc['notas'] ?? '') ?>"><?= esc(substr($inc['notas'] ?? '', 0, 60)) ?></td>
+              <td style="max-width:134px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<?= esc($inc['notas'] ?? '') ?>"><?= esc(substr($inc['notas'] ?? '', 0, 60)) ?></td>
               <td>
                 <div style="display:flex;gap:4px;">
                   <button type="button" class="boton boton-secundario boton-sm" onclick="toggleFila(<?= (int)$inc['id'] ?>)" aria-expanded="false" title="Ver todos los campos">▾</button>
