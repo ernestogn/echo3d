@@ -67,7 +67,7 @@ $es_admin       = es_admin();
   <div id="panel-reporte"
        style="position:fixed;top:0;left:0;width:100%;height:100%;background:#ffffff;margin:0;padding:16px;overflow-y:auto;overflow-x:hidden;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);box-sizing:border-box;">
     <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;margin:-16px -16px 16px;padding:8px 16px;position:sticky;top:0;background:#ffffff;z-index:5;">
-      <h2 id="modal-titulo" style="font-size:1.15rem;font-weight:600;color:#334155;">Nueva incidencia <span id="build-tag" style="font-size:.62rem;font-weight:400;color:#94a3b8;vertical-align:super;" title="Build actual">v20261020</span></h2>
+      <h2 id="modal-titulo" style="font-size:1.15rem;font-weight:600;color:#334155;">Nueva incidencia <span id="build-tag" style="font-size:.62rem;font-weight:400;color:#94a3b8;vertical-align:super;" title="Build actual">v20261021</span></h2>
       <button id="btn-cerrar-modal" aria-label="Cerrar" style="background:none;border:none;font-size:1.5rem;line-height:1;color:#94a3b8;cursor:pointer;padding:4px;">×</button>
     </div>
 
@@ -76,21 +76,21 @@ $es_admin       = es_admin();
       <div style="font-size:.8rem;font-weight:600;color:var(--color-texto-suave);margin-bottom:var(--espacio-md);">Paso 1 de 3 · Ubicación</div>
 
       <div class="campo" style="margin-bottom:var(--espacio-md);">
-        <div id="mini-mapa" style="height:220px;border-radius:var(--radio-md);overflow:hidden;border:1.5px solid var(--color-borde);"></div>
-        <p id="coord-texto" style="font-size:.85rem;color:var(--color-texto-suave);margin-top:6px;">
+        <p id="coord-texto" style="font-size:.95rem;color:var(--color-texto-suave);margin:0 0 var(--espacio-sm);">
           Tocá el mapa para marcar el lugar exacto
         </p>
+        <button type="button" class="boton boton-secundario boton-bloque" id="btn-elegir-mapa">🗺️ Elegir / corregir la ubicación en el mapa</button>
       </div>
 
       <div class="campo" style="margin-bottom:var(--espacio-md);">
         <label for="barrio-reporte">Barrio *</label>
-        <input type="text" id="barrio-reporte" list="lista-barrios" placeholder="Se detecta solo al marcar el punto" autocomplete="off" required>
+        <input type="text" id="barrio-reporte" list="lista-barrios" placeholder="Escribí para buscar..." autocomplete="off" required>
         <datalist id="lista-barrios"></datalist>
       </div>
 
       <div class="campo" style="margin-bottom:var(--espacio-md);">
         <label for="direccion-reporte">Dirección / calle y altura *</label>
-        <input type="text" id="direccion-reporte" maxlength="255" placeholder="Se detecta sola al marcar el punto">
+        <input type="text" id="direccion-reporte" maxlength="255" placeholder="Ej: Urquiza 1234">
         <div id="sugerencia-direccion" style="display:none;margin-top:6px;"></div>
       </div>
 
@@ -215,7 +215,7 @@ $es_admin       = es_admin();
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script src="/srci/assets/js/mapa.js?v=20261011m"></script>
-<script src="/srci/assets/js/reporte.js?v=20261020"></script>
+<script src="/srci/assets/js/mapa.js?v=20261021"></script>
+<script src="/srci/assets/js/reporte.js?v=20261021"></script>
 </body>
 </html>

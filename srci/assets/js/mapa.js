@@ -433,4 +433,5 @@ fetch('/srci/api/poligonos.php')
 
 // Exponer mapa globalmente para que reporte.js lo use
 window.mapaLeaflet = mapa;
+window.avisoMapa = avisoMapa;
 window.removerMarcadorSeleccion = removerMarcadorSeleccion;

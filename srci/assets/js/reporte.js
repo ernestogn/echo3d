@@ -2,9 +2,6 @@
 
 let tipoSeleccionado = null;
 let coordSeleccionada = null;
-let miniMapa = null;
-let miniMarcador = null;
-let barriosCargados = [];
 let poligonosBarrios = [];
 
 // Cargar poligonos de barrios (para pre-seleccionar el barrio segun el punto)
@@ -13,8 +10,22 @@ let poligonosListos = fetch('/srci/api/poligonos.php')
   .then((poligonos) => { poligonosBarrios = Array.isArray(poligonos) ? poligonos : []; })
   .catch(() => { poligonosBarrios = []; });
 
-// Ray casting: barrio que contiene el punto (misma logica que barrio_por_punto en PHP)
+// Area aproximada de un anillo (shoelace, en grados^2) para resolver solapes:
+// cuando varios poligonos contienen el punto gana el mas chico (el barrio
+// interno que se ve "arriba", ej: Las Mandarinas dentro de Villa Itape).
+function areaAnillo(anillo) {
+  let area = 0;
+  for (let i = 0, j = anillo.length - 1; i < anillo.length; j = i++) {
+    area += (anillo[j][0] - anillo[i][0]) * (anillo[j][1] + anillo[i][1]);
+  }
+  return Math.abs(area / 2);
+}
+
+// Ray casting: barrio que contiene el punto (misma logica que barrio_por_punto en PHP).
+// Con poligonos superpuestos gana el de MENOR area (el interno/visible).
 function barrioPorPunto(lat, lng) {
+  let ganador = null;
+  let areaGanadora = Infinity;
   for (const p of poligonosBarrios) {
     for (const anillo of p.anillos) {
       let dentro = false;
@@ -25,10 +36,16 @@ function barrioPorPunto(lat, lng) {
           dentro = !dentro;
         }
       }
-      if (dentro) return p;
+      if (dentro) {
+        const area = areaAnillo(anillo);
+        if (area < areaGanadora) {
+          areaGanadora = area;
+          ganador = p;
+        }
+      }
     }
   }
-  return null;
+  return ganador;
 }
 
 // Pre-selecciona el barrio segun el punto marcado (el usuario lo puede cambiar).
@@ -190,14 +207,10 @@ function seleccionarTipo(tarjeta) {
 
 function abrirModal(latlng = null) {
   resetearModal();
-  // Punto precargado desde el mapa principal: colocarlo YA (marcador, barrio
-  // detectado y direccion geocodificada) para no obligar a marcar dos veces.
+  // Punto precargado desde el mapa principal: barrio detectado y direccion
+  // geocodificada al instante, sin volver a marcar nada.
   if (latlng) {
-    coordSeleccionada = latlng;
-    if (miniMapa) {
-      miniMapa.setView(latlng, 16);
-      colocarPunto(latlng);
-    }
+    colocarPunto(latlng);
   }
   // Visibilidad por estilos inline: el panel esta anclado con geometria inline
   // y no depende de ninguna clase de la hoja de estilos.
@@ -218,7 +231,6 @@ function ajustarPanelAVista() {
   modalCaja.style.height = Math.round(vv.height) + 'px';
   modalCaja.style.left = Math.round(vv.offsetLeft) + 'px';
   modalCaja.style.top = Math.round(vv.offsetTop) + 'px';
-  if (miniMapa) { setTimeout(() => miniMapa.invalidateSize(), 60); }
 }
 if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', ajustarPanelAVista);
@@ -229,7 +241,7 @@ if (window.visualViewport) {
 function actualizarTag() {
   const tag = document.getElementById('build-tag');
   if (!tag) return;
-  tag.textContent = 'v20261020';
+  tag.textContent = 'v20261021';
 }
 
 // Abrir el modal con una ubicacion ya marcada (click en el mapa principal)
@@ -276,7 +288,6 @@ function resetearModal() {
   calleCheck.checked   = false;
   contactoInput.value  = '';
   resetearCategorias();
-  if (miniMarcador) { miniMarcador.remove(); miniMarcador = null; }
 }
 
 // Navegacion entre los 3 pasos del modal: ubicacion -> tipo -> detalles
@@ -288,31 +299,6 @@ function mostrarPaso(nombre) {
   if (nombre === 'detalles') {
     infoTipo.textContent = tipoSeleccionado ? (tipoSeleccionado.icono || '') + ' ' + tipoSeleccionado.nombre : '';
   }
-
-  // Inicializar mini-mapa al mostrar el paso de ubicacion
-  if (nombre === 'ubicacion') {
-    if (!miniMapa) {
-      const centro = window.mapaLeaflet ? window.mapaLeaflet.getCenter() : L.latLng(-32.48262351713079, -58.24455570742029);
-      miniMapa = L.map('mini-mapa', { zoomControl: true }).setView(centro, 15);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap',
-        maxZoom: 19,
-      }).addTo(miniMapa);
-
-      miniMapa.on('click', (e) => {
-        colocarPunto(e.latlng);
-      });
-
-      // Si el usuario hizo click en el mapa principal, precargar ese punto
-      if (coordSeleccionada) {
-        miniMapa.setView(coordSeleccionada, 16);
-        colocarPunto(coordSeleccionada);
-      }
-    } else {
-      // Refrescar layout del mapa al mostrarlo
-      setTimeout(() => miniMapa.invalidateSize(), 100);
-    }
-  }
 }
 
 // El boton Siguiente del paso de ubicacion exige punto + barrio + direccion
@@ -320,12 +306,10 @@ function actualizarBtnUbicacion() {
   btnSiguienteUbicacion.disabled = !(coordSeleccionada && barrioSelect.value.trim() !== '' && direccionInput.value.trim() !== '');
 }
 
-// Coloca el punto en el mini-mapa: coordenadas, marcador, barrio y direccion sugerida
+// Coloca el punto seleccionado en el mapa principal: coordenadas, barrio y direccion sugerida
 function colocarPunto(latlng, opciones = {}) {
   coordSeleccionada = latlng;
-  coordTexto.textContent = `Lat: ${latlng.lat.toFixed(6)}, Lng: ${latlng.lng.toFixed(6)}`;
-  if (miniMarcador) miniMarcador.remove();
-  miniMarcador = L.marker(latlng).addTo(miniMapa);
+  coordTexto.textContent = `📍 ${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`;
   preseleccionarBarrio(latlng.lat, latlng.lng);
   sugerirDireccion(latlng.lat, latlng.lng);
   actualizarBtnUbicacion();
@@ -508,6 +492,16 @@ btnVolverTipo.addEventListener('click', () => mostrarPaso('ubicacion'));
 btnVolver.addEventListener('click', () => mostrarPaso('tipo'));
 barrioSelect.addEventListener('input', actualizarBtnUbicacion);
 direccionInput.addEventListener('input', actualizarBtnUbicacion);
+
+// Elegir/corregir la ubicacion: cierra el modal para tocar el mapa principal
+// (al tocarlo, el modal vuelve a abrirse con el punto, barrio y direccion).
+const btnElegirMapa = document.getElementById('btn-elegir-mapa');
+btnElegirMapa.addEventListener('click', () => {
+  cerrarModal();
+  if (typeof window.avisoMapa === 'function') {
+    window.avisoMapa('📍 Tocá el mapa para marcar el lugar de la incidencia', 6);
+  }
+});
 
 // Botonera de gravedad: 4 niveles de color en lugar de select
 document.querySelectorAll('#botonera-gravedad .btn-gravedad').forEach((btn) => {

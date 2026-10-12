@@ -339,6 +339,19 @@ function sincronizar_hoja(): array
 
 // Devuelve ['id' => int, 'nombre' => string] si el punto cae dentro del
 // poligono de un barrio; null si no. Poligonos cacheados en static.
+// Area aproximada de un anillo (shoelace, en grados^2) para resolver solapes:
+// cuando varios poligonos contienen el punto gana el mas chico (el barrio
+// interno que se ve "arriba", ej: Las Mandarinas dentro de Villa Itape).
+function area_anillo_barrio(array $anillo): float
+{
+  $area = 0;
+  $n = count($anillo);
+  for ($i = 0, $j = $n - 1; $i < $n; $j = $i++) {
+    $area += ($anillo[$j][0] - $anillo[$i][0]) * ($anillo[$j][1] + $anillo[$i][1]);
+  }
+  return abs($area / 2);
+}
+
 function barrio_por_punto(float $lat, float $lng): ?array
 {
   static $poligonos = null;
@@ -355,6 +368,9 @@ function barrio_por_punto(float $lat, float $lng): ?array
       $poligonos = [];
     }
   }
+  // Con poligonos superpuestos gana el de MENOR area (el interno/visible)
+  $ganador = null;
+  $areaGanadora = INF;
   foreach ($poligonos as $p) {
     foreach ($p['anillos'] as $anillo) {
       $n = count($anillo); $dentro = false;
@@ -366,10 +382,16 @@ function barrio_por_punto(float $lat, float $lng): ?array
           $dentro = !$dentro;
         }
       }
-      if ($dentro) return ['id' => $p['id'], 'nombre' => $p['nombre']];
+      if ($dentro) {
+        $area = area_anillo_barrio($anillo);
+        if ($area < $areaGanadora) {
+          $areaGanadora = $area;
+          $ganador = ['id' => $p['id'], 'nombre' => $p['nombre']];
+        }
+      }
     }
   }
-  return null;
+  return $ganador;
 }
 
 // Convierte un GeoJSON (FeatureCollection/Feature/Polygon/MultiPolygon) al

@@ -309,11 +309,13 @@ echo $variable;                // PROHIBIDO
 
 El modal en `index.php` tiene 3 pasos gestionados por `reporte.js` (`mostrarPaso('ubicacion'|'tipo'|'detalles')`, cada paso con su indicador "Paso N de 3"):
 
-1. **Paso 1 — Ubicación** (`#paso-ubicacion`): mini-mapa (220px), **barrio detectado** (preseleccionado por polígono al marcar el punto) y **dirección detectada** (geocodificación inversa). El botón "Siguiente →" (`#btn-siguiente-ubicacion`) se habilita solo con punto + barrio + dirección (`actualizarBtnUbicacion()`; listeners `input` en ambos campos).
+1. **Paso 1 — Ubicación** (`#paso-ubicacion`): SIN mini-mapa (eliminado: confundia; la posicion se elige tocando el mapa principal, que abre el modal con el punto precargado). Muestra las coordenadas y el boton "🗺️ Elegir / corregir la ubicacion en el mapa" (`#btn-elegir-mapa`: cierra el modal + `avisoMapa()` para tocar el mapa, que lo reabre con el punto). **Barrio detectado** y **dirección detectada** se completan al marcar el punto. El botón "Siguiente →" (`#btn-siguiente-ubicacion`) se habilita solo con punto + barrio + dirección (`actualizarBtnUbicacion()`).
 2. **Paso 2 — Tipo** (`#paso-tipo`): grilla de iconos de `/api/tipos.php`. **Al tocar un icono avanza solo** al paso 3 (`seleccionarTipo()` → `mostrarPaso('detalles')`), sin botón intermedio. Botón "← Volver" al paso 1 (`#btn-volver-tipo`).
-3. **Paso 3 — Gravedad y datos** (`#paso-detalles`): **gravedad primero** (obligatoria), luego categorías (solo admins, ver sección Categorías), familias, servicio, responsable, calle intransitable, contacto, notas, foto. Botón "← Volver" al paso 2 (`#btn-volver`) y "Enviar reporte" (POST `/api/reportes.php` + foto a `/api/subir_foto.php`).
+3. **Paso 3 — Gravedad y datos** (`#paso-detalles`): **gravedad como BOTONERA de 4 colores** (`.botonera-gravedad` con `.btn-gravedad` + `data-valor`, hidden input `#gravedad-reporte`), luego categorías (solo admins, ver sección Categorías), familias, servicio, responsable, calle intransitable, contacto, notas, foto. Botón "← Volver" al paso 2 (`#btn-volver`) y "Enviar reporte" (POST `/api/reportes.php` + foto a `/api/subir_foto.php`).
 
-Validación cliente: barrio, dirección y gravedad obligatorios (además del punto en el mapa).
+**Deteccion de barrio con poligonos superpuestos (2026-10-13):** entre todos los poligonos que contienen el punto gana el de **MENOR area** (shoelace en grados^2), en el cliente (`reporte.js` `barrioPorPunto()`/`areaAnillo()`) y en el server (`funciones.php` `barrio_por_punto()`/`area_anillo_barrio()`); ej: Las Mandarinas (informal, interna) dentro de Villa Itape devuelve Las Mandarinas.
+
+Validación cliente: barrio, dirección y gravedad obligatorios (gravedad valida contra la lista baja/media/alta/critica; además del punto en el mapa).
 
 **Reporte por click en el mapa:** al hacer click sobre el mapa principal (`mapa.js`), se coloca un marcador de selección (`crearIconoSeleccion`, anillo indigo) y se abre el modal con esas coordenadas precargadas via `window.abrirReporteConCoordenada(latlng)` (expuesta por `reporte.js`). En el paso 2 el mini-mapa ya queda centrado en ese punto con su marcador; el usuario puede ajustarlo tocando el mini-mapa. Al cerrar el modal, `cerrarModal()` limpia el marcador del mapa principal via `window.removerMarcadorSeleccion()`.
 
