@@ -126,14 +126,14 @@ $es_admin       = es_admin();
       <div id="info-tipo-seleccionado" style="margin-bottom:var(--espacio-md);padding:var(--espacio-xs) var(--espacio-sm);background:rgba(79,142,247,.08);border-radius:var(--radio-md);font-weight:600;font-size:.85rem;"></div>
 
       <div class="campo" style="margin-bottom:var(--espacio-md);">
-        <label for="gravedad-reporte">Gravedad *</label>
-        <select id="gravedad-reporte" required>
-          <option value="">Elegir...</option>
-          <option value="baja">Baja</option>
-          <option value="media">Media</option>
-          <option value="alta">Alta</option>
-          <option value="critica">Crítica</option>
-        </select>
+        <label>Gravedad *</label>
+        <input type="hidden" id="gravedad-reporte" value="">
+        <div class="botonera-gravedad" id="botonera-gravedad" role="radiogroup" aria-label="Gravedad de la incidencia">
+          <button type="button" class="btn-gravedad g-baja"><span class="punto-gravedad" aria-hidden="true"></span><span>Baja</span></button>
+          <button type="button" class="btn-gravedad g-media"><span class="punto-gravedad" aria-hidden="true"></span><span>Media</span></button>
+          <button type="button" class="btn-gravedad g-alta"><span class="punto-gravedad" aria-hidden="true"></span><span>Alta</span></button>
+          <button type="button" class="btn-gravedad g-critica"><span class="punto-gravedad" aria-hidden="true"></span><span>Crítica</span></button>
+        </div>
       </div>
 
       <?php if ($es_admin || hay_categorias_visibles()): ?>
