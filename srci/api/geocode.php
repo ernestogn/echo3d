@@ -66,13 +66,10 @@ $a      = $datos['address'];
 $calle  = (string)($a['road'] ?? $a['pedestrian'] ?? $a['footway'] ?? '');
 $altura = (string)($a['house_number'] ?? '');
 $partes = [];
+// Todas las direcciones son de Concepcion del Uruguay: la ciudad NO se agrega
+// (evita "Bartolome Mitre, Concepcion del Uruguay" cuando OSM no trae altura).
 if ($calle !== '') {
   $partes[] = $calle . ($altura !== '' ? ' ' . $altura : '');
-}
-if (!empty($a['city'])) {
-  $partes[] = (string)$a['city'];
-} elseif (!empty($a['town'])) {
-  $partes[] = (string)$a['town'];
 }
 
 $respuesta = [

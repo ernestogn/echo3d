@@ -78,7 +78,8 @@ srci/
 │   ├── categorias.php     GET  /srci/api/categorias.php            — lista categorias de incidencia activas (JSON; ?visibles=1 = solo las marcadas para usuarios)
 │   ├── geocode.php        GET  /srci/api/geocode.php?lat=&lon= — geocodificacion inversa (punto -> direccion) via
 │   │                      Nominatim/OSM, con proxy + cache en archivos (sys_get_temp_dir/srci-geocode, 30 dias, redondeo a
-│   │                      4 decimales). Devuelve {ok, direccion ("calle altura, ciudad"), detalle (display_name)} o {ok:false}.
+│   │                      4 decimales). Devuelve {ok, direccion ("calle altura" — la ciudad NO se agrega, todas las
+│   │                      direcciones son de Concepcion del Uruguay), detalle (display_name)} o {ok:false}.
 │   ├── poligonos.php      GET  /srci/api/poligonos.php  — poligonos de barrios activos: [{id, nombre, categoria, color, anillos}]
 │   ├── reportes.php       GET  /srci/api/reportes.php   — lista incidencias con filtros opcionales (solo con coordenadas; es el feed del mapa)
 │                          POST /srci/api/reportes.php   — crea nueva incidencia (JSON body)
