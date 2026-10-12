@@ -188,8 +188,17 @@ function seleccionarTipo(tarjeta) {
   mostrarPaso('detalles');
 }
 
-function abrirModal() {
+function abrirModal(latlng = null) {
   resetearModal();
+  // Punto precargado desde el mapa principal: colocarlo YA (marcador, barrio
+  // detectado y direccion geocodificada) para no obligar a marcar dos veces.
+  if (latlng) {
+    coordSeleccionada = latlng;
+    if (miniMapa) {
+      miniMapa.setView(latlng, 16);
+      colocarPunto(latlng);
+    }
+  }
   // Visibilidad por estilos inline: el panel esta anclado con geometria inline
   // y no depende de ninguna clase de la hoja de estilos.
   ajustarPanelAVista();
@@ -220,13 +229,12 @@ if (window.visualViewport) {
 function actualizarTag() {
   const tag = document.getElementById('build-tag');
   if (!tag) return;
-  tag.textContent = 'v20261016';
+  tag.textContent = 'v20261017';
 }
 
 // Abrir el modal con una ubicacion ya marcada (click en el mapa principal)
 function abrirConCoordenada(latlng) {
-  abrirModal();
-  coordSeleccionada = latlng;
+  abrirModal(latlng);
 }
 window.abrirReporteConCoordenada = abrirConCoordenada;
 
