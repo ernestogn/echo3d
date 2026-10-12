@@ -14,7 +14,7 @@ $es_admin       = es_admin();
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mapa de Incidencias — SRCI</title>
   <meta name="description" content="Reporta incidencias urbanas en el mapa.">
-  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261012a">
+  <link rel="stylesheet" href="/srci/assets/css/estilos.css?v=20261012b">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
@@ -64,7 +64,7 @@ $es_admin       = es_admin();
 <!-- Modal de reporte -->
 <div class="modal-fondo" id="modal-reporte" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
   <div class="modal-caja">
-    <div class="modal-encabezado" title="Arrastrá para mover">
+    <div class="modal-encabezado">
       <h2 id="modal-titulo">Nueva incidencia <span style="font-size:.62rem;font-weight:400;color:#cbd5e1;vertical-align:super;" title="Build actual del modal">v20261012</span></h2>
       <button class="modal-cerrar" id="btn-cerrar-modal" aria-label="Cerrar">×</button>
     </div>
@@ -200,6 +200,6 @@ $es_admin       = es_admin();
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="/srci/assets/js/mapa.js?v=20261011m"></script>
-<script src="/srci/assets/js/reporte.js?v=20261012a"></script>
+<script src="/srci/assets/js/reporte.js?v=20261012b"></script>
 </body>
 </html>

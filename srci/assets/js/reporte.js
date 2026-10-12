@@ -56,7 +56,6 @@ const fotoInput      = document.getElementById('foto-input');
 const vistaPreviaMapa = document.getElementById('vista-previa-foto');
 const mensajeDiv     = document.getElementById('mensaje-reporte');
 const modalCaja      = modalFondo.querySelector('.modal-caja');
-const encabezadoModal = modalFondo.querySelector('.modal-encabezado');
 const barrioSelect   = document.getElementById('barrio-reporte');
 const listaBarrios   = document.getElementById('lista-barrios');
 const direccionInput = document.getElementById('direccion-reporte');
@@ -404,38 +403,8 @@ btnVolver.addEventListener('click', () => {
   pasoTipo.style.display     = '';
 });
 
-// Arrastrar el modal desde el encabezado.
-// Solo en desktop (>1024px y puntero fino): en tablet/celular el modal es
-// pantalla completa y sin arrastre, asi nunca queda desplazado.
-const MODAL_ARRASTRA = window.matchMedia('(min-width: 1025px) and (pointer: fine)');
-let arrastre = null;
-
-encabezadoModal.addEventListener('pointerdown', (e) => {
-  if (!MODAL_ARRASTRA.matches) return;
-  if (e.target.closest('.modal-cerrar')) return;
-  arrastre = { x0: e.clientX, y0: e.clientY };
-  modalCaja.style.transition = 'none';
-  try { encabezadoModal.setPointerCapture(e.pointerId); } catch (err) { /* noop */ }
-});
-
-encabezadoModal.addEventListener('pointermove', (e) => {
-  if (!arrastre) return;
-  const dx = e.clientX - arrastre.x0;
-  const dy = e.clientY - arrastre.y0;
-  modalCaja.style.transform = `translate(${dx}px, ${dy}px)`;
-});
-
-function terminarArrastre(e) {
-  if (!arrastre) return;
-  arrastre = null;
-  modalCaja.style.transition = '';
-  if (encabezadoModal.hasPointerCapture && encabezadoModal.hasPointerCapture(e.pointerId)) {
-    encabezadoModal.releasePointerCapture(e.pointerId);
-  }
-}
-
-encabezadoModal.addEventListener('pointerup', terminarArrastre);
-encabezadoModal.addEventListener('pointercancel', terminarArrastre);
+// (El arrastre del modal por el encabezado fue ELIMINADO: el modal ahora es
+// pantalla completa en todos los dispositivos, anclado con position:fixed.)
 
 // Cargar tipos y barrios al iniciar
 cargarTipos();

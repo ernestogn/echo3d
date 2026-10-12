@@ -597,41 +597,40 @@ h3 { font-size: 1.125rem; font-weight: 600; }
 .modal-fondo.modal-centrado .modal-caja {
   border-radius: var(--radio-lg);
 }
-/* Movil/tablet (<1024px): el modal de reporte ocupa TODA la ventana, centrado
-   y sin desborde (100dvh respeta barra del navegador y teclado). Sin arrastre:
-   reporte.js lo deshabilita, asi el modal nunca queda "en cualquier lado". */
-@media (max-width: 1024px) {
-  #modal-reporte.modal-fondo {
-    align-items: center;
-    padding: 0;
-  }
-  #modal-reporte .modal-caja {
-    max-width: none;
-    width: 100%;
-    min-width: 0;
-    height: 100%;
-    height: 100dvh;
-    max-height: none;
-    border-radius: 0;
-    overflow-x: hidden;
-    overscroll-behavior: contain;
-    padding-bottom: calc(var(--espacio-md) + env(safe-area-inset-bottom, 0px));
-  }
-  /* Nada del contenido puede empujar el ancho del modal: se achica o envuelve */
-  #modal-reporte .modal-caja > * {
-    max-width: 100%;
-    min-width: 0;
-  }
-  #modal-reporte .campo input,
-  #modal-reporte .campo select,
-  #modal-reporte .campo textarea {
-    min-width: 0;
-  }
-  #modal-reporte .modal-encabezado {
-    cursor: default;
-    touch-action: auto;
-    border-radius: 0;
-  }
+/* El modal de reporte SIEMPRE ocupa TODA la ventana (celular, tablet y desktop):
+   anclado con position:fixed + inset:0, asi fisicamente no puede desbordarse ni
+   quedar "en cualquier lado". Sin arrastre (eliminado: no tenia sentido a
+   pantalla completa). En pantallas anchas el contenido se acomoda en 2 columnas. */
+#modal-reporte.modal-fondo {
+  align-items: stretch;
+  padding: 0;
+}
+#modal-reporte .modal-caja {
+  position: fixed;
+  inset: 0;
+  max-width: none;
+  width: 100%;
+  min-width: 0;
+  max-height: none;
+  border-radius: 0;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding-bottom: calc(var(--espacio-md) + env(safe-area-inset-bottom, 0px));
+}
+/* Nada del contenido puede empujar el ancho del modal: se achica o envuelve */
+#modal-reporte .modal-caja > * {
+  max-width: 100%;
+  min-width: 0;
+}
+#modal-reporte .campo input,
+#modal-reporte .campo select,
+#modal-reporte .campo textarea {
+  min-width: 0;
+}
+#modal-reporte .modal-encabezado {
+  cursor: default;
+  touch-action: auto;
+  border-radius: 0;
 }
 /* Encabezado minimalista plano + zona de arrastre */
 .modal-caja .modal-encabezado {

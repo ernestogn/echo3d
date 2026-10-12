@@ -315,7 +315,7 @@ El modal en `index.php` tiene 2 pasos gestionados por `reporte.js`:
 
 El mapa principal en `mapa.js` expone `window.mapaLeaflet` para que `reporte.js` pueda leer el centro actual al inicializar el mini-mapa.
 
-**Modal en movil (<900px):** `#modal-reporte` ocupa TODA la ventana (`height: 100dvh`, sin bordes, `overflow-x: hidden`, `overscroll-behavior: contain`, `env(safe-area-inset-bottom)` en el padding) y queda centrado; el arrastre por el encabezado se deshabilita (`MODAL_ARRASTRA = matchMedia('(min-width: 900px) and (pointer: fine)')` en `reporte.js`), asi nunca queda desplazado "en cualquier lado". En desktop sigue siendo hoja inferior (480px; 760px y 2 columnas >=900px) arrastrable por el encabezado.
+**Modal de reporte a PANTALLA COMPLETA SIEMPRE (decision del cliente 2026-10-12):** `#modal-reporte` ocupa TODA la ventana en celular, tablet y desktop (se elimino el diseño "hoja inferior" arrastrable que el cliente llamaba "el modal viejo"). Implementacion: `#modal-reporte .modal-caja { position: fixed; inset: 0; max-width: none; max-height: none; border-radius: 0; overflow-x: hidden; overscroll-behavior: contain; min-width: 0 }` + todo hijo con `max-width: 100%` (fisicamente no puede desbordar ni desplazarse); `env(safe-area-inset-bottom)` en el padding. El arrastre por el encabezado fue ELIMINADO de `reporte.js`. En pantallas anchas el contenido se acomoda en 2 columnas (grid `#paso-detalles` >=900px). El titulo del modal lleva una etiqueta de build chiquita ("v20261012") para diagnosticar cache de clientes. Los demas modales (admin, `.modal-centrado`) siguen centrados.
 
 Los marcadores usan SVG inline con color segun estado: amarillo=pendiente, azul=en_proceso, verde=resuelto.
 
