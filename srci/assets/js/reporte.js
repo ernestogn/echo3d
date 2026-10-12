@@ -241,7 +241,7 @@ if (window.visualViewport) {
 function actualizarTag() {
   const tag = document.getElementById('build-tag');
   if (!tag) return;
-  tag.textContent = 'v20261021';
+  tag.textContent = 'v20261022';
 }
 
 // Abrir el modal con una ubicacion ya marcada (click en el mapa principal)
@@ -481,6 +481,8 @@ function mostrarMensaje(texto, tipo) {
   mensajeDiv.className     = `mensaje mensaje-${tipo}`;
   mensajeDiv.textContent   = texto;
   mensajeDiv.style.display = 'flex';
+  // El mensaje vive arriba del paso: scrollea hasta el para que siempre se vea
+  mensajeDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 // Eventos de apertura/cierre y navegacion entre pasos
