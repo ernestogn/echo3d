@@ -101,6 +101,7 @@ $es_admin       = es_admin();
       <div class="campo" style="margin-bottom:var(--espacio-md);">
         <label for="direccion-reporte">Dirección / calle y altura *</label>
         <input type="text" id="direccion-reporte" maxlength="255" placeholder="Ej: Urquiza 1234">
+        <div id="sugerencia-direccion" style="display:none;margin-top:6px;"></div>
       </div>
 
       <div class="campo campo-ancho" style="margin-bottom:var(--espacio-md);">
@@ -202,6 +203,6 @@ $es_admin       = es_admin();
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="/srci/assets/js/mapa.js?v=20261011m"></script>
-<script src="/srci/assets/js/reporte.js?v=20261014"></script>
+<script src="/srci/assets/js/reporte.js?v=20261015"></script>
 </body>
 </html>

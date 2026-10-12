@@ -256,6 +256,9 @@ function resetearModal() {
   coordTexto.textContent = 'Toca el mapa para marcar el lugar exacto';
   barrioSelect.value   = '';
   direccionInput.value = '';
+  if (geoPendiente) { geoPendiente.abort(); geoPendiente = null; }
+  const cajaSugerencia = document.getElementById('sugerencia-direccion');
+  if (cajaSugerencia) { cajaSugerencia.style.display = 'none'; cajaSugerencia.innerHTML = ''; }
   gravedadSelect.value = '';
   familiasInput.value  = '';
   servicioSelect.value = '';
@@ -281,26 +284,74 @@ function mostrarPasoDetalles() {
     }).addTo(miniMapa);
 
     miniMapa.on('click', (e) => {
-      coordSeleccionada = e.latlng;
-      coordTexto.textContent = `Lat: ${e.latlng.lat.toFixed(6)}, Lng: ${e.latlng.lng.toFixed(6)}`;
-      if (miniMarcador) miniMarcador.remove();
-      miniMarcador = L.marker(e.latlng).addTo(miniMapa);
-      preseleccionarBarrio(e.latlng.lat, e.latlng.lng);
+      colocarPunto(e.latlng);
     });
 
     // Si el usuario hizo click en el mapa principal, precargar ese punto
     if (coordSeleccionada) {
       miniMapa.setView(coordSeleccionada, 16);
-      miniMarcador = L.marker(coordSeleccionada).addTo(miniMapa);
-      coordTexto.textContent = `Lat: ${coordSeleccionada.lat.toFixed(6)}, Lng: ${coordSeleccionada.lng.toFixed(6)}`;
-    }
-    if (coordSeleccionada) {
-      preseleccionarBarrio(coordSeleccionada.lat, coordSeleccionada.lng);
+      colocarPunto(coordSeleccionada);
     }
   } else {
     // Refrescar layout del mapa al mostrarlo
     setTimeout(() => miniMapa.invalidateSize(), 100);
   }
+}
+
+// Coloca el punto en el mini-mapa: coordenadas, marcador, barrio y direccion sugerida
+function colocarPunto(latlng, opciones = {}) {
+  coordSeleccionada = latlng;
+  coordTexto.textContent = `Lat: ${latlng.lat.toFixed(6)}, Lng: ${latlng.lng.toFixed(6)}`;
+  if (miniMarcador) miniMarcador.remove();
+  miniMarcador = L.marker(latlng).addTo(miniMapa);
+  preseleccionarBarrio(latlng.lat, latlng.lng);
+  sugerirDireccion(latlng.lat, latlng.lng);
+}
+
+// --- Geocodificacion inversa: punto -> direccion (Nominatim via api/geocode.php).
+// Si el campo esta vacio, autocompleta; si ya tiene texto, sugiere un boton. ---
+let geoPendiente = null;
+
+function sugerirDireccion(lat, lon) {
+  const caja = document.getElementById('sugerencia-direccion');
+  if (!caja) return;
+  if (geoPendiente) geoPendiente.abort();
+  caja.style.display = '';
+  caja.innerHTML = '<span style="color:var(--color-texto-suave);font-size:.85rem;">🔎 Buscando dirección...</span>';
+  geoPendiente = fetch(`/srci/api/geocode.php?lat=${lat}&lon=${lon}`);
+  geoPendiente
+    .then((r) => r.json())
+    .then((d) => {
+      geoPendiente = null;
+      if (!d || !d.ok || !d.direccion) {
+        caja.style.display = 'none';
+        caja.innerHTML = '';
+        return;
+      }
+      if (direccionInput.value.trim() === '') {
+        direccionInput.value = d.direccion;
+        caja.style.display = 'none';
+        caja.innerHTML = '';
+        return;
+      }
+      caja.innerHTML = '';
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'boton boton-secundario boton-sm';
+      btn.textContent = '📍 Usar dirección detectada: ' + d.direccion;
+      btn.title = d.detalle || '';
+      btn.addEventListener('click', () => {
+        direccionInput.value = d.direccion;
+        caja.style.display = 'none';
+        caja.innerHTML = '';
+      });
+      caja.appendChild(btn);
+    })
+    .catch(() => {
+      geoPendiente = null;
+      caja.style.display = 'none';
+      caja.innerHTML = '';
+    });
 }
 
 // Preview de foto
