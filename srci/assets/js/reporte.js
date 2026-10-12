@@ -76,7 +76,6 @@ function autocompletarContacto() {
 }
 
 const modalFondo     = document.getElementById('modal-reporte');
-const btnAbrir       = document.getElementById('btn-abrir-reporte');
 const btnCerrar      = document.getElementById('btn-cerrar-modal');
 const pasoTipo       = document.getElementById('paso-tipo');
 const pasoDetalles   = document.getElementById('paso-detalles');
@@ -259,7 +258,7 @@ if (window.visualViewport) {
 function actualizarTag() {
   const tag = document.getElementById('build-tag');
   if (!tag) return;
-  tag.textContent = 'v20261023';
+  tag.textContent = 'v20261024';
 }
 
 // Abrir el modal con una ubicacion ya marcada (click en el mapa principal)
@@ -505,7 +504,7 @@ function mostrarMensaje(texto, tipo) {
 }
 
 // Eventos de apertura/cierre y navegacion entre pasos
-btnAbrir.addEventListener('click', abrirModal);
+// (El reporte inicia tocando el mapa principal -> abrirReporteConCoordenada)
 btnCerrar.addEventListener('click', cerrarModal);
 modalFondo.addEventListener('click', (e) => { if (e.target === modalFondo) cerrarModal(); });
 btnSiguienteUbicacion.addEventListener('click', () => mostrarPaso('tipo'));
