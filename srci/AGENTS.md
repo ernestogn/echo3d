@@ -49,7 +49,8 @@ srci/
 ├── perfil.php             Perfil privado del usuario logueado (datos, barrios, sus reportes, cambiar PIN; avatar Gravatar)
 ├── ayuda.php              Ayuda publica (guia de uso, sin sesion)
 ├── manifest.json          PWA manifest (icons: assets/img/icon-192.png y icon-512.png)
-├── sw.js                  Service Worker — cache estatico basico para offline
+├── sw.js                  Service Worker DESACTIVADO: se autodesinstala y borra todos los caches al activarse.
+│                          La app SIEMPRE carga de la red (los assets llevan ?v=YYYYMMDD para el cache HTTP normal).
 ├── .htaccess              Bloquea listado de directorio y acceso a /includes/
 │
 ├── sql/
@@ -421,13 +422,14 @@ El agente corre en PowerShell 5.1 (Windows) y **NO soporta bien las comillas ani
   `$enc = New-Object System.Text.UTF8Encoding($false); $c = [System.IO.File]::ReadAllText($ruta, $enc); ... [System.IO.File]::WriteAllText($ruta, $c, $enc)`
 - Credenciales de prod viven en `includes/config.local.php` (no en git).
 
-### 11.2 Pitfall del Service Worker (cache viejo)
+### 11.2 Service Worker DESACTIVADO (decision 2026-10-12)
 
-`sw.js` registra un Service Worker en `index.php`. Si cambias CSS/JS y el navegador sigue mostrando lo viejo, es porque el SW previo servia desde cache con una version fija. Reglas:
+El SW (`sw.js`, antes network-first con cache `srci-vN`) fue **eliminado** porque los clientes con el SW viejo seguian viendo CSS/JS viejos aunque recargaran (el SW persiste aunque cierren el navegador). Estado actual:
 
-- La estrategia es **network-first** (trae lo ultimo y actualiza el cache; usa cache solo offline).
-- Si cambias la lista `APP_SHELL` o la estrategia, **subi `CACHE`** (ej: `srci-v2` → `srci-v3`) para purgar el cache anterior.
-- Los `<script>` de `index.php` llevan `?v=YYYYMMDD` para forzar el refresco inmediato aunque el SW viejo siga activo (bumpear al cambiar esos JS).
+- `index.php` **NO registra** ningun Service Worker.
+- `sw.js` es un **autodesinstalador**: quien lo tenga instalado, al hacer el chequeo de actualizacion (proxima navegacion; el etag del archivo cambio), borra TODOS los caches y se desregistra. No tiene fetch handler: no intercepta nada.
+- La frescura se garantiza con **HTTP cache normal**: los assets de `index.php` llevan `?v=YYYYMMDD` (bumpear al cambiarlos) y las paginas PHP mandan `no-store` por sesion.
+- NO volver a registrar un SW sin aprobacion del cliente (fue fuente de "no se actualiza" repetido). El modo offline/PWA basico quedo sin efecto.
 
 ---
 

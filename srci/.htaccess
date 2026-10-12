@@ -7,6 +7,14 @@ Options -Indexes
   RewriteRule ^includes/ - [F,L]
 </IfModule>
 
+# sw.js SIEMPRE revalidado: los Service Workers viejos ya instalados se enteran
+# del reemplazo en la proxima navegacion y se autodesinstalan (sin cache HTTP).
+<IfModule mod_headers.c>
+  <FilesMatch "^sw\.js$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+  </FilesMatch>
+</IfModule>
+
 # Seguridad en headers
 <IfModule mod_headers.c>
   Header always set X-Frame-Options DENY
