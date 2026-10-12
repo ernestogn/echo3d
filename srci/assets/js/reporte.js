@@ -229,7 +229,7 @@ if (window.visualViewport) {
 function actualizarTag() {
   const tag = document.getElementById('build-tag');
   if (!tag) return;
-  tag.textContent = 'v20261019';
+  tag.textContent = 'v20261020';
 }
 
 // Abrir el modal con una ubicacion ya marcada (click en el mapa principal)
@@ -363,7 +363,6 @@ function sugerirDireccion(lat, lon) {
       btn.type = 'button';
       btn.className = 'boton boton-secundario boton-sm';
       btn.textContent = '📍 Usar dirección detectada: ' + d.direccion;
-      btn.title = d.detalle || '';
       btn.addEventListener('click', () => {
         direccionInput.value = d.direccion;
         caja.style.display = 'none';

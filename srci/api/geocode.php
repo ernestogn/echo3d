@@ -62,20 +62,21 @@ if (!is_array($datos) || empty($datos['address'])) {
   respuesta_json(['ok' => false, 'error' => 'Sin resultado']);
 }
 
-$a      = $datos['address'];
-$calle  = (string)($a['road'] ?? $a['pedestrian'] ?? $a['footway'] ?? '');
+$a     = $datos['address'];
+$calle = (string)($a['road'] ?? $a['pedestrian'] ?? $a['footway'] ?? '');
 $altura = (string)($a['house_number'] ?? '');
-$partes = [];
-// Todas las direcciones son de Concepcion del Uruguay: la ciudad NO se agrega
-// (evita "Bartolome Mitre, Concepcion del Uruguay" cuando OSM no trae altura).
-if ($calle !== '') {
-  $partes[] = $calle . ($altura !== '' ? ' ' . $altura : '');
+// Solo interesa "calle numero": si falta el numero (o la calle) NO se sugiere
+// nada. La ciudad/provincia no se incluye (todas las direcciones son de
+// Concepcion del Uruguay).
+if ($calle === '' || $altura === '') {
+  // Cachea el fallo para no martillar el servicio con el mismo punto
+  @file_put_contents($archivo, json_encode(['ok' => false], JSON_UNESCAPED_UNICODE));
+  respuesta_json(['ok' => false, 'error' => 'Sin calle y numero']);
 }
 
 $respuesta = [
   'ok'        => true,
-  'direccion' => $partes ? implode(', ', $partes) : (string)($datos['display_name'] ?? ''),
-  'detalle'   => (string)($datos['display_name'] ?? ''),
+  'direccion' => $calle . ' ' . $altura,
 ];
 @file_put_contents($archivo, json_encode($respuesta, JSON_UNESCAPED_UNICODE), LOCK_EX);
 respuesta_json($respuesta);
