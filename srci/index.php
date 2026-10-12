@@ -202,9 +202,13 @@ $es_admin       = es_admin();
 <script src="/srci/assets/js/mapa.js?v=20261011m"></script>
 <script src="/srci/assets/js/reporte.js?v=20261011g"></script>
 <script>
-  // Registrar Service Worker para soporte PWA/offline
+  // Registrar Service Worker para soporte PWA/offline.
+  // reg.update() fuerza el chequeo de sw.js en CADA carga: los cambios de
+  // assets/CSS llegan al telefono aunque la pestaña quede viva (cache v3 purga el viejo).
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/srci/sw.js').catch(() => {});
+    navigator.serviceWorker.register('/srci/sw.js')
+      .then((reg) => { reg.update().catch(() => {}); })
+      .catch(() => {});
   }
 </script>
 </body>
