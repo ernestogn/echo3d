@@ -2,7 +2,7 @@
 // Estrategia: network-first para recursos propios (siempre trae lo ultimo),
 // con fallback a cache cuando no hay conexion (soporte offline basico).
 
-const CACHE = 'srci-v2';
+const CACHE = 'srci-v3';
 
 const APP_SHELL = [
   '/srci/index.php',
