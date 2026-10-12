@@ -229,7 +229,7 @@ if (window.visualViewport) {
 function actualizarTag() {
   const tag = document.getElementById('build-tag');
   if (!tag) return;
-  tag.textContent = 'v20261017';
+  tag.textContent = 'v20261018';
 }
 
 // Abrir el modal con una ubicacion ya marcada (click en el mapa principal)
@@ -269,6 +269,7 @@ function resetearModal() {
   const cajaSugerencia = document.getElementById('sugerencia-direccion');
   if (cajaSugerencia) { cajaSugerencia.style.display = 'none'; cajaSugerencia.innerHTML = ''; }
   gravedadSelect.value = '';
+  document.querySelectorAll('#botonera-gravedad .btn-gravedad').forEach((x) => x.classList.remove('seleccionado'));
   familiasInput.value  = '';
   servicioSelect.value = '';
   responsableSelect.value = '';
@@ -508,6 +509,16 @@ btnVolverTipo.addEventListener('click', () => mostrarPaso('ubicacion'));
 btnVolver.addEventListener('click', () => mostrarPaso('tipo'));
 barrioSelect.addEventListener('input', actualizarBtnUbicacion);
 direccionInput.addEventListener('input', actualizarBtnUbicacion);
+
+// Botonera de gravedad: 4 niveles de color en lugar de select
+document.querySelectorAll('#botonera-gravedad .btn-gravedad').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    gravedadSelect.value = btn.dataset.valor;
+    document.querySelectorAll('#botonera-gravedad .btn-gravedad').forEach((x) => {
+      x.classList.toggle('seleccionado', x === btn);
+    });
+  });
+});
 
 // (El arrastre del modal por el encabezado fue ELIMINADO: el modal ahora es
 // pantalla completa en todos los dispositivos, anclado con position:fixed.)
