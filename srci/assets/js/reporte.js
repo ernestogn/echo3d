@@ -45,9 +45,11 @@ const btnAbrir       = document.getElementById('btn-abrir-reporte');
 const btnCerrar      = document.getElementById('btn-cerrar-modal');
 const pasoTipo       = document.getElementById('paso-tipo');
 const pasoDetalles   = document.getElementById('paso-detalles');
+const pasoUbicacion  = document.getElementById('paso-ubicacion');
 const grillaTipos    = document.getElementById('grilla-tipos');
-const btnSiguiente   = document.getElementById('btn-siguiente-tipo');
+const btnSiguienteUbicacion = document.getElementById('btn-siguiente-ubicacion');
 const btnVolver      = document.getElementById('btn-volver');
+const btnVolverTipo  = document.getElementById('btn-volver-tipo');
 const btnEnviar      = document.getElementById('btn-enviar-reporte');
 const infoTipo       = document.getElementById('info-tipo-seleccionado');
 const coordTexto     = document.getElementById('coord-texto');
@@ -181,7 +183,9 @@ function seleccionarTipo(tarjeta) {
     nombre: tarjeta.dataset.nombre,
     icono:  tarjeta.dataset.icono,
   };
-  btnSiguiente.disabled = false;
+  // Avanza solo al paso de datos: nada de botones intermedios
+  infoTipo.textContent = (tipoSeleccionado.icono || '') + ' ' + tipoSeleccionado.nombre;
+  mostrarPaso('detalles');
 }
 
 function abrirModal() {
@@ -205,20 +209,18 @@ function ajustarPanelAVista() {
   modalCaja.style.height = Math.round(vv.height) + 'px';
   modalCaja.style.left = Math.round(vv.offsetLeft) + 'px';
   modalCaja.style.top = Math.round(vv.offsetTop) + 'px';
+  if (miniMapa) { setTimeout(() => miniMapa.invalidateSize(), 60); }
 }
 if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', ajustarPanelAVista);
   window.visualViewport.addEventListener('scroll', ajustarPanelAVista);
 }
 
-// Etiqueta de build con medidas en vivo (diagnostico de viewport)
+// Etiqueta de build (diagnostico de cache/viewport)
 function actualizarTag() {
   const tag = document.getElementById('build-tag');
   if (!tag) return;
-  const vv = window.visualViewport;
-  const r = modalCaja.getBoundingClientRect();
-  const vvTxt = vv ? Math.round(vv.width) + 'x' + Math.round(vv.height) : 'n/d';
-  tag.textContent = 'v20261014 · vw' + window.innerWidth + ' · vv' + vvTxt + ' · panel' + Math.round(r.width) + 'x' + Math.round(r.height);
+  tag.textContent = 'v20261016';
 }
 
 // Abrir el modal con una ubicacion ya marcada (click en el mapa principal)
@@ -241,9 +243,8 @@ function cerrarModal() {
 function resetearModal() {
   tipoSeleccionado  = null;
   coordSeleccionada = null;
-  pasoTipo.style.display     = '';
-  pasoDetalles.style.display = 'none';
-  btnSiguiente.disabled = true;
+  mostrarPaso('ubicacion');
+  btnSiguienteUbicacion.disabled = true;
   grillaTipos.querySelectorAll('.tipo-tarjeta').forEach((t) => {
     t.classList.remove('seleccionado');
     t.setAttribute('aria-checked', 'false');
@@ -269,33 +270,45 @@ function resetearModal() {
   if (miniMarcador) { miniMarcador.remove(); miniMarcador = null; }
 }
 
-function mostrarPasoDetalles() {
-  pasoTipo.style.display     = 'none';
-  pasoDetalles.style.display = '';
-  infoTipo.textContent       = (tipoSeleccionado.icono || '') + ' ' + tipoSeleccionado.nombre;
+// Navegacion entre los 3 pasos del modal: ubicacion -> tipo -> detalles
+function mostrarPaso(nombre) {
+  pasoUbicacion.style.display = nombre === 'ubicacion' ? '' : 'none';
+  pasoTipo.style.display      = nombre === 'tipo' ? '' : 'none';
+  pasoDetalles.style.display  = nombre === 'detalles' ? '' : 'none';
 
-  // Inicializar mini-mapa si no existe aun
-  if (!miniMapa) {
-    const centro = window.mapaLeaflet ? window.mapaLeaflet.getCenter() : L.latLng(-32.48262351713079, -58.24455570742029);
-    miniMapa = L.map('mini-mapa', { zoomControl: true }).setView(centro, 15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap',
-      maxZoom: 19,
-    }).addTo(miniMapa);
-
-    miniMapa.on('click', (e) => {
-      colocarPunto(e.latlng);
-    });
-
-    // Si el usuario hizo click en el mapa principal, precargar ese punto
-    if (coordSeleccionada) {
-      miniMapa.setView(coordSeleccionada, 16);
-      colocarPunto(coordSeleccionada);
-    }
-  } else {
-    // Refrescar layout del mapa al mostrarlo
-    setTimeout(() => miniMapa.invalidateSize(), 100);
+  if (nombre === 'detalles') {
+    infoTipo.textContent = tipoSeleccionado ? (tipoSeleccionado.icono || '') + ' ' + tipoSeleccionado.nombre : '';
   }
+
+  // Inicializar mini-mapa al mostrar el paso de ubicacion
+  if (nombre === 'ubicacion') {
+    if (!miniMapa) {
+      const centro = window.mapaLeaflet ? window.mapaLeaflet.getCenter() : L.latLng(-32.48262351713079, -58.24455570742029);
+      miniMapa = L.map('mini-mapa', { zoomControl: true }).setView(centro, 15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap',
+        maxZoom: 19,
+      }).addTo(miniMapa);
+
+      miniMapa.on('click', (e) => {
+        colocarPunto(e.latlng);
+      });
+
+      // Si el usuario hizo click en el mapa principal, precargar ese punto
+      if (coordSeleccionada) {
+        miniMapa.setView(coordSeleccionada, 16);
+        colocarPunto(coordSeleccionada);
+      }
+    } else {
+      // Refrescar layout del mapa al mostrarlo
+      setTimeout(() => miniMapa.invalidateSize(), 100);
+    }
+  }
+}
+
+// El boton Siguiente del paso de ubicacion exige punto + barrio + direccion
+function actualizarBtnUbicacion() {
+  btnSiguienteUbicacion.disabled = !(coordSeleccionada && barrioSelect.value.trim() !== '' && direccionInput.value.trim() !== '');
 }
 
 // Coloca el punto en el mini-mapa: coordenadas, marcador, barrio y direccion sugerida
@@ -306,6 +319,7 @@ function colocarPunto(latlng, opciones = {}) {
   miniMarcador = L.marker(latlng).addTo(miniMapa);
   preseleccionarBarrio(latlng.lat, latlng.lng);
   sugerirDireccion(latlng.lat, latlng.lng);
+  actualizarBtnUbicacion();
 }
 
 // --- Geocodificacion inversa: punto -> direccion (Nominatim via api/geocode.php).
@@ -332,6 +346,7 @@ function sugerirDireccion(lat, lon) {
         direccionInput.value = d.direccion;
         caja.style.display = 'none';
         caja.innerHTML = '';
+        actualizarBtnUbicacion();
         return;
       }
       caja.innerHTML = '';
@@ -344,6 +359,7 @@ function sugerirDireccion(lat, lon) {
         direccionInput.value = d.direccion;
         caja.style.display = 'none';
         caja.innerHTML = '';
+        actualizarBtnUbicacion();
       });
       caja.appendChild(btn);
     })
@@ -475,15 +491,15 @@ function mostrarMensaje(texto, tipo) {
   mensajeDiv.style.display = 'flex';
 }
 
-// Eventos de apertura/cierre
+// Eventos de apertura/cierre y navegacion entre pasos
 btnAbrir.addEventListener('click', abrirModal);
 btnCerrar.addEventListener('click', cerrarModal);
 modalFondo.addEventListener('click', (e) => { if (e.target === modalFondo) cerrarModal(); });
-btnSiguiente.addEventListener('click', mostrarPasoDetalles);
-btnVolver.addEventListener('click', () => {
-  pasoDetalles.style.display = 'none';
-  pasoTipo.style.display     = '';
-});
+btnSiguienteUbicacion.addEventListener('click', () => mostrarPaso('tipo'));
+btnVolverTipo.addEventListener('click', () => mostrarPaso('ubicacion'));
+btnVolver.addEventListener('click', () => mostrarPaso('tipo'));
+barrioSelect.addEventListener('input', actualizarBtnUbicacion);
+direccionInput.addEventListener('input', actualizarBtnUbicacion);
 
 // (El arrastre del modal por el encabezado fue ELIMINADO: el modal ahora es
 // pantalla completa en todos los dispositivos, anclado con position:fixed.)

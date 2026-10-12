@@ -304,13 +304,15 @@ echo $variable;                // PROHIBIDO
 
 ---
 
-## 7. Flujo del modal de reporte (JS)
+## 7. Flujo del modal de reporte (JS) — 3 PASOS (rediseño 2026-10-13)
 
-El modal en `index.php` tiene 2 pasos gestionados por `reporte.js`:
+El modal en `index.php` tiene 3 pasos gestionados por `reporte.js` (`mostrarPaso('ubicacion'|'tipo'|'detalles')`, cada paso con su indicador "Paso N de 3"):
 
-1. **Paso 1** (`#paso-tipo`): grilla de tipos cargada desde `/api/tipos.php`. El usuario selecciona uno.
-2. **Paso 2** (`#paso-detalles`): grid 2 columnas en desktop (FullHD sin scroll) — barrio (select de `/api/barrios.php`), direccion, gravedad, **categorias (chips multiseleccion; SOLO se renderiza para admins, o para usuarios si el admin marco categorias visibles — ver seccion Categorias)**, familias afectadas, servicio afectado, responsable/area, calle intransitable (checkbox), contacto vecino — mas mini-mapa Leaflet para marcar coordenadas, textarea de notas, zona de foto. En movil: una columna.
-3. Al enviar: primero POST a `/api/reportes.php` (incluye `categorias: [ids]`), luego (si hay foto) POST a `/api/subir_foto.php`. Validacion cliente: barrio, direccion y gravedad obligatorios.
+1. **Paso 1 — Ubicación** (`#paso-ubicacion`): mini-mapa (220px), **barrio detectado** (preseleccionado por polígono al marcar el punto) y **dirección detectada** (geocodificación inversa). El botón "Siguiente →" (`#btn-siguiente-ubicacion`) se habilita solo con punto + barrio + dirección (`actualizarBtnUbicacion()`; listeners `input` en ambos campos).
+2. **Paso 2 — Tipo** (`#paso-tipo`): grilla de iconos de `/api/tipos.php`. **Al tocar un icono avanza solo** al paso 3 (`seleccionarTipo()` → `mostrarPaso('detalles')`), sin botón intermedio. Botón "← Volver" al paso 1 (`#btn-volver-tipo`).
+3. **Paso 3 — Gravedad y datos** (`#paso-detalles`): **gravedad primero** (obligatoria), luego categorías (solo admins, ver sección Categorías), familias, servicio, responsable, calle intransitable, contacto, notas, foto. Botón "← Volver" al paso 2 (`#btn-volver`) y "Enviar reporte" (POST `/api/reportes.php` + foto a `/api/subir_foto.php`).
+
+Validación cliente: barrio, dirección y gravedad obligatorios (además del punto en el mapa).
 
 **Reporte por click en el mapa:** al hacer click sobre el mapa principal (`mapa.js`), se coloca un marcador de selección (`crearIconoSeleccion`, anillo indigo) y se abre el modal con esas coordenadas precargadas via `window.abrirReporteConCoordenada(latlng)` (expuesta por `reporte.js`). En el paso 2 el mini-mapa ya queda centrado en ese punto con su marcador; el usuario puede ajustarlo tocando el mini-mapa. Al cerrar el modal, `cerrarModal()` limpia el marcador del mapa principal via `window.removerMarcadorSeleccion()`.
 
