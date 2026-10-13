@@ -34,6 +34,7 @@ function accion_legible(string $accion): string
     'ocultar'        => 'Oculto',
     'restaurar'      => 'Restauro',
     'subir_foto'     => 'Subio foto',
+    'borrar_foto'    => 'Borro foto',
     'cambiar_pin'    => 'Cambio su PIN',
     default          => ucfirst($accion),
   };
@@ -48,6 +49,7 @@ function clase_accion(string $accion): string
     'ocultar'        => 'aud-ocultar',
     'restaurar'      => 'aud-restaurar',
     'subir_foto'     => 'aud-foto',
+    'borrar_foto'    => 'aud-foto',
     'cambiar_pin'    => 'aud-editar',
     default          => '',
   };

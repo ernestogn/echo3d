@@ -141,7 +141,7 @@ $tipos_lista   = db()->query('SELECT id, nombre, icono FROM tipos_incidencia WHE
 $barrios_lista = db()->query('SELECT id, nombre FROM barrios WHERE activo = 1 ORDER BY nombre')->fetchAll();
 $categorias_lista = categorias_activas();
 $cats_sel_ids  = array_map('intval', array_column(categorias_de_incidencia($id), 'id'));
-$fotos = db()->prepare('SELECT ruta_archivo FROM fotos WHERE incidencia_id = :id ORDER BY id');
+$fotos = db()->prepare('SELECT id, ruta_archivo FROM fotos WHERE incidencia_id = :id ORDER BY id');
 $fotos->execute([':id' => $id]);
 $fotos = $fotos->fetchAll();
 $csrf          = csrf_token();
@@ -335,10 +335,14 @@ $csrf          = csrf_token();
     <?php if ($fotos): ?>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:var(--espacio-md);margin-bottom:var(--espacio-md);">
         <?php foreach ($fotos as $foto): ?>
-          <a href="/srci/uploads/<?= esc($foto['ruta_archivo']) ?>" target="_blank" rel="noopener">
-            <img src="/srci/uploads/<?= esc($foto['ruta_archivo']) ?>" alt="Foto de la incidencia"
-                 style="width:100%;height:120px;object-fit:cover;border-radius:var(--radio-md);border:1px solid var(--color-borde);">
-          </a>
+          <div style="position:relative;">
+            <a href="/srci/uploads/<?= esc($foto['ruta_archivo']) ?>" target="_blank" rel="noopener">
+              <img src="/srci/uploads/<?= esc($foto['ruta_archivo']) ?>" alt="Foto de la incidencia"
+                   style="width:100%;height:120px;object-fit:cover;border-radius:var(--radio-md);border:1px solid var(--color-borde);">
+            </a>
+            <button type="button" class="foto-borrar" data-id="<?= (int)$foto['id'] ?>" title="Borrar foto"
+                    style="position:absolute;top:6px;right:6px;width:30px;height:30px;border:none;border-radius:50%;background:rgba(15,23,42,.78);color:#ffffff;font-size:.9rem;cursor:pointer;">🗑</button>
+          </div>
         <?php endforeach; ?>
       </div>
     <?php else: ?>
@@ -450,6 +454,32 @@ $csrf          = csrf_token();
       btnSubirFoto.disabled = false;
       btnSubirFoto.innerHTML = '⬆ Subir foto';
     }
+  });
+
+  // --- Borrar una foto existente (api/borrar_foto.php) ---
+  document.querySelectorAll('.foto-borrar').forEach((b) => {
+    b.addEventListener('click', async () => {
+      if (!confirm('¿Borrar esta foto? No se puede recuperar.')) return;
+      b.disabled = true;
+      try {
+        const resp = await fetch('/srci/api/borrar_foto.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ foto_id: parseInt(b.dataset.id, 10) }),
+        });
+        const datos = await resp.json().catch(() => ({}));
+        if (resp.ok && datos.ok) {
+          const tarjeta = b.closest('div[style*="position:relative"]');
+          if (tarjeta) tarjeta.remove();
+        } else {
+          alert(datos.error || 'No se pudo borrar la foto.');
+          b.disabled = false;
+        }
+      } catch (e) {
+        alert('Error de red al borrar la foto.');
+        b.disabled = false;
+      }
+    });
   });
 </script>
 </body>
