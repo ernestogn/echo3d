@@ -141,6 +141,9 @@ $tipos_lista   = db()->query('SELECT id, nombre, icono FROM tipos_incidencia WHE
 $barrios_lista = db()->query('SELECT id, nombre FROM barrios WHERE activo = 1 ORDER BY nombre')->fetchAll();
 $categorias_lista = categorias_activas();
 $cats_sel_ids  = array_map('intval', array_column(categorias_de_incidencia($id), 'id'));
+$fotos = db()->prepare('SELECT ruta_archivo FROM fotos WHERE incidencia_id = :id ORDER BY id');
+$fotos->execute([':id' => $id]);
+$fotos = $fotos->fetchAll();
 $csrf          = csrf_token();
 ?>
 <!DOCTYPE html>
@@ -325,6 +328,36 @@ $csrf          = csrf_token();
       </div>
     </form>
   </div>
+
+  <!-- Fotos: existentes + subir nuevas -->
+  <div class="tarjeta" style="margin-top:var(--espacio-lg);">
+    <h2 style="margin-bottom:var(--espacio-md);">Fotos</h2>
+    <?php if ($fotos): ?>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:var(--espacio-md);margin-bottom:var(--espacio-md);">
+        <?php foreach ($fotos as $foto): ?>
+          <a href="/srci/uploads/<?= esc($foto['ruta_archivo']) ?>" target="_blank" rel="noopener">
+            <img src="/srci/uploads/<?= esc($foto['ruta_archivo']) ?>" alt="Foto de la incidencia"
+                 style="width:100%;height:120px;object-fit:cover;border-radius:var(--radio-md);border:1px solid var(--color-borde);">
+          </a>
+        <?php endforeach; ?>
+      </div>
+    <?php else: ?>
+      <p style="color:var(--color-texto-suave);margin-bottom:var(--espacio-md);">Esta incidencia todavía no tiene fotos.</p>
+    <?php endif; ?>
+
+    <label class="zona-foto" style="display:block;cursor:pointer;">
+      <input type="file" id="editar-foto-input" accept="image/jpeg,image/png,image/webp" aria-label="Elegir foto para subir">
+      <div class="zona-foto-texto">
+        <span style="font-size:1.1rem;">📷</span>
+        Tocá para elegir una foto (hasta 5 MB) y subirla
+      </div>
+    </label>
+    <div id="editar-foto-preview" style="display:none;margin-top:var(--espacio-md);">
+      <img id="editar-foto-img" alt="Vista previa de la foto" style="max-width:100%;max-height:260px;border-radius:var(--radio-md);border:1px solid var(--color-borde);">
+    </div>
+    <button type="button" class="boton boton-primario" id="btn-subir-foto" style="margin-top:var(--espacio-md);display:none;">⬆ Subir foto</button>
+    <p id="editar-foto-msg" style="font-size:.9rem;margin-top:var(--espacio-sm);display:none;"></p>
+  </div>
 </main>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -363,6 +396,60 @@ $csrf          = csrf_token();
 
   mapaUbicar.on('click', (e) => {
     crearMarcador(e.latlng);
+  });
+
+  // --- Subir foto desde el editor (api/subir_foto.php) ---
+  const inputFotoEd = document.getElementById('editar-foto-input');
+  const btnSubirFoto = document.getElementById('btn-subir-foto');
+  const previewBox = document.getElementById('editar-foto-preview');
+  const previewImg = document.getElementById('editar-foto-img');
+  const msgFotoEd = document.getElementById('editar-foto-msg');
+  let archivoFotoEd = null;
+
+  inputFotoEd.addEventListener('change', () => {
+    archivoFotoEd = inputFotoEd.files[0] || null;
+    if (!archivoFotoEd) {
+      previewBox.style.display = 'none';
+      btnSubirFoto.style.display = 'none';
+      return;
+    }
+    previewImg.src = URL.createObjectURL(archivoFotoEd);
+    previewBox.style.display = '';
+    btnSubirFoto.style.display = '';
+    msgFotoEd.style.display = 'none';
+  });
+
+  btnSubirFoto.addEventListener('click', async () => {
+    if (!archivoFotoEd) return;
+    btnSubirFoto.disabled = true;
+    btnSubirFoto.innerHTML = '<span class="spinner"></span> Subiendo...';
+    const fd = new FormData();
+    fd.append('incidencia_id', '<?= $id ?>');
+    fd.append('foto', archivoFotoEd);
+    try {
+      const resp = await fetch('/srci/api/subir_foto.php', { method: 'POST', body: fd });
+      const texto = await resp.text();
+      let datos = {};
+      try { datos = JSON.parse(texto); } catch (e) {}
+      if (resp.ok) {
+        msgFotoEd.textContent = '✓ Foto subida.';
+        msgFotoEd.style.color = 'var(--color-verde)';
+        msgFotoEd.style.display = 'block';
+        setTimeout(() => { location.reload(); }, 900);
+      } else {
+        msgFotoEd.textContent = datos.error || 'No se pudo subir la foto.';
+        msgFotoEd.style.color = 'var(--color-rojo)';
+        msgFotoEd.style.display = 'block';
+        btnSubirFoto.disabled = false;
+        btnSubirFoto.innerHTML = '⬆ Subir foto';
+      }
+    } catch (e) {
+      msgFotoEd.textContent = 'Error de red al subir la foto.';
+      msgFotoEd.style.color = 'var(--color-rojo)';
+      msgFotoEd.style.display = 'block';
+      btnSubirFoto.disabled = false;
+      btnSubirFoto.innerHTML = '⬆ Subir foto';
+    }
   });
 </script>
 </body>

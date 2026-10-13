@@ -40,7 +40,9 @@ srci/
 ├── index.php              Mapa principal (Leaflet + modal de reporte en 2 pasos)
 ├── incidencias.php        Listado tabular con filtros (incl. categoria), paginacion, filas expandibles (todos los campos), columna de categorias, exportacion CSV/GeoJSON (incl. categorias); columnas ordenables fecha/barrio/gravedad server-side (?orden=&dir=; columna activa con clase .orden-activa pastel; contenedor .pagina-ancha 95% para evitar scroll horizontal)
 ├── detalle.php            Detalle de una incidencia + cambio de estado para admin
-├── editar.php             Edicion completa de una incidencia (todos los campos, con CSRF)
+├── editar.php             Edicion completa de una incidencia (todos los campos, con CSRF) + seccion Fotos:
+│                           miniaturas de las existentes y subida de fotos nuevas (fetch a api/subir_foto.php con
+│                           vista previa y spinner; recarga al terminar) — disponible tenga o no fotos ya
 ├── login.php              Autenticacion por nombre + PIN de 4 digitos (teclado virtual)
 ├── logout.php             Destruye la sesion y redirige a login.php
 ├── acceso.php             Magic link: token HMAC-SHA256 con vencimiento (7 dias) loguea sin PIN
