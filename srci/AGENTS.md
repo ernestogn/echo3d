@@ -269,7 +269,7 @@ echo $variable;                // PROHIBIDO
 
 ### GET /srci/api/barrios.php
 **Auth:** sesion activa  
-**Response:** `[{id, nombre, referentes}, ...]` — barrios activos por nombre; `referentes` = nombres (GROUP_CONCAT) de los referentes activos asignados al barrio (referentes_barrios + usuarios); lo usa el reporte para precargar el contacto
+**Response:** `[{id, nombre, referentes}, ...]` — barrios activos por nombre; `referentes` = nombres (GROUP_CONCAT) de los referentes asignados al barrio (referentes_barrios + usuarios, activos o no: el listado 2027 manda); lo usa el reporte para precargar el contacto
 
 ### GET /srci/api/categorias.php
 **Auth:** sesion activa  
