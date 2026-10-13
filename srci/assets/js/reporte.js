@@ -67,7 +67,12 @@ function autocompletarContacto() {
   const nombre = barrioSelect.value.trim();
   if (nombre === '') return;
   const hit = barriosCargados.find((b) => b.nombre === nombre);
-  if (!hit || !hit.referentes) return;
+  if (!hit || !hit.referentes) {
+    // Sin referente asignado: se ve el motivo en el placeholder
+    contactoInput.placeholder = 'Sin referente asignado para ' + nombre;
+    return;
+  }
+  contactoInput.placeholder = 'Nombre o teléfono';
   if (contactoInput.value.trim() === '' || contactoAutoPrevio) {
     contactoInput.value = hit.referentes;
     contactoAutoPrevio = true;
@@ -257,7 +262,7 @@ if (window.visualViewport) {
 function actualizarTag() {
   const tag = document.getElementById('build-tag');
   if (!tag) return;
-  tag.textContent = 'v20261025';
+  tag.textContent = 'v20261026';
 }
 
 // Abrir el modal con una ubicacion ya marcada (click en el mapa principal)
