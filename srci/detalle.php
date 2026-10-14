@@ -5,7 +5,10 @@ require_once __DIR__ . '/includes/funciones.php';
 
 requiere_sesion();
 
-// --- Ocultar / Restaurar (solo admin, sin borrar) ---
+$id = (int)($_GET['id'] ?? 0);
+if ($id === 0) { header('Location: /srci/incidencias.php'); exit; }
+
+// --- Ocultar / Restaurar (solo admin, sin borrar) + Seguimiento ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   validar_csrf();
   $accion = $_POST['accion'] ?? '';
@@ -23,13 +26,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     );
     header('Location: /srci/incidencias.php');
     exit;
+  } elseif ($accion === 'agregar_nota') {
+    // Solo el autor del reporte o un admin pueden dejar seguimiento
+    $st_owner = db()->prepare('SELECT usuario_id FROM incidencias WHERE id = :id');
+    $st_owner->execute([':id' => $id]);
+    $dueno = $st_owner->fetchColumn();
+    if ($dueno === false) { http_response_code(404); die('Incidencia no encontrada.'); }
+    if (!es_admin() && (int)$dueno !== (int)$_SESSION['usuario_id']) {
+      http_response_code(403); die('Solo el autor del reporte o un administrador pueden dejar notas.');
+    }
+    $nota = trim($_POST['nota'] ?? '');
+    if ($nota === '') {
+      header('Location: /srci/detalle.php?id=' . $id . '&seg_error=vacio#seguimiento'); exit;
+    }
+    if (mb_strlen($nota) > 1000) {
+      header('Location: /srci/detalle.php?id=' . $id . '&seg_error=largo#seguimiento'); exit;
+    }
+    try {
+      db()->prepare(
+        'INSERT INTO incidencia_seguimiento (incidencia_id, usuario_id, nota) VALUES (:i, :u, :n)'
+      )->execute([
+        ':i' => $id,
+        ':u' => (int)$_SESSION['usuario_id'],
+        ':n' => $nota,
+      ]);
+    } catch (PDOException $e) {
+      header('Location: /srci/detalle.php?id=' . $id . '&seg_error=error#seguimiento'); exit;
+    }
+    // Auditoria: quien agrego la nota y extracto de su contenido
+    registrar_auditoria(
+      (int)$_SESSION['usuario_id'],
+      'seguimiento',
+      $id,
+      'Agrego nota de seguimiento: ' . mb_substr($nota, 0, 200)
+    );
+    header('Location: /srci/detalle.php?id=' . $id . '#seguimiento');
+    exit;
   }
 }
 
-$csrf = csrf_token();
-
-$id = (int)($_GET['id'] ?? 0);
-if ($id === 0) { header('Location: /srci/incidencias.php'); exit; }
+$csrf      = csrf_token();
+$seg_error = (string)($_GET['seg_error'] ?? '');
 
 $stmt = db()->prepare(
   'SELECT i.*, t.nombre AS tipo_nombre, t.icono AS tipo_icono, t.clave AS tipo_clave, u.nombre AS usuario_nombre, b.nombre AS barrio_nombre
@@ -53,6 +90,10 @@ $fotos->execute([':id' => $id]);
 $fotos = $fotos->fetchAll();
 
 $cats_inc = categorias_de_incidencia($id);
+
+// Seguimiento (notas fechadas, append-only)
+$seguimiento  = seguimiento_de_incidencia($id);
+$puede_anotar = es_admin() || (int)$inc['usuario_id'] === (int)$_SESSION['usuario_id'];
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -177,6 +218,64 @@ $cats_inc = categorias_de_incidencia($id);
         </div>
         <p id="msg-estado" style="margin-top:var(--espacio-sm);font-size:.875rem;display:none;"></p>
       </div>
+    <?php endif; ?>
+  </div>
+
+  <!-- Seguimiento (notas fechadas, trazables) -->
+  <div class="tarjeta" id="seguimiento" style="margin-bottom:var(--espacio-lg);">
+    <h2 style="margin-bottom:var(--espacio-xs);">🕓 Seguimiento</h2>
+    <p style="color:var(--color-texto-suave);font-size:.9rem;margin-bottom:var(--espacio-lg);">
+      Notas sobre cómo evoluciona la incidencia. Cada una queda registrada con su autor y fecha; no se editan ni borran.
+    </p>
+
+    <?php if ($seg_error === 'vacio'): ?>
+      <div class="mensaje mensaje-error" style="margin-bottom:var(--espacio-lg);" role="alert">
+        <span>⚠️</span><span>La nota no puede estar vacía.</span>
+      </div>
+    <?php elseif ($seg_error === 'largo'): ?>
+      <div class="mensaje mensaje-error" style="margin-bottom:var(--espacio-lg);" role="alert">
+        <span>⚠️</span><span>La nota es demasiado larga (máximo 1000 caracteres).</span>
+      </div>
+    <?php elseif ($seg_error === 'error'): ?>
+      <div class="mensaje mensaje-error" style="margin-bottom:var(--espacio-lg);" role="alert">
+        <span>⚠️</span><span>No se pudo guardar la nota. Probá de nuevo.</span>
+      </div>
+    <?php endif; ?>
+
+    <?php if ($seguimiento): ?>
+      <div>
+        <?php foreach ($seguimiento as $i => $s): ?>
+          <div style="display:flex;gap:var(--espacio-md);padding:var(--espacio-md) 0;<?= $i > 0 ? 'border-top:1px solid var(--color-borde);' : '' ?>">
+            <span style="flex:0 0 auto;width:10px;height:10px;margin-top:8px;border-radius:50%;background:var(--color-acento);" aria-hidden="true"></span>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:.8rem;color:var(--color-texto-suave);">
+                <?= esc(fecha_legible((string)$s['fecha_hora'])) ?>
+                · <strong style="color:var(--color-texto);"><?= esc($s['usuario_nombre'] ?? 'Usuario') ?></strong>
+              </div>
+              <div style="margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere;"><?= esc($s['nota']) ?></div>
+            </div>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    <?php else: ?>
+      <p style="color:var(--color-texto-suave);">Todavía no hay notas de seguimiento.</p>
+    <?php endif; ?>
+
+    <?php if ($puede_anotar): ?>
+      <form method="POST" action="/srci/detalle.php?id=<?= $id ?>" style="margin-top:var(--espacio-lg);padding-top:var(--espacio-lg);border-top:1px solid var(--color-borde);">
+        <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
+        <input type="hidden" name="accion"     value="agregar_nota">
+        <div class="campo">
+          <label for="seg-nota">Nueva nota</label>
+          <textarea id="seg-nota" name="nota" rows="3" maxlength="1000" required
+                    placeholder="Ej: Hoy 10 de agosto no pasó el camión a juntar la basura."></textarea>
+        </div>
+        <button type="submit" class="boton boton-primario" style="margin-top:var(--espacio-sm);">Agregar nota</button>
+      </form>
+    <?php else: ?>
+      <p style="color:var(--color-texto-suave);font-size:.85rem;margin-top:var(--espacio-lg);padding-top:var(--espacio-lg);border-top:1px solid var(--color-borde);">
+        Solo el autor del reporte o un administrador pueden agregar notas de seguimiento.
+      </p>
     <?php endif; ?>
   </div>
 

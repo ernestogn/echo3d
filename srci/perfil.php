@@ -44,6 +44,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
   }
 
+  // --- Agregar nota de seguimiento a un reporte propio ---
+  if ($accion === 'agregar_nota') {
+    $iid  = (int)($_POST['incidencia_id'] ?? 0);
+    $nota = trim($_POST['nota'] ?? '');
+
+    $st = db()->prepare('SELECT usuario_id FROM incidencias WHERE id = :id');
+    $st->execute([':id' => $iid]);
+    $dueno = $st->fetchColumn();
+
+    if ($dueno === false || (int)$dueno !== $uid) {
+      $mensaje  = 'No podés agregar notas a ese reporte.';
+      $tipo_msg = 'error';
+    } elseif ($nota === '' || mb_strlen($nota) > 1000) {
+      $mensaje  = 'La nota debe tener entre 1 y 1000 caracteres.';
+      $tipo_msg = 'error';
+    } else {
+      try {
+        db()->prepare(
+          'INSERT INTO incidencia_seguimiento (incidencia_id, usuario_id, nota) VALUES (:i, :u, :n)'
+        )->execute([':i' => $iid, ':u' => $uid, ':n' => $nota]);
+      } catch (PDOException $e) {
+        $mensaje  = 'No se pudo guardar la nota. Probá de nuevo.';
+        $tipo_msg = 'error';
+      }
+      if ($tipo_msg !== 'error') {
+        // Auditoria: quien agrego la nota y extracto de su contenido
+        registrar_auditoria($uid, 'seguimiento', $iid, 'Agrego nota de seguimiento: ' . mb_substr($nota, 0, 200));
+        header('Location: /srci/detalle.php?id=' . $iid . '#seguimiento');
+        exit;
+      }
+    }
+  }
+
 }
 
 // --- Datos actuales ---
@@ -76,6 +109,9 @@ $str = db()->prepare(
 );
 $str->execute([':id' => $uid]);
 $mis_reportes = $str->fetchAll();
+
+// Notas de seguimiento por reporte (conteo)
+$seg_conteo = contar_seguimiento_por_incidencia(array_column($mis_reportes, 'id'));
 
 $conteo = ['pendiente' => 0, 'en_proceso' => 0, 'resuelto' => 0];
 foreach ($mis_reportes as $r) {
@@ -237,10 +273,10 @@ if ($iniciales === '') {
       <div class="tabla-contenedor">
         <table class="tabla-incidencias">
           <thead>
-            <tr><th>#</th><th>Tipo</th><th>Dirección</th><th>Barrio</th><th>Gravedad</th><th>Estado</th><th>Fecha</th></tr>
+            <tr><th>#</th><th>Tipo</th><th>Dirección</th><th>Barrio</th><th>Gravedad</th><th>Estado</th><th>Fecha</th><th>Seguimiento</th></tr>
           </thead>
           <tbody>
-            <?php foreach ($mis_reportes as $r): ?>
+            <?php foreach ($mis_reportes as $r): $seg_n = $seg_conteo[(int)$r['id']] ?? 0; ?>
               <tr onclick="location.href='/srci/detalle.php?id=<?= (int)$r['id'] ?>'" style="cursor:pointer;">
                 <td><a href="/srci/detalle.php?id=<?= (int)$r['id'] ?>">#<?= (int)$r['id'] ?></a></td>
                 <td><?= esc($r['tipo_icono'] ?? '') ?> <?= esc($r['tipo_nombre']) ?></td>
@@ -249,6 +285,25 @@ if ($iniciales === '') {
                 <td><span class="gravedad-badge <?= clase_gravedad($r['gravedad']) ?>"><?= esc(nombre_gravedad($r['gravedad'])) ?></span></td>
                 <td><span class="estado-badge <?= clase_estado($r['estado']) ?>"><?= esc(nombre_estado($r['estado'])) ?></span></td>
                 <td style="white-space:nowrap;"><?= esc(fecha_legible((string)$r['fecha_hora'])) ?></td>
+                <td onclick="event.stopPropagation();" style="white-space:nowrap;">
+                  <details>
+                    <summary style="cursor:pointer;color:var(--color-acento);font-size:.85rem;">
+                      🕓 <?= $seg_n ?> · ＋ Nota
+                    </summary>
+                    <div style="min-width:240px;margin-top:var(--espacio-sm);">
+                      <a href="/srci/detalle.php?id=<?= (int)$r['id'] ?>#seguimiento" style="font-size:.8rem;">Ver seguimiento completo →</a>
+                      <form method="POST" action="/srci/perfil.php" style="margin-top:var(--espacio-sm);">
+                        <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
+                        <input type="hidden" name="accion" value="agregar_nota">
+                        <input type="hidden" name="incidencia_id" value="<?= (int)$r['id'] ?>">
+                        <textarea name="nota" rows="2" maxlength="1000" required
+                                  placeholder="Ej: Hoy 10 de agosto no pasó el camión a juntar la basura."
+                                  style="width:100%;"></textarea>
+                        <button type="submit" class="boton boton-primario boton-sm" style="margin-top:var(--espacio-xs);">Guardar nota</button>
+                      </form>
+                    </div>
+                  </details>
+                </td>
               </tr>
             <?php endforeach; ?>
           </tbody>

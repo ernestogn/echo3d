@@ -269,6 +269,55 @@ function categorias_por_incidencia(array $incidencia_ids): array
   return $mapa;
 }
 
+// --- Seguimiento de incidencias (notas fechadas, append-only) ---
+
+// Notas de seguimiento de una incidencia, ordenadas por fecha ascendente.
+// Cada fila trae nombre del autor (LEFT JOIN: el autor puede haberse eliminado).
+function seguimiento_de_incidencia(int $incidencia_id): array
+{
+  try {
+    $st = db()->prepare(
+      'SELECT s.id, s.nota, s.fecha_hora, s.usuario_id, u.nombre AS usuario_nombre
+         FROM incidencia_seguimiento s
+         LEFT JOIN usuarios u ON u.id = s.usuario_id
+        WHERE s.incidencia_id = :id
+        ORDER BY s.id'
+    );
+    $st->execute([':id' => $incidencia_id]);
+    return $st->fetchAll();
+  } catch (Throwable $e) {
+    return [];
+  }
+}
+
+// Cuenta las notas de seguimiento de varias incidencias a la vez.
+// Devuelve [incidencia_id => total]. Una sola query (GROUP BY).
+function contar_seguimiento_por_incidencia(array $incidencia_ids): array
+{
+  $incidencia_ids = array_values(array_unique(array_map('intval', $incidencia_ids)));
+  $incidencia_ids = array_filter($incidencia_ids, fn($v) => $v > 0);
+  if (!$incidencia_ids) return [];
+
+  try {
+    $ph = implode(',', array_fill(0, count($incidencia_ids), '?'));
+    $st = db()->prepare(
+      "SELECT incidencia_id, COUNT(*) AS total
+         FROM incidencia_seguimiento
+        WHERE incidencia_id IN ($ph)
+        GROUP BY incidencia_id"
+    );
+    $st->execute($incidencia_ids);
+
+    $mapa = [];
+    foreach ($st->fetchAll() as $row) {
+      $mapa[(int)$row['incidencia_id']] = (int)$row['total'];
+    }
+    return $mapa;
+  } catch (Throwable $e) {
+    return [];
+  }
+}
+
 // --- Espejo en Google Sheets (via Apps Script Web App) ---
 // Configurar en config.local.php (fuera de git):
 //   define('SRCI_SHEETS_WEBAPP_URL', 'https://script.google.com/macros/s/.../exec');

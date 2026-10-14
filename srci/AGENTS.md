@@ -61,7 +61,8 @@ srci/
 │   ├── migracion_usuarios_barrios.sql  Migracion: barrios reales + tabla referentes_barrios
 │   ├── migracion_barrios_categoria_color.sql  Migracion: categoria (formal|informal|asentamiento) + color de render de barrios
 │   ├── migracion_categorias_incidencia.sql  Migracion: categorias de incidencia (muchos-a-muchos, no excluyentes) + backfill a Climaticos
-│   └── migracion_categorias_visible_usuario.sql  Migracion: categorias_incidencia.visible_usuario (TINYINT default 0) — el selector de categorias queda SOLO para admins (idempotente)
+│   ├── migracion_categorias_visible_usuario.sql  Migracion: categorias_incidencia.visible_usuario (TINYINT default 0) — el selector de categorias queda SOLO para admins (idempotente)
+│   └── migracion_seguimiento.sql  Migracion: tabla incidencia_seguimiento (notas fechadas por incidencia, append-only, con autor)
 │
 ├── includes/
 │   ├── db.php             Conexion PDO singleton (funcion db()), respuesta_json()
@@ -72,7 +73,8 @@ srci/
 │                          nombre_categoria() / clase_categoria() / color_categoria() / color_valido(),
 │                          categorias_activas() / categorias_visibles() / hay_categorias_visibles() /
 │                          categoria_default_id() / categorias_de_incidencia() /
-│                          guardar_categorias_incidencia() / categorias_por_incidencia()
+│                          guardar_categorias_incidencia() / categorias_por_incidencia(),
+│                          seguimiento_de_incidencia() / contar_seguimiento_por_incidencia()
 │
 ├── api/
 │   ├── tipos.php          GET  /srci/api/tipos.php      — lista tipos activos (JSON)
@@ -165,6 +167,10 @@ categorias_incidencia id, clave(UNIQUE), nombre, icono, color(VARCHAR(7) #rrggbb
                   modal y dropdown del mapa); con todas en 0 (estado actual) el selector es SOLO de admins.
 incidencia_categorias incidencia_id(FK CASCADE), categoria_id(FK CASCADE) — PK(incidencia_id, categoria_id).
                   Pivote muchos-a-muchos. La migracion hace backfill: TODAS las incidencias existentes quedan en Climáticos.
+incidencia_seguimiento id, incidencia_id(FK CASCADE), usuario_id(FK SET NULL), nota(TEXT NOT NULL),
+                  fecha_hora(DATETIME default CURRENT_TIMESTAMP) — APPEND-ONLY: notas fechadas de seguimiento.
+                  Solo INSERT (nunca UPDATE/DELETE desde la UI) = trazable. Guarda quien y cuando anoto.
+                  indice idx_seguimiento_incidencia(incidencia_id).
 ```
 
 **Regla:** nunca alterar el esquema sin proponer la migracion SQL primero y esperar confirmacion del humano.
@@ -191,7 +197,9 @@ Usuarios del relevamiento: cargados por script one-shot con username = email; el
 
 **Categorias de incidencia (`categorias_incidencia` + `incidencia_categorias`):** etiquetas **independientes del tipo** y **no excluyentes** (una incidencia puede tener varias). Se eligen en el modal de reporte (`index.php` + `reporte.js`: chips multiseleccion en el Paso 2, **Climáticos pre-marcada**), se editan en `editar.php` (checkboxes `categorias[]`) y se muestran como badges en `incidencias.php` (columna + fila expandida), `admin/reportes.php` (columna), `detalle.php` y el popup del mapa. **El selector es SOLO para admins (decision del cliente 2026-10-11, "por ahora"):** `index.php` renderiza el campo solo si `$es_admin || hay_categorias_visibles()`; `index.php` inyecta `window.SRCI_ES_ADMIN` y `window.SRCI_MOSTRAR_CATEGORIAS` y `reporte.js`/`mapa.js` gatean con eso (admins: `/api/categorias.php`; usuarios: `/api/categorias.php?visibles=1`, y si no hay visibles no se renderiza nada). El admin enciende categoria por categoria con el switch **"👁 Mostrar a usuarios"** de `admin/categorias.php` (`visible_usuario`, columna "Usuarios", checkbox en crear/editar, accion `toggle_visibilidad`, audita "visible/oculta para usuarios"). `api/reportes.php` POST acepta `categorias: [int]` (valida activas; si viene vacio aplica la por defecto) y su GET adjunta `categorias: [{id,clave,nombre,icono,color}]` a cada incidencia (segunda query via `categorias_por_incidencia()`). `incidencias.php` permite filtrar por `categoria_id` (subquery `EXISTS`) y exporta las categorias en CSV (`Categorías`) y GeoJSON (`properties.categorias`). El mapa filtra por categoria con un **dropdown** en `#filtros-mapa` (combina AND con tipo/mis reportes; `mapa.js` guarda `reg.categoriaIds`). La importacion de la planilla (`api/sheets_entrada.php`) asigna **Climáticos**. Helpers en `funciones.php`: `categorias_activas()`, `categorias_visibles()`, `hay_categorias_visibles()`, `categoria_default_id()`, `categorias_de_incidencia($id)`, `guardar_categorias_incidencia($id, $ids)`, `categorias_por_incidencia($ids)`.
 
-**Ocultar (soft delete) + auditoria (REGLAS):** las incidencias **nunca se borran** de la BD. "Eliminar" = pasar a `oculto = 1` (solo admins, con CSRF y confirm). El mapa, listado y exportaciones filtran `oculto = 0`; el admin ve/restaura las ocultas desde `admin/reportes.php?ocultas=1`. Toda accion (crear, editar con detalle de campos cambiados, cambiar estado, ocultar, restaurar, subir foto) se registra en la tabla `auditoria` con `registrar_auditoria()` (`includes/funciones.php`) — visible en `/srci/admin/auditoria.php`.
+**Seguimiento de incidencias (`incidencia_seguimiento`, 2026-10-13):** cada usuario **dueño del reporte** (o un admin) puede dejar **notas fechadas** de seguimiento sobre una incidencia (ej: "Hoy 10 de agosto no pasó el camión a juntar la basura"). La tabla es **APPEND-ONLY**: solo INSERT, nunca se editan ni borran desde la UI, por lo que es **trazable** (cada fila guarda `usuario_id` + `fecha_hora`). Se agregan desde el timeline de `detalle.php` (tarjeta "🕓 Seguimiento", ancla `#seguimiento`; POST acción `agregar_nota` con CSRF, valida dueño/admin, nota no vacía ≤ 1000) y desde el formulario rápido por reporte en `perfil.php` (columna "Seguimiento" con conteo + `<details>` que se despliega con el textarea). Ambos insertan y luego **auditan**: `registrar_auditoria(uid, 'seguimiento', $incidencia_id, 'Agrego nota de seguimiento: <extracto 200>')` (visible en `admin/auditoria.php`, mapeado en `accion_legible()`/`clase_accion()` como "Nota de seguimiento"). Helpers en `funciones.php`: `seguimiento_de_incidencia($id)` (lista con autor, asc) y `contar_seguimiento_por_incidencia($ids)` (conteo por incidencia para badges, una query GROUP BY). Requiere correr `sql/migracion_seguimiento.sql`.
+
+**Ocultar (soft delete) + auditoria (REGLAS):** las incidencias **nunca se borran** de la BD. "Eliminar" = pasar a `oculto = 1` (solo admins, con CSRF y confirm). El mapa, listado y exportaciones filtran `oculto = 0`; el admin ve/restaura las ocultas desde `admin/reportes.php?ocultas=1`. Toda accion (crear, editar con detalle de campos cambiados, cambiar estado, ocultar, restaurar, subir foto, **agregar nota de seguimiento**) se registra en la tabla `auditoria` con `registrar_auditoria()` (`includes/funciones.php`) — visible en `/srci/admin/auditoria.php`.
 
 ---
 

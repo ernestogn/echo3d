@@ -36,6 +36,7 @@ function accion_legible(string $accion): string
     'subir_foto'     => 'Subio foto',
     'borrar_foto'    => 'Borro foto',
     'cambiar_pin'    => 'Cambio su PIN',
+    'seguimiento'    => 'Nota de seguimiento',
     default          => ucfirst($accion),
   };
 }
@@ -51,6 +52,7 @@ function clase_accion(string $accion): string
     'subir_foto'     => 'aud-foto',
     'borrar_foto'    => 'aud-foto',
     'cambiar_pin'    => 'aud-editar',
+    'seguimiento'    => 'aud-editar',
     default          => '',
   };
 }
