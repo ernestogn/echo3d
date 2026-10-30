@@ -551,8 +551,9 @@ function contar_anillos_poligono(?string $poligono): array
 }
 
 // Registra una accion en el log de auditoria (quien, cuando, que)
-// Nunca rompe el flujo principal si falla
-function registrar_auditoria(int $usuario_id, string $accion, ?int $incidencia_id, string $detalle = ''): void
+// Nunca rompe el flujo principal si falla. $usuario_id puede ser null
+// (eventos sin usuario logueado: bloqueos anti fuerza bruta del login).
+function registrar_auditoria(?int $usuario_id, string $accion, ?int $incidencia_id, string $detalle = ''): void
 {
   try {
     $stmt = db()->prepare('INSERT INTO auditoria (usuario_id, accion, incidencia_id, detalle) VALUES (:u, :a, :i, :d)');
@@ -753,5 +754,160 @@ HTML;
 
   // Envelope sender alineado con el From (evita DMARC:Quarantine / spam de Gmail)
   return @mail($email, $asunto, $cuerpo, $headers, '-fadmin@echo3dlaser.com.ar');
+}
+
+// --- Notificaciones por email al creador de una incidencia ---
+
+// True si el email es ruteable (presente y no de dominio interno *.local)
+function email_ruteable(?string $email): bool
+{
+  return $email !== null && $email !== '' && !str_ends_with(strtolower($email), '.local');
+}
+
+// Notifica al creador de la incidencia que algo paso con su reporte:
+// crear | editar | estado | ocultar | restaurar. Lo haga el propio creador
+// o un organizador, el email sale igual. Nunca interrumpe el flujo principal.
+// $detalle: texto extra opcional (ej: "Estado: Pendiente → Resuelto" o campos cambiados).
+function notificar_creador_por_email(int $incidencia_id, string $evento, string $detalle = ''): bool
+{
+  $asuntos = [
+    'crear'     => 'Tu reporte #' . $incidencia_id . ' quedó cargado — SRCI',
+    'editar'    => 'Tu reporte #' . $incidencia_id . ' fue actualizado — SRCI',
+    'estado'    => 'Tu reporte #' . $incidencia_id . ': nuevo estado — SRCI',
+    'ocultar'   => 'Tu reporte #' . $incidencia_id . ' fue ocultado — SRCI',
+    'restaurar' => 'Tu reporte #' . $incidencia_id . ' fue restaurado — SRCI',
+  ];
+  if (!isset($asuntos[$evento])) {
+    return false;
+  }
+
+  try {
+    $st = db()->prepare(
+      'SELECT i.id, i.usuario_id, i.direccion, i.gravedad, i.estado,
+              t.nombre AS tipo_nombre, t.icono AS tipo_icono,
+              b.nombre AS barrio_nombre,
+              u.email  AS creador_email, u.nombre AS creador_nombre
+         FROM incidencias i
+         JOIN tipos_incidencia t ON t.id = i.tipo_id
+         LEFT JOIN barrios b     ON b.id = i.barrio_id
+         JOIN usuarios u         ON u.id = i.usuario_id
+        WHERE i.id = :id LIMIT 1'
+    );
+    $st->execute([':id' => $incidencia_id]);
+    $inc = $st->fetch();
+  } catch (Throwable $e) {
+    return false;
+  }
+  if (!$inc || !email_ruteable((string)($inc['creador_email'] ?? ''))) {
+    return false;
+  }
+
+  $creador      = (string)$inc['creador_nombre'];
+  $actor_nombre = (string)($_SESSION['nombre'] ?? 'Un usuario');
+  $actor_rol    = (function_exists('es_admin') && es_admin()) ? 'organizador' : 'referente';
+  $lo_hizo      = isset($_SESSION['usuario_id']) && (int)$_SESSION['usuario_id'] === (int)$inc['usuario_id']
+    ? 'Lo hiciste vos desde tu cuenta.'
+    : "Lo hizo {$actor_nombre} ({$actor_rol}).";
+
+  $intro = match($evento) {
+    'crear'     => 'Tu reporte quedó cargado en el sistema. ¡Gracias por avisar!',
+    'editar'    => 'Tu reporte fue actualizado.',
+    'estado'    => 'El estado de tu reporte cambió.',
+    'ocultar'   => 'Tu reporte fue ocultado de la lista y del mapa (no se borra: queda registrado).',
+    'restaurar' => 'Tu reporte vuelve a estar visible en la lista y en el mapa.',
+  };
+
+  $url            = 'https://echo3dlaser.com.ar/srci/detalle.php?id=' . $incidencia_id;
+  $asunto         = '=?UTF-8?B?' . base64_encode($asuntos[$evento]) . '?=';
+  $estado_legible = nombre_estado((string)$inc['estado']);
+  $lineas = [
+    'Tipo'      => trim(($inc['tipo_icono'] ?? '') . ' ' . ($inc['tipo_nombre'] ?? '')),
+    'Dirección' => ($inc['direccion'] ?? '') !== '' ? (string)$inc['direccion'] : '—',
+    'Barrio'    => ($inc['barrio_nombre'] ?? '') !== '' ? (string)$inc['barrio_nombre'] : '—',
+    'Gravedad'  => nombre_gravedad(isset($inc['gravedad']) ? (string)$inc['gravedad'] : null),
+    'Estado'    => $estado_legible,
+  ];
+
+  // Parte texto plano (clientes sin HTML)
+  $texto = "Hola {$creador},\n\n"
+         . "{$intro}\n"
+         . "{$lo_hizo}\n"
+         . ($detalle !== '' ? "{$detalle}\n" : '')
+         . "\nResumen del reporte #{$incidencia_id}:\n";
+  foreach ($lineas as $k => $v) {
+    $texto .= "- {$k}: {$v}\n";
+  }
+  $texto .= "\nVer el reporte: {$url}\n\n"
+          . "Mensaje automático del SRCI — no respondas este email.\n";
+
+  // Parte HTML (estilos inline: los clientes de correo ignoran <style>)
+  $filas_html = '';
+  foreach ($lineas as $k => $v) {
+    $filas_html .= '<tr>'
+      . '<td style="padding:8px 12px;color:#64748b;font-size:13px;font-weight:700;border-bottom:1px solid #f1f5f9;white-space:nowrap;">' . esc($k) . '</td>'
+      . '<td style="padding:8px 12px;color:#0f172a;font-size:13px;border-bottom:1px solid #f1f5f9;">' . esc($v) . '</td>'
+      . '</tr>';
+  }
+  $creador_html = esc($creador);
+  $lo_hizo_html = esc($lo_hizo);
+  $detalle_html = $detalle !== ''
+    ? '<p style="margin:0 0 16px;color:#475569;font-size:13px;line-height:1.6;background:#f8fafc;border-left:3px solid #4f46e5;padding:10px 14px;border-radius:0 8px 8px 0;">' . esc($detalle) . '</p>'
+    : '';
+  $html = <<<HTML
+<!DOCTYPE html>
+<html lang="es">
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:24px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;">
+        <tr><td style="background:#4f46e5;padding:26px 32px;text-align:center;">
+          <div style="font-size:30px;line-height:1;">🗺️</div>
+          <div style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:.5px;margin-top:6px;">SRCI</div>
+          <div style="color:#c7d2fe;font-size:13px;margin-top:2px;">Sistema de Reporte Ciudadano</div>
+        </td></tr>
+        <tr><td style="padding:30px 32px;">
+          <p style="margin:0 0 8px;color:#0f172a;font-size:17px;font-weight:700;">Hola {$creador_html} 👋</p>
+          <p style="margin:0 0 6px;color:#475569;font-size:14px;line-height:1.6;">{$intro}</p>
+          <p style="margin:0 0 16px;color:#94a3b8;font-size:12px;">{$lo_hizo_html}</p>
+          {$detalle_html}
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:10px;margin-bottom:20px;">
+            {$filas_html}
+          </table>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr><td align="center">
+              <a href="{$url}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:13px 34px;border-radius:10px;">Ver el reporte</a>
+            </td></tr>
+          </table>
+          <p style="margin:18px 0 0;color:#64748b;font-size:12px;line-height:1.6;">Si el botón no funciona, copiá este enlace:<br><a href="{$url}" style="color:#4f46e5;">{$url}</a></p>
+        </td></tr>
+        <tr><td style="padding:16px 32px;border-top:1px solid #e2e8f0;">
+          <p style="margin:0;color:#94a3b8;font-size:11px;line-height:1.6;">Mensaje automático del Sistema de Reporte Ciudadano — echo3dlaser.com.ar. No respondas este email.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+HTML;
+
+  $limite = md5(uniqid((string)random_int(0, mt_getrandmax()), true));
+  $headers = implode("\r\n", [
+    'From: SRCI <admin@echo3dlaser.com.ar>',
+    'MIME-Version: 1.0',
+    "Content-Type: multipart/alternative; boundary=\"{$limite}\"",
+  ]);
+
+  $cuerpo = "--{$limite}\r\n"
+          . "Content-Type: text/plain; charset=UTF-8\r\n"
+          . "Content-Transfer-Encoding: base64\r\n\r\n"
+          . chunk_split(base64_encode($texto)) . "\r\n"
+          . "--{$limite}\r\n"
+          . "Content-Type: text/html; charset=UTF-8\r\n"
+          . "Content-Transfer-Encoding: base64\r\n\r\n"
+          . chunk_split(base64_encode($html)) . "\r\n"
+          . "--{$limite}--\r\n";
+
+  // Envelope sender alineado con el From (evita DMARC:Quarantine / spam de Gmail)
+  return @mail((string)$inc['creador_email'], $asunto, $cuerpo, $headers, '-fadmin@echo3dlaser.com.ar');
 }
   

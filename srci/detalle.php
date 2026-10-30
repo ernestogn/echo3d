@@ -8,6 +8,28 @@ requiere_sesion();
 $id = (int)($_GET['id'] ?? 0);
 if ($id === 0) { header('Location: /srci/incidencias.php'); exit; }
 
+// Valida que una URL sea interna de /srci/ (mismo host); devuelve la ruta o ''
+$ruta_interna = function (string $url): string {
+  $p = parse_url($url);
+  if (!is_array($p) || empty($p['path']) || !str_starts_with($p['path'], '/srci/')) {
+    return '';
+  }
+  $host_propio = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
+  if (isset($p['host']) && $p['host'] !== '' && strtolower($p['host']) !== $host_propio) {
+    return '';
+  }
+  return $p['path'] . (isset($p['query']) ? '?' . $p['query'] : '');
+};
+
+// De donde vino el usuario (para volver ahi tras ocultar/restaurar)
+$origen = '/srci/incidencias.php';
+if (!empty($_SERVER['HTTP_REFERER'])) {
+  $ref = $ruta_interna((string)$_SERVER['HTTP_REFERER']);
+  if ($ref !== '' && !str_starts_with($ref, '/srci/detalle.php')) {
+    $origen = $ref;
+  }
+}
+
 // --- Ocultar / Restaurar (solo admin, sin borrar) + Seguimiento ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   validar_csrf();
@@ -24,7 +46,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $id,
       $accion === 'ocultar' ? 'Oculto la incidencia (no se borra)' : 'Restauro la incidencia'
     );
-    header('Location: /srci/incidencias.php');
+    // Email al creador: su reporte fue ocultado o restaurado
+    notificar_creador_por_email($id, $accion);
+    // Vuelve a la pagina desde la que se llego (validada interna)
+    $destino = $ruta_interna((string)($_POST['volver'] ?? ''));
+    header('Location: ' . ($destino !== '' ? $destino : '/srci/incidencias.php'));
     exit;
   } elseif ($accion === 'agregar_nota') {
     // Solo el autor del reporte o un admin pueden dejar seguimiento
@@ -123,7 +149,7 @@ $puede_anotar = es_admin() || (int)$inc['usuario_id'] === (int)$_SESSION['usuari
 
 <main class="pagina-contenedor" style="max-width:800px;">
   <div style="margin-bottom:var(--espacio-lg);display:flex;justify-content:space-between;flex-wrap:wrap;gap:var(--espacio-md);">
-    <a href="/srci/incidencias.php" style="color:var(--color-texto-suave);font-size:.9rem;">← Volver al listado</a>
+    <a href="<?= esc($origen) ?>" style="color:var(--color-texto-suave);font-size:.9rem;">← Volver</a>
     <a href="/srci/editar.php?id=<?= $id ?>" style="color:var(--color-texto-suave);font-size:.9rem;">Editar incidencia →</a>
   </div>
 
@@ -139,6 +165,7 @@ $puede_anotar = es_admin() || (int)$inc['usuario_id'] === (int)$_SESSION['usuari
         <form method="POST" onsubmit="return confirm('<?= $inc['oculto'] ? '¿Restaurar esta incidencia? Vuelve a la lista activa.' : '¿Ocultar esta incidencia? No se borra: pasa a ocultas.' ?>');">
           <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
           <input type="hidden" name="accion"     value="<?= $inc['oculto'] ? 'restaurar' : 'ocultar' ?>">
+          <input type="hidden" name="volver"     value="<?= esc($origen) ?>">
           <button type="submit" class="boton <?= $inc['oculto'] ? 'boton-secundario' : 'boton-peligro' ?> boton-sm">
             <?= $inc['oculto'] ? '👁 Restaurar' : '🗑 Ocultar' ?>
           </button>

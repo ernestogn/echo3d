@@ -47,8 +47,24 @@ $logueado = !empty($_SESSION['usuario_id']);
     </p>
   </div>
 
-  <!-- 1. Que es -->
+  <!-- Indice -->
   <div class="tarjeta" style="margin-bottom:var(--espacio-lg);">
+    <h2>📚 Índice</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:var(--espacio-sm);margin-top:var(--espacio-sm);">
+      <a href="#que-es"      class="boton boton-secundario boton-sm">🗺️ Qué es</a>
+      <a href="#ingresar"    class="boton boton-secundario boton-sm">🔑 Cómo ingresar</a>
+      <a href="#reportar"    class="boton boton-secundario boton-sm">📸 Reportar</a>
+      <a href="#categorias"  class="boton boton-secundario boton-sm">🗂️ Categorías</a>
+      <a href="#colores"     class="boton boton-secundario boton-sm">🎨 Colores del mapa</a>
+      <a href="#listado"     class="boton boton-secundario boton-sm">📋 Buscar y filtrar</a>
+      <a href="#editar"      class="boton boton-secundario boton-sm">✏️ Corregir un reporte</a>
+      <a href="#seguimiento" class="boton boton-secundario boton-sm">🕓 Seguimiento</a>
+      <a href="#faq"         class="boton boton-secundario boton-sm">🙋 Preguntas frecuentes</a>
+    </div>
+  </div>
+
+  <!-- 1. Que es -->
+  <div id="que-es" class="tarjeta" style="margin-bottom:var(--espacio-lg);scroll-margin-top:76px;">
     <h2>🗺️ ¿Qué es el SRCI?</h2>
     <p style="color:var(--color-texto);line-height:1.7;">
       Es un mapa de la ciudad donde los referentes barriales marcan problemas urbanos:
@@ -59,7 +75,7 @@ $logueado = !empty($_SESSION['usuario_id']);
   </div>
 
   <!-- 2. Como ingresar -->
-  <div class="tarjeta" style="margin-bottom:var(--espacio-lg);">
+  <div id="ingresar" class="tarjeta" style="margin-bottom:var(--espacio-lg);scroll-margin-top:76px;">
     <h2>🔑 Cómo ingresar</h2>
     <ol style="line-height:2;color:var(--color-texto);padding-left:var(--espacio-lg);">
       <li>Entrá a <strong>echo3dlaser.com.ar/srci</strong></li>
@@ -78,7 +94,7 @@ $logueado = !empty($_SESSION['usuario_id']);
   </div>
 
   <!-- 3. Reportar -->
-  <div class="tarjeta" style="margin-bottom:var(--espacio-lg);">
+  <div id="reportar" class="tarjeta" style="margin-bottom:var(--espacio-lg);scroll-margin-top:76px;">
     <h2>📸 Cómo reportar una incidencia</h2>
     <ol style="line-height:2;color:var(--color-texto);padding-left:var(--espacio-lg);">
       <li>Tocá el botón celeste <strong>"＋ Reportar incidencia"</strong> (abajo a la derecha)</li>
@@ -98,7 +114,7 @@ $logueado = !empty($_SESSION['usuario_id']);
   </div>
 
   <!-- 3b. Categorias -->
-  <div class="tarjeta" style="margin-bottom:var(--espacio-lg);">
+  <div id="categorias" class="tarjeta" style="margin-bottom:var(--espacio-lg);scroll-margin-top:76px;">
     <h2>🗂️ Categorías</h2>
     <p style="color:var(--color-texto);line-height:1.7;">
       Además del <strong>tipo</strong> de problema, cada reporte puede llevar una o varias
@@ -124,7 +140,7 @@ $logueado = !empty($_SESSION['usuario_id']);
   </div>
 
   <!-- 4. Colores del mapa -->
-  <div class="tarjeta" style="margin-bottom:var(--espacio-lg);">
+  <div id="colores" class="tarjeta" style="margin-bottom:var(--espacio-lg);scroll-margin-top:76px;">
     <h2>🎨 Qué significan los colores</h2>
     <p style="color:var(--color-texto);margin-bottom:var(--espacio-md);">
       Cada punto del mapa tiene un color según su <strong>gravedad</strong>, y dentro muestra el
@@ -151,7 +167,7 @@ $logueado = !empty($_SESSION['usuario_id']);
   </div>
 
   <!-- 5. Listado -->
-  <div class="tarjeta" style="margin-bottom:var(--espacio-lg);">
+  <div id="listado" class="tarjeta" style="margin-bottom:var(--espacio-lg);scroll-margin-top:76px;">
     <h2>📋 Buscar y filtrar</h2>
     <p style="color:var(--color-texto);line-height:1.7;">
       En la sección <strong>Listado</strong> ves todos los reportes en tabla. Podés filtrar por
@@ -165,7 +181,7 @@ $logueado = !empty($_SESSION['usuario_id']);
   </div>
 
   <!-- 6. Editar -->
-  <div class="tarjeta" style="margin-bottom:var(--espacio-lg);">
+  <div id="editar" class="tarjeta" style="margin-bottom:var(--espacio-lg);scroll-margin-top:76px;">
     <h2>✏️ Corregir un reporte</h2>
     <p style="color:var(--color-texto);line-height:1.7;">
       ¿Cargaste mal una dirección, la gravedad o querés agregar una foto mejor? Entrá al reporte
@@ -174,8 +190,35 @@ $logueado = !empty($_SESSION['usuario_id']);
     </p>
   </div>
 
-  <!-- 7. FAQ -->
-  <div class="tarjeta" style="margin-bottom:var(--espacio-lg);">
+  <!-- 7. Seguimiento -->
+  <div id="seguimiento" class="tarjeta" style="margin-bottom:var(--espacio-lg);scroll-margin-top:76px;">
+    <h2>🕓 Seguimiento: contar cómo avanza tu reporte</h2>
+    <p style="color:var(--color-texto);line-height:1.7;">
+      Además de corregir datos, podés dejar <strong>notas fechadas</strong> sobre cómo evoluciona la
+      situación (ej: "hoy no pasó el camión a juntar la basura"). Cada nota queda registrada con tu
+      nombre y la fecha, y <strong>no se puede editar ni borrar</strong>: así el historial es confiable
+      para todos.
+    </p>
+    <ol style="line-height:2;color:var(--color-texto);padding-left:var(--espacio-lg);margin-top:var(--espacio-md);">
+      <li>Tocá tu <strong>👤 nombre</strong> en la barra superior para entrar a <strong>Mi perfil</strong></li>
+      <li>Bajá hasta <strong>📋 Mis reportes</strong> y encontrá el reporte en la tabla (#número, tipo, dirección o barrio)</li>
+      <li>En la fila, tocá <strong>🕓 N · ＋ Nota</strong> (columna "Seguimiento") para desplegar el formulario</li>
+      <li>Escribí la nota (hasta 1000 caracteres) y tocá <strong>Guardar nota</strong></li>
+      <li>El sistema te lleva al <strong>seguimiento completo</strong> del reporte, donde tu nota ya figura con tu nombre y fecha</li>
+    </ol>
+    <div class="mensaje mensaje-info" role="note">
+      <span>💡</span>
+      <span>El número junto a 🕓 indica cuántas notas tiene el reporte: podés agregar todas las que quieras, cada una se suma al historial.</span>
+    </div>
+    <p style="color:var(--color-texto-suave);line-height:1.7;">
+      <strong>Camino alternativo:</strong> tocá el <strong>#número</strong> del reporte para ver su detalle
+      completo y escribí la nota en la tarjeta <strong>"🕓 Seguimiento"</strong> (abajo de la página), con el mismo efecto.
+      Solo el <strong>autor del reporte</strong> (o un organizador) puede dejar notas.
+    </p>
+  </div>
+
+  <!-- 8. FAQ -->
+  <div id="faq" class="tarjeta" style="margin-bottom:var(--espacio-lg);scroll-margin-top:76px;">
     <h2>🙋 Preguntas frecuentes</h2>
     <dl style="line-height:1.8;color:var(--color-texto);">
       <dt style="font-weight:700;margin-top:var(--espacio-md);">No me llega el email con el PIN</dt>

@@ -210,6 +210,9 @@ if ($metodo === 'POST') {
     'foto'             => null,
   ]);
 
+  // Email al creador: confirmacion de que su reporte quedo cargado
+  notificar_creador_por_email($id, 'crear');
+
   respuesta_json(['ok' => true, 'id' => $id], 201);
 }
 

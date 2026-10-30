@@ -17,8 +17,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $nombre = trim($_POST['nombre'] ?? '');
   $pin    = trim($_POST['pin'] ?? '');
 
+  // Anti fuerza bruta: limite de intentos por email+IP y por IP
+  $ip    = $_SERVER['REMOTE_ADDR'] ?? 'desconocida';
+  $email = strtolower($nombre);
+
   if ($nombre === '' || $pin === '') {
     $error = 'Ingresa tu email y PIN para continuar.';
+  } elseif (login_bloqueado($ip, $email)) {
+    $error = 'Demasiados intentos fallidos. Esperá unos minutos y volvé a probar.';
+    login_loguear_rechazo($ip, $email); // auditoria: max 1 fila por minuto
   } else {
     $stmt = db()->prepare('SELECT id, nombre, pin_hash, rol, activo FROM usuarios WHERE email = :login LIMIT 1');
     $stmt->execute([':login' => $nombre]);
@@ -26,9 +33,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!$usuario || !$usuario['activo']) {
       $error = 'Usuario no encontrado. Pedi acceso a un administrador.';
+      login_registrar_fallo($ip, $email);
+      usleep(random_int(100000, 300000)); // demora extra frente a scripts
     } elseif (!password_verify($pin, $usuario['pin_hash'])) {
       $error = 'PIN incorrecto. Proba de nuevo.';
+      login_registrar_fallo($ip, $email);
+      usleep(random_int(100000, 300000));
     } else {
+      login_registrar_exito($ip, $email);
       session_regenerate_id(true);
       $_SESSION['usuario_id'] = $usuario['id'];
       $_SESSION['nombre']     = $usuario['nombre'];

@@ -21,6 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $id_oc,
       $accion === 'ocultar' ? 'Oculto la incidencia (no se borra)' : 'Restauro la incidencia'
     );
+    // Email al creador: su reporte fue ocultado o restaurado
+    notificar_creador_por_email($id_oc, $accion);
   }
   header('Location: /srci/incidencias.php');
   exit;

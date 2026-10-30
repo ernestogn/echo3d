@@ -177,7 +177,8 @@ if ($iniciales === '') {
   </div>
 </nav>
 
-<main class="pagina-contenedor" style="max-width:860px;">
+<main class="pagina-contenedor">
+  <div style="max-width:860px;margin:0 auto;">
   <div class="pagina-encabezado">
     <h1>Mi perfil</h1>
     <p style="color:var(--color-texto-suave);margin-top:var(--espacio-xs);">
@@ -227,36 +228,15 @@ if ($iniciales === '') {
         <dd><?= $barrios ? esc(implode(', ', $barrios)) : 'Sin barrios asignados' ?></dd>
       </div>
     </dl>
+
+    <div style="margin-top:var(--espacio-md);">
+      <button type="button" class="boton boton-secundario" id="btn-cambiar-pin">🔑 Cambiar mi PIN</button>
+    </div>
   </div>
 
-  <!-- Cambiar PIN -->
-  <div class="tarjeta" style="margin-bottom:var(--espacio-lg);">
-    <h2 style="margin-bottom:var(--espacio-xs);">🔑 Cambiar mi PIN</h2>
-    <p style="color:var(--color-texto-suave);font-size:.9rem;margin-bottom:var(--espacio-lg);">
-      Tu PIN son 4 dígitos. Para cambiarlo necesitamos el actual.
-    </p>
-    <form method="POST" action="/srci/perfil.php">
-      <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
-      <input type="hidden" name="accion"     value="cambiar_pin">
-      <div class="grilla-form-4">
-        <div class="campo">
-          <label for="pin-actual">PIN actual</label>
-          <input type="password" id="pin-actual" name="pin_actual" inputmode="numeric" maxlength="4" pattern="\d{4}" autocomplete="current-password" required>
-        </div>
-        <div class="campo">
-          <label for="pin-nuevo">PIN nuevo</label>
-          <input type="password" id="pin-nuevo" name="pin_nuevo" inputmode="numeric" maxlength="4" pattern="\d{4}" autocomplete="new-password" required>
-        </div>
-        <div class="campo">
-          <label for="pin-repetir">Repetir PIN nuevo</label>
-          <input type="password" id="pin-repetir" name="pin_repetir" inputmode="numeric" maxlength="4" pattern="\d{4}" autocomplete="new-password" required>
-        </div>
-        <button type="submit" class="boton boton-primario" style="align-self:flex-end;">Guardar PIN</button>
-      </div>
-    </form>
   </div>
 
-  <!-- Mis reportes -->
+  <!-- Mis reportes (90% del ancho de la ventana) -->
   <div class="tarjeta" style="margin-bottom:var(--espacio-lg);">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--espacio-sm);margin-bottom:var(--espacio-md);">
       <h2>📋 Mis reportes</h2>
@@ -312,5 +292,65 @@ if ($iniciales === '') {
     <?php endif; ?>
   </div>
 </main>
+
+<!-- Modal: cambiar PIN -->
+<div class="modal-fondo modal-centrado" id="modal-pin-fondo" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-pin">
+  <div class="modal-caja">
+    <div class="modal-encabezado" style="margin-bottom:var(--espacio-sm);">
+      <h2 id="titulo-modal-pin" style="margin:0;">🔑 Cambiar mi PIN</h2>
+      <button type="button" class="modal-cerrar" id="btn-cerrar-pin" aria-label="Cerrar">✕</button>
+    </div>
+    <p style="color:var(--color-texto-suave);font-size:.9rem;margin-bottom:var(--espacio-lg);">
+      Tu PIN son 4 dígitos. Para cambiarlo necesitamos el actual.
+    </p>
+    <form method="POST" action="/srci/perfil.php">
+      <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
+      <input type="hidden" name="accion"     value="cambiar_pin">
+      <div class="campo" style="margin-bottom:var(--espacio-md);">
+        <label for="pin-actual">PIN actual</label>
+        <input type="password" id="pin-actual" name="pin_actual" inputmode="numeric" maxlength="4" pattern="\d{4}" autocomplete="current-password" required>
+      </div>
+      <div class="campo" style="margin-bottom:var(--espacio-md);">
+        <label for="pin-nuevo">PIN nuevo</label>
+        <input type="password" id="pin-nuevo" name="pin_nuevo" inputmode="numeric" maxlength="4" pattern="\d{4}" autocomplete="new-password" required>
+      </div>
+      <div class="campo" style="margin-bottom:var(--espacio-md);">
+        <label for="pin-repetir">Repetir PIN nuevo</label>
+        <input type="password" id="pin-repetir" name="pin_repetir" inputmode="numeric" maxlength="4" pattern="\d{4}" autocomplete="new-password" required>
+      </div>
+      <div style="display:flex;gap:var(--espacio-sm);justify-content:flex-end;margin-top:var(--espacio-lg);">
+        <button type="button" class="boton boton-secundario" id="btn-cancelar-pin">Cancelar</button>
+        <button type="submit" class="boton boton-primario">Guardar PIN</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function () {
+  const fondo      = document.getElementById('modal-pin-fondo');
+  const btnAbrir   = document.getElementById('btn-cambiar-pin');
+  const btnCerrar  = document.getElementById('btn-cerrar-pin');
+  const btnCancelar = document.getElementById('btn-cancelar-pin');
+
+  const abrirModal = function () {
+    fondo.classList.add('visible');
+    document.getElementById('pin-actual').focus();
+  };
+  const cerrarModal = function () {
+    fondo.classList.remove('visible');
+  };
+
+  btnAbrir.addEventListener('click', abrirModal);
+  btnCerrar.addEventListener('click', cerrarModal);
+  btnCancelar.addEventListener('click', cerrarModal);
+  fondo.addEventListener('click', function (e) {
+    if (e.target === fondo) { cerrarModal(); }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && fondo.classList.contains('visible')) { cerrarModal(); }
+  });
+})();
+</script>
 </body>
 </html>

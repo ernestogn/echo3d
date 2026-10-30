@@ -8,6 +8,33 @@ requiere_sesion();
 $id = (int)($_GET['id'] ?? 0);
 if ($id === 0) { header('Location: /srci/incidencias.php'); exit; }
 
+// Valida que una URL sea interna de /srci/ (mismo host); devuelve la ruta o ''
+$ruta_interna = function (string $url): string {
+  $p = parse_url($url);
+  if (!is_array($p) || empty($p['path']) || !str_starts_with($p['path'], '/srci/')) {
+    return '';
+  }
+  $host_propio = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
+  if (isset($p['host']) && $p['host'] !== '' && strtolower($p['host']) !== $host_propio) {
+    return '';
+  }
+  return $p['path'] . (isset($p['query']) ? '?' . $p['query'] : '');
+};
+
+// De donde vino el usuario (para el Volver / Cancelar; sobrevive al POST via hidden)
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  $origen = $ruta_interna((string)($_POST['volver'] ?? ''));
+  if ($origen === '') { $origen = '/srci/incidencias.php'; }
+} else {
+  $origen = '/srci/incidencias.php';
+  if (!empty($_SERVER['HTTP_REFERER'])) {
+    $ref = $ruta_interna((string)$_SERVER['HTTP_REFERER']);
+    if ($ref !== '' && !str_starts_with($ref, '/srci/editar.php')) {
+      $origen = $ref;
+    }
+  }
+}
+
 $gravedades_validas   = ['baja', 'media', 'alta', 'critica'];
 $servicios_validos    = ['Ninguno', 'Luz', 'Agua', 'Luz y agua', 'Vialidad', 'Otro'];
 $responsables_validos = ['Cooperativa eléctrica', 'Defensa Civil', 'Municipio', 'Provincia', 'Otro'];
@@ -130,6 +157,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       $mensaje  = 'Incidencia actualizada.';
       $tipo_msg = 'exito';
+
+      // Email al creador: solo si hubo cambios reales (campos o categorias)
+      if ($cambiados || $cats_antes != $cats_despues) {
+        $detalle_email = $cambiados ? $detalle : '';
+        if ($cats_antes != $cats_despues) {
+          $detalle_email .= ($detalle_email !== '' ? ' — ' : '') . 'Categorías actualizadas.';
+        }
+        notificar_creador_por_email($id, 'editar', $detalle_email);
+      }
     } catch (PDOException $e) {
       $mensaje  = 'No se pudo actualizar la incidencia.';
       $tipo_msg = 'error';
@@ -177,7 +213,7 @@ $csrf          = csrf_token();
 
 <main class="pagina-contenedor" style="max-width:800px;">
   <div style="margin-bottom:var(--espacio-lg);display:flex;justify-content:space-between;flex-wrap:wrap;gap:var(--espacio-md);">
-    <a href="/srci/incidencias.php" style="color:var(--color-texto-suave);font-size:.9rem;">← Volver al listado</a>
+    <a href="<?= esc($origen) ?>" style="color:var(--color-texto-suave);font-size:.9rem;">← Volver</a>
     <a href="/srci/detalle.php?id=<?= $id ?>" style="color:var(--color-texto-suave);font-size:.9rem;">Ver detalle y fotos →</a>
   </div>
 
@@ -204,6 +240,7 @@ $csrf          = csrf_token();
 
     <form method="POST">
       <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
+      <input type="hidden" name="volver"     value="<?= esc($origen) ?>">
 
       <div class="grilla-form-2">
         <div class="campo">
@@ -324,7 +361,7 @@ $csrf          = csrf_token();
 
       <div style="margin-top:var(--espacio-lg);display:flex;gap:var(--espacio-sm);">
         <button type="submit" class="boton boton-primario">Guardar cambios</button>
-        <a href="/srci/incidencias.php" class="boton boton-secundario">Cancelar</a>
+        <a href="<?= esc($origen) ?>" class="boton boton-secundario">Cancelar</a>
       </div>
     </form>
   </div>

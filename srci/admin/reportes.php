@@ -28,6 +28,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   } elseif ($accion === 'restaurar' && $id_inc > 0) {
     db()->prepare('UPDATE incidencias SET oculto = 0 WHERE id = :id')->execute([':id' => $id_inc]);
     registrar_auditoria((int)$_SESSION['usuario_id'], 'restaurar', $id_inc, 'Restauro la incidencia');
+    // Email al creador: su reporte vuelve a estar visible
+    notificar_creador_por_email($id_inc, 'restaurar');
   } elseif ($id_inc > 0 && in_array($estado, $estados, true)) {
     $st = db()->prepare('SELECT estado FROM incidencias WHERE id = :id');
     $st->execute([':id' => $id_inc]);
@@ -38,6 +40,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt = db()->prepare($sql);
     $stmt->execute([':estado' => $estado, ':id' => $id_inc]);
     registrar_auditoria((int)$_SESSION['usuario_id'], 'cambiar_estado', $id_inc, "Estado: {$estado_anterior} → {$estado}");
+
+    // Email al creador: solo si el estado realmente cambio
+    if ($estado_anterior !== $estado) {
+      notificar_creador_por_email($id_inc, 'estado', 'Estado: ' . nombre_estado($estado_anterior) . ' → ' . nombre_estado($estado));
+    }
 
     // Espejo en Google Sheets: actualizar estado y fecha de resolucion de esa fila
     enviar_a_sheets([

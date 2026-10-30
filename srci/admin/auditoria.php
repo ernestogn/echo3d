@@ -37,6 +37,8 @@ function accion_legible(string $accion): string
     'borrar_foto'    => 'Borro foto',
     'cambiar_pin'    => 'Cambio su PIN',
     'seguimiento'    => 'Nota de seguimiento',
+    'bloqueo_login'  => 'Bloqueo anti-fuerza bruta',
+    'acceso_bloqueado' => 'Intento bloqueado',
     default          => ucfirst($accion),
   };
 }
@@ -53,6 +55,8 @@ function clase_accion(string $accion): string
     'borrar_foto'    => 'aud-foto',
     'cambiar_pin'    => 'aud-editar',
     'seguimiento'    => 'aud-editar',
+    'bloqueo_login'  => 'aud-ocultar',
+    'acceso_bloqueado' => 'aud-ocultar',
     default          => '',
   };
 }
