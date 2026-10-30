@@ -38,7 +38,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!es_admin()) { http_response_code(403); die('Solo administradores.'); }
     $sql = $accion === 'ocultar'
       ? 'UPDATE incidencias SET oculto = 1 WHERE id = :id'
-      : 'UPDATE incidencias SET oculto = 0 WHERE id = :id';
+      // Al restaurar se limpia el rechazo: el reporte vuelve a quedar pendiente de aprobacion
+      : 'UPDATE incidencias SET oculto = 0, rechazado = 0, rechazado_en = NULL, rechazado_por = NULL, motivo_rechazo = NULL WHERE id = :id';
     db()->prepare($sql)->execute([':id' => $id]);
     registrar_auditoria(
       (int)$_SESSION['usuario_id'],
@@ -159,7 +160,9 @@ $puede_anotar = es_admin() || (int)$inc['usuario_id'] === (int)$_SESSION['usuari
 <main class="pagina-contenedor" style="max-width:800px;">
   <div style="margin-bottom:var(--espacio-lg);display:flex;justify-content:space-between;flex-wrap:wrap;gap:var(--espacio-md);">
     <a href="<?= esc($origen) ?>" style="color:var(--color-texto-suave);font-size:.9rem;">← Volver</a>
-    <a href="/srci/editar.php?id=<?= $id ?>" style="color:var(--color-texto-suave);font-size:.9rem;">Editar incidencia →</a>
+    <?php if (es_admin() || (int)$inc['usuario_id'] === (int)$_SESSION['usuario_id']): ?>
+      <a href="/srci/editar.php?id=<?= $id ?>" style="color:var(--color-texto-suave);font-size:.9rem;">Editar incidencia →</a>
+    <?php endif; ?>
   </div>
 
   <div class="tarjeta" style="margin-bottom:var(--espacio-lg);">
@@ -172,6 +175,9 @@ $puede_anotar = es_admin() || (int)$inc['usuario_id'] === (int)$_SESSION['usuari
       <span class="estado-badge <?= clase_estado($inc['estado']) ?>"><?= esc(nombre_estado($inc['estado'])) ?></span>
       <?php if ((int)$inc['aprobado'] === 0): ?>
         <span class="badge-aprobacion" title="Este reporte todavia no fue publicado: espera la aprobación.">⏳ Pendiente de aprobación</span>
+      <?php endif; ?>
+      <?php if ((int)($inc['rechazado'] ?? 0) === 1): ?>
+        <span class="badge-rechazado" title="Este reporte fue rechazado: no se publica.">✖ Rechazado</span>
       <?php endif; ?>
       <?php if ((int)$inc['aprobado'] === 0 && es_admin()): ?>
         <span style="display:inline-flex;gap:4px;">
@@ -239,6 +245,15 @@ $puede_anotar = es_admin() || (int)$inc['usuario_id'] === (int)$_SESSION['usuari
       <?php if ($inc['fecha_resolucion']): ?>
         <dt style="color:var(--color-texto-suave);font-weight:600;">Fecha de resolución</dt>
         <dd><?= esc(fecha_legible($inc['fecha_resolucion'])) ?></dd>
+      <?php endif; ?>
+      <?php if ((int)($inc['rechazado'] ?? 0) === 1): ?>
+        <dt style="color:var(--color-texto-suave);font-weight:600;">Motivo del rechazo</dt>
+        <dd>
+          <span style="color:var(--color-rojo);"><?= esc($inc['motivo_rechazo'] ?? 'No se indicó un motivo.') ?></span>
+          <?php if (!empty($inc['rechazado_en'])): ?>
+            <br><span style="font-size:.82rem;color:var(--color-texto-suave);">Rechazado el <?= esc(fecha_legible((string)$inc['rechazado_en'])) ?></span>
+          <?php endif; ?>
+        </dd>
       <?php endif; ?>
       <dt style="color:var(--color-texto-suave);font-weight:600;">Días abiertos</dt>
       <dd><?= $dias_abiertos ?></dd>
@@ -333,7 +348,9 @@ $puede_anotar = es_admin() || (int)$inc['usuario_id'] === (int)$_SESSION['usuari
       <p style="color:var(--color-texto-suave);margin-bottom:var(--espacio-sm);">
         📍 Esta incidencia fue importada de la planilla y todavía no tiene ubicación en el mapa.
       </p>
-      <a href="/srci/editar.php?id=<?= (int)$inc['id'] ?>" class="boton boton-secundario boton-sm">✏️ Ubicar en el mapa</a>
+      <?php if (es_admin() || (int)$inc['usuario_id'] === (int)$_SESSION['usuario_id']): ?>
+        <a href="/srci/editar.php?id=<?= (int)$inc['id'] ?>" class="boton boton-secundario boton-sm">✏️ Ubicar en el mapa</a>
+      <?php endif; ?>
     <?php endif; ?>
   </div>
 
@@ -413,6 +430,14 @@ $puede_anotar = es_admin() || (int)$inc['usuario_id'] === (int)$_SESSION['usuari
     const token = <?= json_encode($csrf) ?>;
     const id = <?= (int)$id ?>;
     const enviar = async function (accion) {
+      let motivo = '';
+      if (accion === 'rechazar') {
+        const respuesta = window.prompt('Motivo del rechazo (queda visible para quien lo reportó):', '');
+        if (respuesta === null) {
+          return;
+        }
+        motivo = respuesta.trim();
+      }
       const pregunta = accion === 'aprobar'
         ? '¿Publicar este reporte? Va a aparecer en la lista y en el mapa.'
         : '¿Rechazar este reporte? Queda oculto y registrado (no se borra).';
@@ -423,7 +448,7 @@ $puede_anotar = es_admin() || (int)$inc['usuario_id'] === (int)$_SESSION['usuari
         const resp = await fetch('/srci/api/aprobar_incidencia.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
-          body: JSON.stringify({ incidencia_id: id, accion: accion })
+          body: JSON.stringify({ incidencia_id: id, accion: accion, motivo: motivo })
         });
         const datos = await resp.json();
         if (!resp.ok || !datos.ok) {

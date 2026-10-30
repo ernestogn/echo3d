@@ -420,6 +420,20 @@ h3 { font-size: 1.125rem; font-weight: 600; }
   white-space: nowrap;
 }
 
+/* Reporte rechazado (visible para el autor con el motivo) */
+.badge-rechazado {
+  display: inline-block;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  background: rgba(239,68,68,.15);
+  color: var(--color-rojo);
+  white-space: nowrap;
+}
+
 /* Badges de auditoria */
 .aud-badge {
   display: inline-block;

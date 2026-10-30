@@ -66,7 +66,9 @@ srci/
 │   ├── migracion_seguimiento.sql  Migracion: tabla incidencia_seguimiento (notas fechadas por incidencia, append-only, con autor)
 │   ├── migracion_colaboradores.sql  Migracion: tabla colaboradores (red de colaboradores: propietario_id + colaborador_id + estado)
 │   ├── migracion_aprobacion_incidencias.sql  Migracion: incidencias.aprobado / aprobado_en / aprobado_por / propietario_id + indices + FKs
-│   └── migracion_backfill_aprobado.sql  Migracion: backfill de incidencias existentes (aprobado=1, propietario_id=usuario_id) — ejecutar UNA sola vez
+│   ├── migracion_backfill_aprobado.sql  Migracion: backfill de incidencias existentes (aprobado=1, propietario_id=usuario_id) — ejecutar UNA sola vez
+│   ├── migracion_colaboradores_red_unica.sql  Migracion: normaliza colaboradores duplicados (deja el mas reciente) + UNIQUE uq_colaborador (una sola red por usuario) + dropea idx_colaborador
+│   └── migracion_rechazo_visible.sql  Migracion: incidencias.rechazado / rechazado_en / rechazado_por / motivo_rechazo + indice (el rechazo queda visible para el autor con su motivo)
 │
 ├── includes/
 │   ├── db.php             Conexion PDO singleton (funcion db()), respuesta_json()
@@ -95,7 +97,9 @@ srci/
 │   ├── subir_foto.php     POST /srci/api/subir_foto.php — sube foto (multipart/form-data)
 │   ├── estado.php         POST /srci/api/estado.php     — cambia estado de incidencia (solo admin, JSON body)
 │   ├── aprobar_incidencia.php POST /srci/api/aprobar_incidencia.php — aprueba o rechaza un reporte pendiente de la red de
-│   │                      colaboradores (JSON body + CSRF por header X-CSRF-Token; en el modo actual solo admins)
+│   │                      colaboradores (JSON body + CSRF por header X-CSRF-Token; en el modo actual solo admins).
+│   │                      Al rechazar exige "motivo" (max 500) y guarda rechazado/rechazado_en/rechazado_por/motivo_rechazo;
+│   │                      al aprobar limpia ese estado.
 │   └── sheets_entrada.php POST /srci/api/sheets_entrada.php — importa filas manuales de la planilla (auth por SRCI_SHEETS_SECRET; sin espejo)
 │   └── sin_ubicacion.php  GET  /srci/api/sin_ubicacion.php — conteo de incidencias sin coordenadas (chip del mapa)
 │
@@ -219,7 +223,8 @@ Usuarios del relevamiento: cargados por script one-shot con username = email; el
 **Red de colaboradores (`colaboradores` + `incidencias.aprobado`, 2026-10-29 — IMPLEMENTADA, MODO ADMIN-ONLY):** cada usuario puede tener una red de colaboradores. El vinculo se crea **ya aprobado** (lo crea el propietario de la red o un admin; no requiere aprobacion de la vinculacion) y lo que se aprueba es **cada reporte** del colaborador: nace con `aprobado = 0` y `propietario_id = <propietario de su grupo>`; el propietario del grupo (o un admin) lo aprueba o lo rechaza (rechazar = `oculto = 1`, soft delete, nunca borrado fisico). Reportes de usuarios **no** colaboradores se publican de inmediato (`aprobado = 1`).
 
 **MODO ACTUAL: SOLO ADMINS (`SRCI_COLABORADORES_SOLO_ADMIN = true` en `includes/funciones.php`).** Hasta nuevo aviso la red la gestionan unicamente los admins: solo ellos designan/quitan colaboradores y solo ellos aprueban/rechazan. El flag en `false` abre la funcionalidad a todos los usuarios (cada uno con su propia red) sin tocar el codigo. Implementacion:
-- Helpers en `includes/funciones.php`: `puede_gestionar_colaboradores()`, `puede_gestionar_aprobaciones()`, `es_colaborador()`, `propietario_de_colaborador()`, `ids_grupo_propietario()`, `colaboradores_de()`, `incidencias_pendientes_de_aprobacion()`, `condiciones_visibilidad_incidencias()`, `agregar_colaborador()`, `quitar_colaborador()`. Cache en `$GLOBALS['srci_cache_colaboradores']` (se invalida al alta/baja de vinculos).
+- Helpers en `includes/funciones.php`: `puede_gestionar_colaboradores()`, `puede_gestionar_aprobaciones()`, `es_colaborador()`, `propietario_de_colaborador()`, `ids_grupo_propietario()`, `colaboradores_de()`, `incidencias_pendientes_de_aprobacion()`, `condiciones_visibilidad_incidencias()`, `agregar_colaborador()`, `quitar_colaborador()`, `notificar_propietario_por_email()`. Cache en `$GLOBALS['srci_cache_colaboradores']` (se invalida al alta/baja de vinculos).
+- **Una sola red por usuario:** `colaboradores.colaborador_id` tiene UNIQUE (`uq_colaborador`, migracion `sql/migracion_colaboradores_red_unica.sql`). `agregar_colaborador()` rechaza el alta si el usuario ya pertenece a otra red, y un admin no puede ser colaborador (sin anidar).
 - Creacion del reporte (`api/reportes.php` POST): si el creador `es_colaborador()` -> `aprobado = 0` + `propietario_id` = su propietario; si no -> `aprobado = 1` + `propietario_id` = el propio creador.
 - **Publicacion:** los reportes pendientes NUNCA van al mapa (`api/reportes.php` GET filtra `i.aprobado = 1`) ni a las exportaciones CSV/GeoJSON (`incidencias.php` exporta solo `aprobado = 1`). Se ven solo en el listado del admin y en el panel de aprobacion.
 - Visibilidad (filtro SIEMPRE en servidor): admin ve todas (incluidas pendientes); el resto ve las **aprobadas** + sus **propias pendientes** (`condiciones_visibilidad_incidencias()`). `detalle.php` y `editar.php` devuelven 404 a un reporte pendiente para quien no es admin ni su autor.
@@ -346,9 +351,16 @@ echo $variable;                // PROHIBIDO
 
 ### POST /srci/api/aprobar_incidencia.php
 **Auth:** sesion activa + quien puede aprobar (modo actual: solo admin)  
-**Body JSON:** `{incidencia_id: int, accion: "aprobar"|"rechazar"}` + token CSRF en el header `X-CSRF-Token` (o `csrf_token` en el body)  
-**Comportamiento:** `aprobar` -> `aprobado=1, aprobado_en=NOW(), aprobado_por=<quien aprueba>`; `rechazar` -> `aprobado=0, oculto=1` (soft delete). Audita `aprobar`/`rechazar` y avisa al creador por email  
+**Body JSON:** `{incidencia_id: int, accion: "aprobar"|"rechazar", motivo?: string}` + token CSRF en el header `X-CSRF-Token` (o `csrf_token` en el body)  
+**Comportamiento:** `aprobar` -> `aprobado=1, aprobado_en=NOW(), aprobado_por=<quien aprueba>` y limpia `rechazado/rechazado_en/rechazado_por/motivo_rechazo`; `rechazar` -> `aprobado=0, oculto=1, rechazado=1, rechazado_en=NOW(), rechazado_por=<quien rechaza>, motivo_rechazo=<motivo obligatorio, max 500>` (soft delete: nunca se borra fisicamente). Audita `aprobar`/`rechazar` (el detalle de la auditoria incluye el motivo) y avisa al creador por email  
 **Response:** `{ok: true, accion: string, id: int}` | `{error: string}`
+
+### Reglas de la red de colaboradores (decisiones 2026-10-30)
+- **Una sola red por usuario:** `colaboradores.colaborador_id` es UNIQUE. `agregar_colaborador()` rechaza con mensaje claro si el usuario ya pertenece a otra red. Un admin no puede ser colaborador (no hay anidamiento de redes).
+- **Rechazo visible:** el reporte rechazado no se borra ni se oculta para su autor: queda con `rechazado=1` + `motivo_rechazo`, y `perfil.php` ("Mis reportes") lo lista aunque `oculto=1` (filtro `i.oculto = 0 OR i.rechazado = 1`) mostrando el badge "✖ Rechazado" y el motivo. `detalle.php` muestra el mismo badge y el motivo. Para el resto de los usuarios sigue oculto (404).
+- **Aviso al propietario:** `notificar_propietario_por_email()` (en `includes/funciones.php`) manda un email al `propietario_id` de la red cuando entra un reporte pendiente (`aprobado=0`), llamado desde `api/reportes.php` (POST). No interrumpe el flujo si el mail falla.
+- **Editar = autor o admin:** `editar.php` devuelve 403 si quien edita no es el autor del reporte ni admin (antes cualquier usuario logueado podia editar cualquier incidencia) y 404 para pendientes ajenos. Los botones "✏️ Editar" de `incidencias.php` y el enlace "Editar incidencia" de `detalle.php` solo se muestran a autor/admin.
+- **Restaurar limpia el rechazo:** al restaurar un reporte oculto (`detalle.php`, `incidencias.php`, `admin/reportes.php`) se borran `rechazado/rechazado_en/rechazado_por/motivo_rechazo`; el reporte vuelve a quedar pendiente de aprobacion.
 
 ---
 

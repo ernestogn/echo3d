@@ -112,14 +112,16 @@ $stb->execute([':id' => $uid]);
 $barrios = $stb->fetchAll(PDO::FETCH_COLUMN);
 
 // --- Mis reportes (nunca borrados: solo ocultos) ---
+// Los rechazados tambien se listan: el autor tiene que ver el motivo del rechazo.
 $str = db()->prepare(
   'SELECT i.id, i.direccion, i.estado, i.gravedad, i.fecha_hora, i.aprobado,
+          i.rechazado, i.motivo_rechazo, i.rechazado_en,
           t.nombre AS tipo_nombre, t.icono AS tipo_icono,
           b.nombre AS barrio_nombre
    FROM incidencias i
    JOIN tipos_incidencia t ON t.id = i.tipo_id
    LEFT JOIN barrios b ON b.id = i.barrio_id
-   WHERE i.usuario_id = :id AND i.oculto = 0
+   WHERE i.usuario_id = :id AND (i.oculto = 0 OR i.rechazado = 1)
    ORDER BY i.fecha_hora DESC
    LIMIT 200'
 );
@@ -391,6 +393,14 @@ if ($iniciales === '') {
                   <?php if ((int)$r['aprobado'] === 0): ?>
                     <span class="badge-aprobacion" title="Tu reporte todavia no fue publicado: espera la aprobación.">⏳ Pendiente</span>
                   <?php endif; ?>
+                  <?php if ((int)$r['rechazado'] === 1): ?>
+                    <span class="badge-rechazado" title="Tu reporte fue rechazado: no se publica.">✖ Rechazado</span>
+                    <?php if (!empty($r['motivo_rechazo'])): ?>
+                      <div style="font-size:.78rem;color:var(--color-rojo);margin-top:4px;max-width:280px;">
+                        Motivo: <?= esc($r['motivo_rechazo']) ?>
+                      </div>
+                    <?php endif; ?>
+                  <?php endif; ?>
                 </td>
                 <td style="white-space:nowrap;"><?= esc(fecha_legible((string)$r['fecha_hora'])) ?></td>
                 <td onclick="event.stopPropagation();" style="white-space:nowrap;">
@@ -486,6 +496,14 @@ if ($iniciales === '') {
   (function () {
     const token = <?= json_encode($csrf) ?>;
     const enviar = async function (id, accion) {
+      let motivo = '';
+      if (accion === 'rechazar') {
+        const respuesta = window.prompt('Motivo del rechazo (queda visible para quien lo reportó):', '');
+        if (respuesta === null) {
+          return;
+        }
+        motivo = respuesta.trim();
+      }
       const pregunta = accion === 'aprobar'
         ? '¿Publicar este reporte? Va a aparecer en la lista y en el mapa.'
         : '¿Rechazar este reporte? Queda oculto y registrado (no se borra).';
@@ -496,7 +514,7 @@ if ($iniciales === '') {
         const resp = await fetch('/srci/api/aprobar_incidencia.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
-          body: JSON.stringify({ incidencia_id: id, accion: accion })
+          body: JSON.stringify({ incidencia_id: id, accion: accion, motivo: motivo })
         });
         const datos = await resp.json();
         if (!resp.ok || !datos.ok) {

@@ -55,12 +55,16 @@ $stmt->execute([':id' => $id]);
 $inc = $stmt->fetch();
 if (!$inc) { http_response_code(404); die('Incidencia no encontrada.'); }
 
-// Un reporte pendiente de aprobacion solo se abre por quien puede gestionarlo o su autor
-if ((int)$inc['aprobado'] === 0
-    && !es_admin()
-    && (int)$inc['usuario_id'] !== (int)$_SESSION['usuario_id']) {
+// Solo el autor del reporte o un administrador pueden editarlo.
+// (Un reporte pendiente de aprobacion, ademas, solo lo ven ellos mismos.)
+$es_autor = (int)$inc['usuario_id'] === (int)$_SESSION['usuario_id'];
+if ((int)$inc['aprobado'] === 0 && !es_admin() && !$es_autor) {
   http_response_code(404);
   die('Incidencia no encontrada.');
+}
+if (!es_admin() && !$es_autor) {
+  http_response_code(403);
+  die('Solo el autor del reporte o un administrador pueden editarlo.');
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

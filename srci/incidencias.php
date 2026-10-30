@@ -13,7 +13,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if ($id_oc > 0 && in_array($accion, ['ocultar', 'restaurar'], true) && es_admin()) {
     $sql = $accion === 'ocultar'
       ? 'UPDATE incidencias SET oculto = 1 WHERE id = :id'
-      : 'UPDATE incidencias SET oculto = 0 WHERE id = :id';
+      // Al restaurar se limpia el rechazo: el reporte vuelve a quedar pendiente de aprobacion
+      : 'UPDATE incidencias SET oculto = 0, rechazado = 0, rechazado_en = NULL, rechazado_por = NULL, motivo_rechazo = NULL WHERE id = :id';
     db()->prepare($sql)->execute([':id' => $id_oc]);
     registrar_auditoria(
       (int)$_SESSION['usuario_id'],
@@ -447,7 +448,9 @@ function td_orden(string $clave, string $orden_actual): string {
               <td>
                 <div style="display:flex;gap:4px;">
                   <button type="button" class="boton boton-secundario boton-sm" onclick="toggleFila(<?= (int)$inc['id'] ?>)" aria-expanded="false" title="Ver todos los campos">▾</button>
-                  <a href="/srci/editar.php?id=<?= (int)$inc['id'] ?>" class="boton boton-primario boton-sm" title="Editar">✏️</a>
+                  <?php if (es_admin() || (int)$inc['usuario_id'] === (int)$_SESSION['usuario_id']): ?>
+                    <a href="/srci/editar.php?id=<?= (int)$inc['id'] ?>" class="boton boton-primario boton-sm" title="Editar">✏️</a>
+                  <?php endif; ?>
                   <?php if (es_admin()): ?>
                     <form method="POST" style="display:inline;" onsubmit="return confirm('¿Ocultar esta incidencia? No se borra: pasa a ocultas.');">
                       <input type="hidden" name="csrf_token"    value="<?= esc($csrf) ?>">
@@ -495,7 +498,9 @@ function td_orden(string $clave, string $orden_actual): string {
                 </dl>
                 <div style="margin-top:var(--espacio-md);display:flex;gap:var(--espacio-sm);">
                   <a href="/srci/detalle.php?id=<?= (int)$inc['id'] ?>" class="boton boton-secundario boton-sm">Ver detalle y fotos</a>
-                  <a href="/srci/editar.php?id=<?= (int)$inc['id'] ?>" class="boton boton-primario boton-sm">Editar incidencia</a>
+                  <?php if (es_admin() || (int)$inc['usuario_id'] === (int)$_SESSION['usuario_id']): ?>
+                    <a href="/srci/editar.php?id=<?= (int)$inc['id'] ?>" class="boton boton-primario boton-sm">Editar incidencia</a>
+                  <?php endif; ?>
                 </div>
               </td>
             </tr>

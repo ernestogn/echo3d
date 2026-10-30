@@ -26,7 +26,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     exit;
   } elseif ($accion === 'restaurar' && $id_inc > 0) {
-    db()->prepare('UPDATE incidencias SET oculto = 0 WHERE id = :id')->execute([':id' => $id_inc]);
+    // Al restaurar se limpia el rechazo: el reporte vuelve a quedar pendiente de aprobacion
+    db()->prepare('UPDATE incidencias SET oculto = 0, rechazado = 0, rechazado_en = NULL, rechazado_por = NULL, motivo_rechazo = NULL WHERE id = :id')->execute([':id' => $id_inc]);
     registrar_auditoria((int)$_SESSION['usuario_id'], 'restaurar', $id_inc, 'Restauro la incidencia');
     // Email al creador: su reporte vuelve a estar visible
     notificar_creador_por_email($id_inc, 'restaurar');

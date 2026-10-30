@@ -21,6 +21,10 @@ $datos         = json_decode(file_get_contents('php://input'), true);
 $datos         = is_array($datos) ? $datos : [];
 $incidencia_id = (int)($datos['incidencia_id'] ?? 0);
 $accion        = (string)($datos['accion'] ?? '');
+$motivo        = trim((string)($datos['motivo'] ?? ''));
+if (mb_strlen($motivo) > 500) {
+  $motivo = mb_substr($motivo, 0, 500);
+}
 
 // Token CSRF: por header X-CSRF-Token o dentro del cuerpo JSON
 $token = (string)($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($datos['csrf_token'] ?? ''));
@@ -42,7 +46,7 @@ if ($incidencia_id === 0) {
 }
 
 // La incidencia debe existir
-$st = db()->prepare('SELECT id, usuario_id, propietario_id, aprobado, oculto, direccion FROM incidencias WHERE id = :id LIMIT 1');
+$st = db()->prepare('SELECT id, usuario_id, propietario_id, aprobado, rechazado, oculto, direccion FROM incidencias WHERE id = :id LIMIT 1');
 $st->execute([':id' => $incidencia_id]);
 $inc = $st->fetch();
 if (!$inc) {
@@ -57,22 +61,41 @@ if (!$es_admin) {
   }
 }
 
+// Un reporte ya publicado no se vuelve a aprobar: primero hay que ocultarlo
 if ((int)$inc['aprobado'] === 1) {
   respuesta_json(['error' => 'Ese reporte ya está aprobado.'], 400);
 }
 
 if ($accion === 'aprobar') {
-  db()->prepare('UPDATE incidencias SET aprobado = 1, aprobado_en = NOW(), aprobado_por = :uid WHERE id = :id')
-    ->execute([':uid' => $uid, ':id' => $incidencia_id]);
+  db()->prepare(
+    'UPDATE incidencias
+        SET aprobado = 1, aprobado_en = NOW(), aprobado_por = :uid,
+            rechazado = 0, rechazado_en = NULL, rechazado_por = NULL, motivo_rechazo = NULL
+      WHERE id = :id'
+  )->execute([':uid' => $uid, ':id' => $incidencia_id]);
   registrar_auditoria($uid, 'aprobar', $incidencia_id, 'Aprobó la publicación del reporte');
   notificar_creador_por_email($incidencia_id, 'aprobar');
   respuesta_json(['ok' => true, 'accion' => 'aprobar', 'id' => $incidencia_id]);
 }
 
-// Rechazar = ocultar (soft delete): la incidencia queda registrada, no se borra
-db()->prepare('UPDATE incidencias SET aprobado = 0, oculto = 1 WHERE id = :id')
-  ->execute([':id' => $incidencia_id]);
-registrar_auditoria($uid, 'rechazar', $incidencia_id, 'Rechazó el reporte (queda oculto, no se borra)');
-notificar_creador_por_email($incidencia_id, 'rechazar');
+// Rechazar = ocultar (soft delete) + queda el motivo para el autor.
+// El autor lo ve en su perfil con el motivo del rechazo.
+db()->prepare(
+  'UPDATE incidencias
+      SET aprobado = 0, oculto = 1,
+          rechazado = 1, rechazado_en = NOW(), rechazado_por = :uid, motivo_rechazo = :motivo
+    WHERE id = :id'
+)->execute([':uid' => $uid, ':motivo' => $motivo !== '' ? $motivo : null, ':id' => $incidencia_id]);
+
+$detalle = 'Rechazó el reporte (queda oculto, no se borra)';
+if ($motivo !== '') {
+  $detalle .= ' — Motivo: ' . mb_substr($motivo, 0, 200);
+}
+registrar_auditoria($uid, 'rechazar', $incidencia_id, $detalle);
+notificar_creador_por_email(
+  $incidencia_id,
+  'rechazar',
+  $motivo !== '' ? 'Motivo del rechazo: ' . $motivo : ''
+);
 
 respuesta_json(['ok' => true, 'accion' => 'rechazar', 'id' => $incidencia_id]);

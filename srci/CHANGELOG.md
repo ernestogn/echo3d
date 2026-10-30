@@ -5,6 +5,42 @@ Cronología de cambios funcionales del sistema. Las fechas son las de producció
 
 ---
 
+## v2026-10-30 — Reglas de la red de colaboradores (6 decisiones del cliente)
+
+Se definieron seis reglas de negocio para la red de colaboradores y se aplicaron en el código.
+
+| Decisión | Comportamiento nuevo |
+|---|---|
+| **1. Sigue en modo admin-only** | Sin cambios: la red la gestionan solo los administradores (`SRCI_COLABORADORES_SOLO_ADMIN = true`). |
+| **2. Una sola red por usuario** | Un usuario pertenece como máximo a **una** red. `colaboradores.colaborador_id` tiene índice UNIQUE `uq_colaborador`; si ya estaba en otra red, el alta se rechaza con un mensaje que lo explica. |
+| **3. Sin redes anidadas** | Un administrador no puede ser colaborador de otra red (ni colaborarse a sí mismo). |
+| **4. El rechazo se ve** | El reporte rechazado no se borra ni se oculta para su autor: queda con `rechazado = 1` y `motivo_rechazo`. El autor lo ve en "Mis reportes" (`perfil.php`) y en `detalle.php`, con el badge **✖ Rechazado** y el motivo. Para el resto de los usuarios sigue oculto. |
+| **5. Aviso al administrador** | Cuando entra un reporte pendiente de aprobación, se manda un email al **propietario de la red** con el resumen del reporte y el link al panel de pendientes. |
+| **6. Cerrado el gap de edición** | Antes **cualquier usuario logueado** podía editar **cualquier** incidencia. Ahora solo el **autor del reporte** o un **admin** pueden editarla (el resto recibe 403); los pendientes ajenos siguen dando 404. |
+
+### Cambios técnicos
+
+- **Migraciones nuevas** (aplicadas en producción, con backup previo):
+  - `sql/migracion_colaboradores_red_unica.sql`: normaliza colaboradores duplicados (conserva el vínculo más reciente), crea el UNIQUE `uq_colaborador` y dropea el índice `idx_colaborador` viejo.
+  - `sql/migracion_rechazo_visible.sql`: `incidencias.rechazado` (TINYINT default 0), `rechazado_en`, `rechazado_por` (FK `fk_inc_rechaz_por`, SET NULL) y `motivo_rechazo` (VARCHAR 500), con su índice.
+- `api/aprobar_incidencia.php`: el rechazo exige un **motivo** (máx. 500 caracteres, se pide con un prompt en la UI) y guarda `rechazado/rechazado_en/rechazado_por/motivo_rechazo`; al aprobar se limpia ese estado. La auditoría y el email al creador incluyen el motivo.
+- `includes/funciones.php`: `agregar_colaborador()` rechaza alta en una segunda red y a los admins como colaboradores; nuevo helper `notificar_propietario_por_email()`.
+- `api/reportes.php` (POST): avisa por email al propietario de la red cuando el reporte nace pendiente.
+- `perfil.php`: "Mis reportes" incluye los rechazados (`i.oculto = 0 OR i.rechazado = 1`) con badge y motivo; el prompt de motivo en el rechazo.
+- `detalle.php`: badge "✖ Rechazado", bloque con el motivo y la fecha del rechazo; botones de edición solo para autor/admin.
+- `incidencias.php` y `detalle.php`: los botones "✏️ Editar" solo se muestran al autor o al admin.
+- `detalle.php`, `incidencias.php` y `admin/reportes.php`: al **restaurar** un reporte se borra el estado de rechazo (vuelve a quedar pendiente de aprobación).
+- `editar.php`: 403 para quien no es autor ni admin; 404 para pendientes ajenos.
+- CSS: nueva clase `.badge-rechazado`.
+
+### Verificación
+
+- Lint PHP de los 10 archivos modificados: sin errores.
+- Test funcional en base de datos (transacción + rollback): **14/14** — alta en una segunda red rechazada, admin no colaborable, motivo guardado, autor ve el rechazo y otro usuario no, restauración limpia el estado, aprobar limpia el rechazo.
+- Prueba E2E contra producción: ver la sección de despliegue de esta versión.
+
+---
+
 ## v2026-10-29 — Red de colaboradores con aprobación de reportes (modo admin-only)
 
 Primera implementación de la funcionalidad de **colaboradores**: un usuario (por ahora,

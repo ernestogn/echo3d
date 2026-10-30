@@ -242,6 +242,11 @@ if ($metodo === 'POST') {
       : ''
   );
 
+  // Email al propietario de la red: entro un reporte pendiente de su aprobación
+  if ($aprobado === 0 && $propietario_id !== $usuario_id) {
+    notificar_propietario_por_email($id, $propietario_id);
+  }
+
   respuesta_json(['ok' => true, 'id' => $id], 201);
 }
 

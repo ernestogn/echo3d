@@ -757,7 +757,6 @@ HTML;
 }
 
 // --- Notificaciones por email al creador de una incidencia ---
-
 // True si el email es ruteable (presente y no de dominio interno *.local)
 function email_ruteable(?string $email): bool
 {
@@ -913,6 +912,121 @@ HTML;
 
   // Envelope sender alineado con el From (evita DMARC:Quarantine / spam de Gmail)
   return @mail((string)$inc['creador_email'], $asunto, $cuerpo, $headers, '-fadmin@echo3dlaser.com.ar');
+}
+
+// Avisa al PROPIETARIO de la red que entro un reporte pendiente de aprobacion.
+// Solo se usa para reportes con aprobado = 0. Nunca interrumpe el flujo principal.
+function notificar_propietario_por_email(int $incidencia_id, int $propietario_id): bool
+{
+  try {
+    $st = db()->prepare(
+      'SELECT i.id, i.aprobado, i.direccion, i.gravedad, i.estado, i.fecha_hora,
+              t.nombre AS tipo_nombre, t.icono AS tipo_icono,
+              b.nombre AS barrio_nombre,
+              u.nombre AS autor_nombre,
+              p.email AS propietario_email, p.nombre AS propietario_nombre
+         FROM incidencias i
+         JOIN tipos_incidencia t ON t.id = i.tipo_id
+         LEFT JOIN barrios b     ON b.id = i.barrio_id
+         JOIN usuarios u         ON u.id = i.usuario_id
+         JOIN usuarios p         ON p.id = :propietario
+        WHERE i.id = :id AND i.aprobado = 0
+        LIMIT 1'
+    );
+    $st->execute([':id' => $incidencia_id, ':propietario' => $propietario_id]);
+    $inc = $st->fetch();
+  } catch (Throwable $e) {
+    return false;
+  }
+  if (!$inc || !email_ruteable((string)($inc['propietario_email'] ?? ''))) {
+    return false;
+  }
+
+  $destinatario = (string)$inc['propietario_nombre'];
+  $url_panel    = 'https://echo3dlaser.com.ar/srci/perfil.php#pendientes-aprobacion';
+  $url_detalle  = 'https://echo3dlaser.com.ar/srci/detalle.php?id=' . $incidencia_id;
+  $asunto       = '=?UTF-8?B?' . base64_encode('Reporte pendiente de aprobación #'.$incidencia_id.' — SRCI') . '?=';
+
+  $lineas = [
+    'Tipo'      => trim(($inc['tipo_icono'] ?? '') . ' ' . ($inc['tipo_nombre'] ?? '')),
+    'Dirección' => ($inc['direccion'] ?? '') !== '' ? (string)$inc['direccion'] : '—',
+    'Barrio'    => ($inc['barrio_nombre'] ?? '') !== '' ? (string)$inc['barrio_nombre'] : '—',
+    'Gravedad'  => nombre_gravedad(isset($inc['gravedad']) ? (string)$inc['gravedad'] : null),
+    'Reportado por' => (string)$inc['autor_nombre'],
+    'Fecha'     => fecha_legible((string)$inc['fecha_hora']),
+  ];
+
+  $texto = "Hola {$destinatario},\n\n"
+         . "Entró un reporte de tu red de colaboradores que todavía no fue publicado.\n"
+         . "Tenés que aprobarlo o rechazarlo para que se vea en el mapa.\n\n";
+  foreach ($lineas as $k => $v) {
+    $texto .= "- {$k}: {$v}\n";
+  }
+  $texto .= "\nRevisar pendientes: {$url_panel}\n"
+         . "Ver el reporte: {$url_detalle}\n\n"
+         . "Mensaje automático del SRCI — no respondas este email.\n";
+
+  $filas_html = '';
+  foreach ($lineas as $k => $v) {
+    $filas_html .= '<tr>'
+      . '<td style="padding:8px 12px;color:#64748b;font-size:13px;font-weight:700;border-bottom:1px solid #f1f5f9;white-space:nowrap;">' . esc($k) . '</td>'
+      . '<td style="padding:8px 12px;color:#0f172a;font-size:13px;border-bottom:1px solid #f1f5f9;">' . esc($v) . '</td>'
+      . '</tr>';
+  }
+  $dest_html = esc($destinatario);
+  $html = <<<HTML
+<!DOCTYPE html>
+<html lang="es">
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:24px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;">
+        <tr><td style="background:#4f46e5;padding:26px 32px;text-align:center;">
+          <div style="font-size:30px;line-height:1;">🗺️</div>
+          <div style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:.5px;margin-top:6px;">SRCI</div>
+          <div style="color:#c7d2fe;font-size:13px;margin-top:2px;">Sistema de Reporte Ciudadano</div>
+        </td></tr>
+        <tr><td style="padding:30px 32px;">
+          <p style="margin:0 0 8px;color:#0f172a;font-size:17px;font-weight:700;">Hola {$dest_html} 👋</p>
+          <p style="margin:0 0 16px;color:#475569;font-size:14px;line-height:1.6;">Entró un reporte de tu red de colaboradores que todavía no fue publicado. Aprobálo o rechazalo para que se vea en el mapa.</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:10px;margin-bottom:20px;">
+            {$filas_html}
+          </table>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr><td align="center">
+              <a href="{$url_panel}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:13px 34px;border-radius:10px;">Revisar pendientes</a>
+            </td></tr>
+          </table>
+          <p style="margin:18px 0 0;color:#64748b;font-size:12px;line-height:1.6;">Si el botón no funciona, copiá este enlace:<br><a href="{$url_panel}" style="color:#4f46e5;">{$url_panel}</a></p>
+        </td></tr>
+        <tr><td style="padding:16px 32px;border-top:1px solid #e2e8f0;">
+          <p style="margin:0;color:#94a3b8;font-size:11px;line-height:1.6;">Mensaje automático del Sistema de Reporte Ciudadano — echo3dlaser.com.ar. No respondas este email.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+HTML;
+
+  $limite = md5(uniqid((string)random_int(0, mt_getrandmax()), true));
+  $headers = implode("\r\n", [
+    'From: SRCI <admin@echo3dlaser.com.ar>',
+    'MIME-Version: 1.0',
+    "Content-Type: multipart/alternative; boundary=\"{$limite}\"",
+  ]);
+
+  $cuerpo = "--{$limite}\r\n"
+          . "Content-Type: text/plain; charset=UTF-8\r\n"
+          . "Content-Transfer-Encoding: base64\r\n\r\n"
+          . chunk_split(base64_encode($texto)) . "\r\n"
+          . "--{$limite}\r\n"
+          . "Content-Type: text/html; charset=UTF-8\r\n"
+          . "Content-Transfer-Encoding: base64\r\n\r\n"
+          . chunk_split(base64_encode($html)) . "\r\n"
+          . "--{$limite}--\r\n";
+
+  return @mail((string)$inc['propietario_email'], $asunto, $cuerpo, $headers, '-fadmin@echo3dlaser.com.ar');
 }
 
 // --- Red de colaboradores (tabla `colaboradores`) ---
@@ -1118,6 +1232,15 @@ function agregar_colaborador(int $propietario_id, string $email, int $actor_id):
     _invalidar_cache_colaboradores($colaborador_id);
     registrar_auditoria($actor_id, 'agregar_colaborador', null, 'Reactivó como colaborador a ' . $u['nombre'] . ' (' . $email . ')');
     return ['ok' => true, 'mensaje' => $u['nombre'] . ' vuelve a ser tu colaborador.'];
+  }
+
+  // Un usuario pertenece a UNA sola red: si ya es colaborador de otro
+  // propietario, no se puede sumar a otra.
+  $st = db()->prepare('SELECT c.propietario_id, u.nombre AS propietario_nombre FROM colaboradores c JOIN usuarios u ON u.id = c.propietario_id WHERE c.colaborador_id = :c LIMIT 1');
+  $st->execute([':c' => $colaborador_id]);
+  $otra_red = $st->fetch();
+  if ($otra_red) {
+    return ['ok' => false, 'mensaje' => $u['nombre'] . ' ya es colaborador de ' . $otra_red['propietario_nombre'] . '. Cada usuario puede pertenecer a una sola red.'];
   }
 
   db()->prepare("INSERT INTO colaboradores (propietario_id, colaborador_id, estado, creado_por) VALUES (:p, :c, 'aprobado', :actor)")
