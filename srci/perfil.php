@@ -44,6 +44,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
   }
 
+  // --- Alta / baja de colaboradores (solo admins en el modo actual) ---
+  if ($accion === 'agregar_colaborador' || $accion === 'quitar_colaborador') {
+    if (!puede_gestionar_colaboradores($uid)) {
+      $mensaje  = 'No tenés permiso para gestionar colaboradores.';
+      $tipo_msg = 'error';
+    } else {
+      if ($accion === 'agregar_colaborador') {
+        $res = agregar_colaborador($uid, (string)($_POST['email_colaborador'] ?? ''), $uid);
+      } else {
+        $res = quitar_colaborador($uid, (int)($_POST['colaborador_id'] ?? 0), $uid);
+      }
+      $mensaje  = $res['mensaje'];
+      $tipo_msg = $res['ok'] ? 'exito' : 'error';
+    }
+  }
+
   // --- Agregar nota de seguimiento a un reporte propio ---
   if ($accion === 'agregar_nota') {
     $iid  = (int)($_POST['incidencia_id'] ?? 0);
@@ -97,7 +113,7 @@ $barrios = $stb->fetchAll(PDO::FETCH_COLUMN);
 
 // --- Mis reportes (nunca borrados: solo ocultos) ---
 $str = db()->prepare(
-  'SELECT i.id, i.direccion, i.estado, i.gravedad, i.fecha_hora,
+  'SELECT i.id, i.direccion, i.estado, i.gravedad, i.fecha_hora, i.aprobado,
           t.nombre AS tipo_nombre, t.icono AS tipo_icono,
           b.nombre AS barrio_nombre
    FROM incidencias i
@@ -121,6 +137,11 @@ foreach ($mis_reportes as $r) {
 }
 
 $csrf = csrf_token();
+
+// --- Red de colaboradores (solo admins en el modo actual) ---
+$gestiona_colaboradores = puede_gestionar_colaboradores($uid);
+$colaboradores          = $gestiona_colaboradores ? colaboradores_de($uid) : [];
+$pendientes_aprobacion  = $gestiona_colaboradores ? incidencias_pendientes_de_aprobacion($uid, es_admin()) : [];
 
 // --- Avatar: Gravatar (hash del email) con fallback de iniciales ---
 $email_norm = strtolower(trim((string)($u['email'] ?? '')));
@@ -236,6 +257,109 @@ if ($iniciales === '') {
 
   </div>
 
+  <?php if ($gestiona_colaboradores): ?>
+  <!-- Red de colaboradores (gestion de admins) -->
+  <div class="tarjeta" style="margin-bottom:var(--espacio-lg);" id="colaboradores">
+    <h2 style="margin-bottom:var(--espacio-xs);">👥 Mis colaboradores</h2>
+    <p style="color:var(--color-texto-suave);font-size:.9rem;margin-bottom:var(--espacio-md);">
+      Designá usuarios que cargan reportes a través tuyo. Los reportes que cargan
+      quedan <strong>pendientes de aprobación</strong>: no se publican hasta que los apruebes.
+    </p>
+
+    <form method="POST" action="/srci/perfil.php#colaboradores" style="display:flex;gap:var(--espacio-sm);flex-wrap:wrap;align-items:flex-end;margin-bottom:var(--espacio-md);">
+      <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
+      <input type="hidden" name="accion" value="agregar_colaborador">
+      <div class="campo" style="flex:1;min-width:240px;">
+        <label for="email-colaborador">Email del colaborador</label>
+        <input type="email" id="email-colaborador" name="email_colaborador" required
+               placeholder="usuario@ejemplo.com">
+      </div>
+      <button type="submit" class="boton boton-primario">Agregar colaborador</button>
+    </form>
+
+    <?php if (!$colaboradores): ?>
+      <p style="color:var(--color-texto-suave);">Todavía no tenés colaboradores.</p>
+    <?php else: ?>
+      <div class="tabla-contenedor">
+        <table class="tabla-incidencias">
+          <thead>
+            <tr><th>Nombre</th><th>Email (login)</th><th>Estado</th><th>Alta</th><th></th></tr>
+          </thead>
+          <tbody>
+            <?php foreach ($colaboradores as $col): ?>
+              <tr>
+                <td><?= esc($col['nombre']) ?></td>
+                <td><?= esc($col['email'] ?? '—') ?></td>
+                <td>
+                  <?php if ($col['estado'] === 'aprobado'): ?>
+                    <span class="estado-badge estado-resuelto">Colaborador</span>
+                  <?php else: ?>
+                    <span class="estado-badge estado-pendiente">Quitado</span>
+                  <?php endif; ?>
+                </td>
+                <td style="white-space:nowrap;"><?= esc(fecha_legible((string)$col['creado_en'])) ?></td>
+                <td>
+                  <?php if ($col['estado'] === 'aprobado'): ?>
+                    <form method="POST" action="/srci/perfil.php#colaboradores" onsubmit="return confirm('¿Quitar a <?= esc($col['nombre']) ?> de tu red de colaboradores?');">
+                      <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
+                      <input type="hidden" name="accion" value="quitar_colaborador">
+                      <input type="hidden" name="colaborador_id" value="<?= (int)$col['colaborador_id'] ?>">
+                      <button type="submit" class="boton boton-peligro boton-sm">Quitar</button>
+                    </form>
+                  <?php endif; ?>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    <?php endif; ?>
+  </div>
+
+  <!-- Reportes pendientes de aprobacion -->
+  <div class="tarjeta" style="margin-bottom:var(--espacio-lg);" id="pendientes-aprobacion">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--espacio-sm);margin-bottom:var(--espacio-md);">
+      <h2>⏳ Reportes pendientes de aprobación</h2>
+      <span style="color:var(--color-texto-suave);font-size:.85rem;">
+        <?= count($pendientes_aprobacion) ?> <?= count($pendientes_aprobacion) === 1 ? 'reporte' : 'reportes' ?> sin publicar
+      </span>
+    </div>
+
+    <?php if (!$pendientes_aprobacion): ?>
+      <p style="color:var(--color-texto-suave);">No hay reportes esperando aprobación.</p>
+    <?php else: ?>
+      <div class="tabla-contenedor">
+        <table class="tabla-incidencias">
+          <thead>
+            <tr><th>#</th><th>Tipo</th><th>Dirección</th><th>Barrio</th><th>Gravedad</th><th>Reportado por</th><th>Fecha</th><th>Acción</th></tr>
+          </thead>
+          <tbody>
+            <?php foreach ($pendientes_aprobacion as $p): ?>
+              <tr>
+                <td><a href="/srci/detalle.php?id=<?= (int)$p['id'] ?>">#<?= (int)$p['id'] ?></a></td>
+                <td><?= esc($p['tipo_icono'] ?? '') ?> <?= esc($p['tipo_nombre']) ?></td>
+                <td><?= esc($p['direccion'] ?? '—') ?></td>
+                <td><?= esc($p['barrio_nombre'] ?? '—') ?></td>
+                <td><span class="gravedad-badge <?= clase_gravedad($p['gravedad']) ?>"><?= esc(nombre_gravedad($p['gravedad'])) ?></span></td>
+                <td><?= esc($p['usuario_nombre']) ?></td>
+                <td style="white-space:nowrap;"><?= esc(fecha_legible((string)$p['fecha_hora'])) ?></td>
+                <td>
+                  <div style="display:flex;gap:4px;">
+                    <button type="button" class="boton boton-primario boton-sm"
+                            data-aprobar="<?= (int)$p['id'] ?>">✔ Aprobar</button>
+                    <button type="button" class="boton boton-peligro boton-sm"
+                            data-rechazar="<?= (int)$p['id'] ?>">✖ Rechazar</button>
+                  </div>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    <?php endif; ?>
+  </div>
+  <?php endif; ?>
+
   <!-- Mis reportes (90% del ancho de la ventana) -->
   <div class="tarjeta" style="margin-bottom:var(--espacio-lg);">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--espacio-sm);margin-bottom:var(--espacio-md);">
@@ -263,7 +387,11 @@ if ($iniciales === '') {
                 <td><?= esc($r['direccion'] ?? '—') ?></td>
                 <td><?= esc($r['barrio_nombre'] ?? '—') ?></td>
                 <td><span class="gravedad-badge <?= clase_gravedad($r['gravedad']) ?>"><?= esc(nombre_gravedad($r['gravedad'])) ?></span></td>
-                <td><span class="estado-badge <?= clase_estado($r['estado']) ?>"><?= esc(nombre_estado($r['estado'])) ?></span></td>
+                <td><span class="estado-badge <?= clase_estado($r['estado']) ?>"><?= esc(nombre_estado($r['estado'])) ?></span>
+                  <?php if ((int)$r['aprobado'] === 0): ?>
+                    <span class="badge-aprobacion" title="Tu reporte todavia no fue publicado: espera la aprobación.">⏳ Pendiente</span>
+                  <?php endif; ?>
+                </td>
                 <td style="white-space:nowrap;"><?= esc(fecha_legible((string)$r['fecha_hora'])) ?></td>
                 <td onclick="event.stopPropagation();" style="white-space:nowrap;">
                   <details>
@@ -351,6 +479,46 @@ if ($iniciales === '') {
     if (e.key === 'Escape' && fondo.classList.contains('visible')) { cerrarModal(); }
   });
 })();
+</script>
+
+<!-- Aprobar / rechazar reportes pendientes -->
+<script>
+  (function () {
+    const token = <?= json_encode($csrf) ?>;
+    const enviar = async function (id, accion) {
+      const pregunta = accion === 'aprobar'
+        ? '¿Publicar este reporte? Va a aparecer en la lista y en el mapa.'
+        : '¿Rechazar este reporte? Queda oculto y registrado (no se borra).';
+      if (!confirm(pregunta)) {
+        return;
+      }
+      try {
+        const resp = await fetch('/srci/api/aprobar_incidencia.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
+          body: JSON.stringify({ incidencia_id: id, accion: accion })
+        });
+        const datos = await resp.json();
+        if (!resp.ok || !datos.ok) {
+          alert(datos.error || 'No pudimos completar la acción.');
+          return;
+        }
+        location.reload();
+      } catch (e) {
+        alert('No pudimos completar la acción.');
+      }
+    };
+    document.querySelectorAll('[data-aprobar]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        enviar(parseInt(btn.getAttribute('data-aprobar'), 10), 'aprobar');
+      });
+    });
+    document.querySelectorAll('[data-rechazar]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        enviar(parseInt(btn.getAttribute('data-rechazar'), 10), 'rechazar');
+      });
+    });
+  })();
 </script>
 </body>
 </html>

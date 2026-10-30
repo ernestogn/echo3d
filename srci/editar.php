@@ -55,6 +55,14 @@ $stmt->execute([':id' => $id]);
 $inc = $stmt->fetch();
 if (!$inc) { http_response_code(404); die('Incidencia no encontrada.'); }
 
+// Un reporte pendiente de aprobacion solo se abre por quien puede gestionarlo o su autor
+if ((int)$inc['aprobado'] === 0
+    && !es_admin()
+    && (int)$inc['usuario_id'] !== (int)$_SESSION['usuario_id']) {
+  http_response_code(404);
+  die('Incidencia no encontrada.');
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   validar_csrf();
 

@@ -69,7 +69,7 @@ $total = (int)db()->query('SELECT COUNT(*) FROM incidencias WHERE oculto = ' . (
 $total_pags = (int)ceil($total / $por_pagina);
 
 $stmt = db()->prepare(
-  "SELECT i.id, i.estado, i.oculto, i.fecha_hora, i.notas, i.direccion, i.gravedad, b.nombre AS barrio,
+  "SELECT i.id, i.estado, i.oculto, i.aprobado, i.fecha_hora, i.notas, i.direccion, i.gravedad, b.nombre AS barrio,
           t.nombre AS tipo, u.nombre AS usuario
    FROM incidencias i
    JOIN tipos_incidencia t ON t.id = i.tipo_id
@@ -192,7 +192,11 @@ $csrf  = csrf_token();
               <td><span class="gravedad-badge <?= clase_gravedad($f['gravedad']) ?>"><?= esc(nombre_gravedad($f['gravedad'])) ?></span></td>
               <td><?= esc($f['usuario']) ?></td>
               <td style="white-space:nowrap;"><?= esc(fecha_legible($f['fecha_hora'])) ?></td>
-              <td><span class="estado-badge <?= clase_estado($f['estado']) ?>"><?= esc(nombre_estado($f['estado'])) ?></span></td>
+              <td><span class="estado-badge <?= clase_estado($f['estado']) ?>"><?= esc(nombre_estado($f['estado'])) ?></span>
+  <?php if ((int)$f['aprobado'] === 0): ?>
+    <span class="badge-aprobacion" title="Todavia no fue publicado: espera la aprobación.">⏳ Pendiente</span>
+  <?php endif; ?>
+</td>
               <?php if ($ver_ocultas): ?>
                 <td>
                   <form method="POST" action="/srci/admin/reportes.php" onsubmit="return confirm('¿Restaurar esta incidencia a la lista activa?');">

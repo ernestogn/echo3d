@@ -106,6 +106,15 @@ $stmt->execute([':id' => $id]);
 $inc = $stmt->fetch();
 if (!$inc) { http_response_code(404); die('Incidencia no encontrada.'); }
 
+// Un reporte pendiente de aprobacion solo lo ven quien puede gestionarlo
+// (admin) o quien lo cargo. Para el resto no existe todavia.
+if ((int)$inc['aprobado'] === 0
+    && !es_admin()
+    && (int)$inc['usuario_id'] !== (int)$_SESSION['usuario_id']) {
+  http_response_code(404);
+  die('Incidencia no encontrada.');
+}
+
 // Dias abiertos: desde el reporte hasta la resolucion (o hoy)
 $inicio = new DateTime($inc['fecha_hora']);
 $fin    = $inc['fecha_resolucion'] ? new DateTime($inc['fecha_resolucion']) : new DateTime('now');
@@ -161,6 +170,15 @@ $puede_anotar = es_admin() || (int)$inc['usuario_id'] === (int)$_SESSION['usuari
       </h1>
       <span class="gravedad-badge <?= clase_gravedad($inc['gravedad']) ?>"><?= esc(nombre_gravedad($inc['gravedad'])) ?></span>
       <span class="estado-badge <?= clase_estado($inc['estado']) ?>"><?= esc(nombre_estado($inc['estado'])) ?></span>
+      <?php if ((int)$inc['aprobado'] === 0): ?>
+        <span class="badge-aprobacion" title="Este reporte todavia no fue publicado: espera la aprobación.">⏳ Pendiente de aprobación</span>
+      <?php endif; ?>
+      <?php if ((int)$inc['aprobado'] === 0 && es_admin()): ?>
+        <span style="display:inline-flex;gap:4px;">
+          <button type="button" class="boton boton-primario boton-sm" id="btn-aprobar">✔ Aprobar</button>
+          <button type="button" class="boton boton-peligro boton-sm" id="btn-rechazar">✖ Rechazar</button>
+        </span>
+      <?php endif; ?>
       <?php if (es_admin()): ?>
         <form method="POST" onsubmit="return confirm('<?= $inc['oculto'] ? '¿Restaurar esta incidencia? Vuelve a la lista activa.' : '¿Ocultar esta incidencia? No se borra: pasa a ocultas.' ?>');">
           <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
@@ -388,6 +406,40 @@ $puede_anotar = es_admin() || (int)$inc['usuario_id'] === (int)$_SESSION['usuari
       cambiandoEstado = false;
     }
   }
+</script>
+<script>
+  // Aprobar / rechazar un reporte pendiente de aprobacion
+  (function () {
+    const token = <?= json_encode($csrf) ?>;
+    const id = <?= (int)$id ?>;
+    const enviar = async function (accion) {
+      const pregunta = accion === 'aprobar'
+        ? '¿Publicar este reporte? Va a aparecer en la lista y en el mapa.'
+        : '¿Rechazar este reporte? Queda oculto y registrado (no se borra).';
+      if (!confirm(pregunta)) {
+        return;
+      }
+      try {
+        const resp = await fetch('/srci/api/aprobar_incidencia.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
+          body: JSON.stringify({ incidencia_id: id, accion: accion })
+        });
+        const datos = await resp.json();
+        if (!resp.ok || !datos.ok) {
+          alert(datos.error || 'No pudimos completar la acción.');
+          return;
+        }
+        location.reload();
+      } catch (e) {
+        alert('No pudimos completar la acción.');
+      }
+    };
+    const btnAprobar  = document.getElementById('btn-aprobar');
+    const btnRechazar = document.getElementById('btn-rechazar');
+    if (btnAprobar)  { btnAprobar.addEventListener('click', function () { enviar('aprobar'); }); }
+    if (btnRechazar) { btnRechazar.addEventListener('click', function () { enviar('rechazar'); }); }
+  })();
 </script>
 </body>
 </html>

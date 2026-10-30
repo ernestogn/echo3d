@@ -776,6 +776,8 @@ function notificar_creador_por_email(int $incidencia_id, string $evento, string 
     'estado'    => 'Tu reporte #' . $incidencia_id . ': nuevo estado — SRCI',
     'ocultar'   => 'Tu reporte #' . $incidencia_id . ' fue ocultado — SRCI',
     'restaurar' => 'Tu reporte #' . $incidencia_id . ' fue restaurado — SRCI',
+    'aprobar'   => 'Tu reporte #' . $incidencia_id . ' fue aprobado y ya está publicado — SRCI',
+    'rechazar'  => 'Tu reporte #' . $incidencia_id . ' fue rechazado — SRCI',
   ];
   if (!isset($asuntos[$evento])) {
     return false;
@@ -815,6 +817,8 @@ function notificar_creador_por_email(int $incidencia_id, string $evento, string 
     'estado'    => 'El estado de tu reporte cambió.',
     'ocultar'   => 'Tu reporte fue ocultado de la lista y del mapa (no se borra: queda registrado).',
     'restaurar' => 'Tu reporte vuelve a estar visible en la lista y en el mapa.',
+    'aprobar'   => 'Tu reporte fue aprobado y ya está publicado: aparece en la lista y en el mapa.',
+    'rechazar'  => 'Tu reporte fue rechazado, así que no se publica (queda registrado, no se borra).',
   };
 
   $url            = 'https://echo3dlaser.com.ar/srci/detalle.php?id=' . $incidencia_id;
@@ -909,5 +913,236 @@ HTML;
 
   // Envelope sender alineado con el From (evita DMARC:Quarantine / spam de Gmail)
   return @mail((string)$inc['creador_email'], $asunto, $cuerpo, $headers, '-fadmin@echo3dlaser.com.ar');
+}
+
+// --- Red de colaboradores (tabla `colaboradores`) ---
+// Modo actual (2026-10-29): la red la gestionan SOLO los admins (designan
+// colaboradores y aprueban/rechazan sus reportes). El flag deja la puerta
+// abierta a abrirla a todos los usuarios (cada uno con su propia red) sin
+// tocar el codigo: basta con ponerlo en false.
+if (!defined('SRCI_COLABORADORES_SOLO_ADMIN')) {
+  define('SRCI_COLABORADORES_SOLO_ADMIN', true);
+}
+
+// True si el usuario puede gestionar la red de colaboradores (designar o quitar)
+function puede_gestionar_colaboradores(?int $usuario_id = null): bool
+{
+  if (SRCI_COLABORADORES_SOLO_ADMIN) {
+    return function_exists('es_admin') && es_admin();
+  }
+  return $usuario_id !== null && $usuario_id > 0;
+}
+
+// True si el usuario puede aprobar/rechazar reportes
+function puede_gestionar_aprobaciones(?int $usuario_id = null): bool
+{
+  return puede_gestionar_colaboradores($usuario_id);
+}
+
+// True si el usuario pertenece a una red como colaborador (vinculo aprobado)
+function es_colaborador(int $usuario_id): bool
+{
+  if (!isset($GLOBALS['srci_cache_colaboradores'])) {
+    $GLOBALS['srci_cache_colaboradores'] = [];
+  }
+  if (isset($GLOBALS['srci_cache_colaboradores'][$usuario_id])) {
+    return $GLOBALS['srci_cache_colaboradores'][$usuario_id];
+  }
+  try {
+    $st = db()->prepare("SELECT 1 FROM colaboradores WHERE colaborador_id = :id AND estado = 'aprobado' LIMIT 1");
+    $st->execute([':id' => $usuario_id]);
+    $GLOBALS['srci_cache_colaboradores'][$usuario_id] = (bool)$st->fetchColumn();
+  } catch (Throwable $e) {
+    $GLOBALS['srci_cache_colaboradores'][$usuario_id] = false;
+  }
+  return $GLOBALS['srci_cache_colaboradores'][$usuario_id];
+}
+
+// Invalida la cache de es_colaborador() (tras alta o baja de un vinculo)
+function _invalidar_cache_colaboradores(?int $usuario_id = null): void
+{
+  if (!isset($GLOBALS['srci_cache_colaboradores'])) {
+    return;
+  }
+  if ($usuario_id === null) {
+    $GLOBALS['srci_cache_colaboradores'] = [];
+    return;
+  }
+  unset($GLOBALS['srci_cache_colaboradores'][$usuario_id]);
+}
+
+// Propietario de la red a la que pertenece el colaborador (null si no es colaborador)
+function propietario_de_colaborador(int $colaborador_id): ?int
+{
+  try {
+    $st = db()->prepare("SELECT propietario_id FROM colaboradores WHERE colaborador_id = :id AND estado = 'aprobado' ORDER BY id DESC LIMIT 1");
+    $st->execute([':id' => $colaborador_id]);
+    $pid = $st->fetchColumn();
+  } catch (Throwable $e) {
+    return null;
+  }
+  return $pid === false ? null : (int)$pid;
+}
+
+// Miembros del grupo: el propietario + sus colaboradores con vinculo aprobado
+function ids_grupo_propietario(int $propietario_id): array
+{
+  try {
+    $st = db()->prepare("SELECT colaborador_id FROM colaboradores WHERE propietario_id = :id AND estado = 'aprobado'");
+    $st->execute([':id' => $propietario_id]);
+    $ids = array_map('intval', $st->fetchAll(PDO::FETCH_COLUMN));
+  } catch (Throwable $e) {
+    $ids = [];
+  }
+  $ids[] = $propietario_id;
+  return array_values(array_unique($ids));
+}
+
+// Colaboradores de un propietario (con datos del usuario)
+function colaboradores_de(int $propietario_id): array
+{
+  $st = db()->prepare(
+    "SELECT c.id, c.colaborador_id, c.estado, c.creado_en,
+            u.nombre, u.email, u.activo, u.rol
+       FROM colaboradores c
+       JOIN usuarios u ON u.id = c.colaborador_id
+      WHERE c.propietario_id = :id
+      ORDER BY c.estado ASC, u.nombre ASC"
+  );
+  $st->execute([':id' => $propietario_id]);
+  return $st->fetchAll();
+}
+
+// Reportes pendientes de aprobacion.
+// Admin (modo actual): todos los pendientes. Propietario de red: los de su grupo.
+function incidencias_pendientes_de_aprobacion(int $usuario_id, bool $es_admin): array
+{
+  if ($es_admin) {
+    $st = db()->prepare(
+      "SELECT i.id, i.direccion, i.gravedad, i.estado, i.fecha_hora, i.aprobado,
+              t.nombre AS tipo_nombre, t.icono AS tipo_icono,
+              b.nombre AS barrio_nombre, u.nombre AS usuario_nombre
+         FROM incidencias i
+         JOIN tipos_incidencia t ON t.id = i.tipo_id
+         JOIN usuarios u         ON u.id = i.usuario_id
+         LEFT JOIN barrios b     ON b.id = i.barrio_id
+        WHERE i.aprobado = 0 AND i.oculto = 0
+        ORDER BY i.fecha_hora DESC
+        LIMIT 100"
+    );
+    $st->execute();
+    return $st->fetchAll();
+  }
+
+  $ids = ids_grupo_propietario($usuario_id);
+  if (!$ids) {
+    return [];
+  }
+  $ids = array_values($ids);
+  // Placeholders separados para cada IN: con prepares nativos un parametro con
+  // nombre no se puede repetir en la misma consulta
+  $ph_prop = [];
+  $ph_usu  = [];
+  foreach ($ids as $n => $id) {
+    $ph_prop[':gp' . $n] = (int)$id;
+    $ph_usu[':gu' . $n]  = (int)$id;
+  }
+  $lista_prop = implode(',', array_keys($ph_prop));
+  $lista_usu  = implode(',', array_keys($ph_usu));
+  $st = db()->prepare(
+    "SELECT i.id, i.direccion, i.gravedad, i.estado, i.fecha_hora, i.aprobado,
+            t.nombre AS tipo_nombre, t.icono AS tipo_icono,
+            b.nombre AS barrio_nombre, u.nombre AS usuario_nombre
+       FROM incidencias i
+       JOIN tipos_incidencia t ON t.id = i.tipo_id
+       JOIN usuarios u         ON u.id = i.usuario_id
+       LEFT JOIN barrios b     ON b.id = i.barrio_id
+      WHERE i.aprobado = 0 AND i.oculto = 0
+        AND (i.propietario_id IN ({$lista_prop}) OR i.usuario_id IN ({$lista_usu}))
+      ORDER BY i.fecha_hora DESC
+      LIMIT 100"
+  );
+  $st->execute(array_merge($ph_prop, $ph_usu));
+  return $st->fetchAll();
+}
+
+// Condicion SQL de visibilidad de incidencias (se aplica SIEMPRE en el servidor).
+// Admin: ve todas (incluidas las pendientes). Usuario: ve las aprobadas y sus
+// propias pendientes (para poder seguir su propio reporte antes de publicarse).
+function condiciones_visibilidad_incidencias(int $usuario_id, bool $es_admin, string $alias = 'i'): array
+{
+  if ($es_admin) {
+    return ['1 = 1', []];
+  }
+  return [
+    "({$alias}.aprobado = 1 OR {$alias}.usuario_id = :uid_vis)",
+    [':uid_vis' => $usuario_id],
+  ];
+}
+
+// Alta de colaborador por email. El vinculo nace APROBADO (no requiere
+// aprobacion de la vinculacion). Devuelve ['ok' => bool, 'mensaje' => string].
+function agregar_colaborador(int $propietario_id, string $email, int $actor_id): array
+{
+  $email = strtolower(trim($email));
+  if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    return ['ok' => false, 'mensaje' => 'Ingresá un email válido.'];
+  }
+
+  $st = db()->prepare('SELECT id, nombre, rol FROM usuarios WHERE LOWER(email) = :email LIMIT 1');
+  $st->execute([':email' => $email]);
+  $u = $st->fetch();
+  if (!$u) {
+    return ['ok' => false, 'mensaje' => 'No hay ningún usuario con ese email.'];
+  }
+
+  $colaborador_id = (int)$u['id'];
+  if ($colaborador_id === $propietario_id) {
+    return ['ok' => false, 'mensaje' => 'No podés ser tu propio colaborador.'];
+  }
+  if (($u['rol'] ?? '') === 'admin') {
+    return ['ok' => false, 'mensaje' => 'Un administrador no puede ser colaborador.'];
+  }
+
+  $st = db()->prepare('SELECT id, estado FROM colaboradores WHERE propietario_id = :p AND colaborador_id = :c LIMIT 1');
+  $st->execute([':p' => $propietario_id, ':c' => $colaborador_id]);
+  $existente = $st->fetch();
+
+  if ($existente) {
+    if ($existente['estado'] === 'aprobado') {
+      return ['ok' => false, 'mensaje' => $u['nombre'] . ' ya es tu colaborador.'];
+    }
+    // Reactivar un vinculo dado de baja (no se borra: queda en el historial)
+    db()->prepare("UPDATE colaboradores SET estado = 'aprobado', creado_en = NOW(), creado_por = :actor WHERE id = :id")
+      ->execute([':actor' => $actor_id, ':id' => (int)$existente['id']]);
+    _invalidar_cache_colaboradores($colaborador_id);
+    registrar_auditoria($actor_id, 'agregar_colaborador', null, 'Reactivó como colaborador a ' . $u['nombre'] . ' (' . $email . ')');
+    return ['ok' => true, 'mensaje' => $u['nombre'] . ' vuelve a ser tu colaborador.'];
+  }
+
+  db()->prepare("INSERT INTO colaboradores (propietario_id, colaborador_id, estado, creado_por) VALUES (:p, :c, 'aprobado', :actor)")
+    ->execute([':p' => $propietario_id, ':c' => $colaborador_id, ':actor' => $actor_id]);
+  _invalidar_cache_colaboradores($colaborador_id);
+  registrar_auditoria($actor_id, 'agregar_colaborador', null, 'Designó como colaborador a ' . $u['nombre'] . ' (' . $email . ')');
+
+  return ['ok' => true, 'mensaje' => $u['nombre'] . ' es tu colaborador. Sus reportes quedan pendientes de tu aprobación.'];
+}
+
+// Baja de colaborador: el vinculo pasa a 'rechazado' (nunca se borra: queda trazado)
+function quitar_colaborador(int $propietario_id, int $colaborador_id, int $actor_id): array
+{
+  $st = db()->prepare("SELECT u.nombre, u.email FROM colaboradores c JOIN usuarios u ON u.id = c.colaborador_id WHERE c.propietario_id = :p AND c.colaborador_id = :c LIMIT 1");
+  $st->execute([':p' => $propietario_id, ':c' => $colaborador_id]);
+  $fila = $st->fetch();
+  if (!$fila) {
+    return ['ok' => false, 'mensaje' => 'Ese usuario no es tu colaborador.'];
+  }
+
+  db()->prepare("UPDATE colaboradores SET estado = 'rechazado' WHERE propietario_id = :p AND colaborador_id = :c")
+    ->execute([':p' => $propietario_id, ':c' => $colaborador_id]);
+  _invalidar_cache_colaboradores($colaborador_id);
+  registrar_auditoria($actor_id, 'quitar_colaborador', null, 'Quitó como colaborador a ' . $fila['nombre'] . ' (' . $fila['email'] . ')');
+
+  return ['ok' => true, 'mensaje' => $fila['nombre'] . ' ya no es tu colaborador.'];
 }
   

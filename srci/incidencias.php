@@ -72,6 +72,16 @@ $gravedades_validas = ['baja', 'media', 'alta', 'critica'];
 // Las ocultas no salen en la lista ni en las exportaciones
 $donde[] = 'i.oculto = 0';
 
+// Visibilidad por usuario (filtro SIEMPRE en servidor): el admin ve tambien las
+// pendientes; el resto ve las aprobadas y sus propias pendientes.
+[$cond_visibilidad, $params_visibilidad] = condiciones_visibilidad_incidencias(
+  (int)$_SESSION['usuario_id'],
+  es_admin(),
+  'i'
+);
+$donde[] = $cond_visibilidad;
+$params  = array_merge($params, $params_visibilidad);
+
 if ($tipo_id > 0) {
   $donde[]            = 'i.tipo_id = :tipo_id';
   $params[':tipo_id'] = $tipo_id;
@@ -107,6 +117,11 @@ $clausula_where = $donde ? 'WHERE ' . implode(' AND ', $donde) : '';
 // Exportacion CSV o GeoJSON
 $exportar = $_GET['exportar'] ?? '';
 if ($exportar === 'csv' || $exportar === 'geojson') {
+  // Las exportaciones solo incluyen reportes publicados (aprobados)
+  $donde_export   = $donde;
+  $donde_export[] = 'i.aprobado = 1';
+  $clausula_export = 'WHERE ' . implode(' AND ', $donde_export);
+
   $sql = "SELECT i.id, i.latitud, i.longitud, i.estado, i.fecha_hora, i.fecha_resolucion, i.notas,
                  i.direccion, i.gravedad, i.familias_afectadas, i.servicio_afectado,
                  i.calle_intransitable, i.responsable_area, i.contacto_vecino,
@@ -117,7 +132,7 @@ if ($exportar === 'csv' || $exportar === 'geojson') {
           JOIN tipos_incidencia t ON t.id = i.tipo_id
           JOIN usuarios u         ON u.id = i.usuario_id
           LEFT JOIN barrios b     ON b.id = i.barrio_id
-          {$clausula_where}
+          {$clausula_export}
           ORDER BY i.fecha_hora DESC";
   $stmt = db()->prepare($sql);
   $stmt->execute($params);
@@ -208,6 +223,7 @@ $total_pags  = (int)ceil($total / $por_pagina);
 $sql = "SELECT i.id, i.latitud, i.longitud, i.estado, i.fecha_hora, i.fecha_resolucion, i.notas,
                i.direccion, i.gravedad, i.familias_afectadas, i.servicio_afectado,
                i.calle_intransitable, i.responsable_area, i.contacto_vecino,
+               i.aprobado, i.usuario_id,
                b.nombre AS barrio_nombre,
                t.nombre AS tipo_nombre, t.icono AS tipo_icono,
                u.nombre AS usuario_nombre
@@ -421,7 +437,11 @@ function td_orden(string $clave, string $orden_actual): string {
               <td<?= td_orden('barrio', $orden_actual) ?>><?= esc($inc['barrio_nombre'] ?? '—') ?></td>
               <td style="max-width:126px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<?= esc($inc['direccion'] ?? '') ?>"><?= esc($inc['direccion'] ?? '—') ?></td>
               <td<?= td_orden('gravedad', $orden_actual) ?>><span class="gravedad-badge <?= clase_gravedad($inc['gravedad']) ?>"><?= esc(nombre_gravedad($inc['gravedad'])) ?></span></td>
-              <td><span class="estado-badge <?= clase_estado($inc['estado']) ?>"><?= esc(nombre_estado($inc['estado'])) ?></span></td>
+              <td><span class="estado-badge <?= clase_estado($inc['estado']) ?>"><?= esc(nombre_estado($inc['estado'])) ?></span>
+                <?php if ((int)$inc['aprobado'] === 0 && (es_admin() || (int)$inc['usuario_id'] === (int)$_SESSION['usuario_id'])): ?>
+                  <span class="badge-aprobacion" title="Este reporte todavía no fue publicado: espera la aprobación.">⏳ Pendiente</span>
+                <?php endif; ?>
+              </td>
               <td><?= esc($inc['usuario_nombre']) ?></td>
               <td style="max-width:134px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<?= esc($inc['notas'] ?? '') ?>"><?= esc(substr($inc['notas'] ?? '', 0, 60)) ?></td>
               <td>

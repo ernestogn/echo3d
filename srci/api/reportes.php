@@ -18,6 +18,10 @@ if ($metodo === 'GET') {
   // Las ocultas no salen ni en el mapa ni en la lista
   $donde[] = 'i.oculto = 0';
 
+  // Los reportes pendientes de aprobacion NO se publican: no van al mapa.
+  // Se ven solo en el listado (admin) y en el panel de aprobacion.
+  $donde[] = 'i.aprobado = 1';
+
   if (!empty($_GET['tipo_id'])) {
     $donde[]              = 'i.tipo_id = :tipo_id';
     $params[':tipo_id']   = (int)$_GET['tipo_id'];
@@ -144,27 +148,42 @@ if ($metodo === 'POST') {
   }
 
   try {
+    // Regla de la red de colaboradores: el reporte de un colaborador nace pendiente
+    // de aprobacion (aprobado = 0) y queda asociado a su propietario. El de un
+    // usuario sin vinculo se publica de inmediato (aprobado = 1).
+    $usuario_id = (int)$_SESSION['usuario_id'];
+    $es_colab   = es_colaborador($usuario_id);
+    if ($es_colab) {
+      $aprobado       = 0;
+      $propietario_id = propietario_de_colaborador($usuario_id) ?? $usuario_id;
+    } else {
+      $aprobado       = 1;
+      $propietario_id = $usuario_id;
+    }
+
     $stmt = db()->prepare(
-      'INSERT INTO incidencias (usuario_id, tipo_id, latitud, longitud, barrio_id, direccion,
+      'INSERT INTO incidencias (usuario_id, propietario_id, tipo_id, latitud, longitud, barrio_id, direccion,
                                 gravedad, familias_afectadas, servicio_afectado, calle_intransitable,
-                                responsable_area, contacto_vecino, notas)
-       VALUES (:usuario_id, :tipo_id, :latitud, :longitud, :barrio_id, :direccion,
-               :gravedad, :familias, :servicio, :calle, :responsable, :contacto, :notas)'
+                                responsable_area, contacto_vecino, notas, aprobado)
+       VALUES (:usuario_id, :propietario_id, :tipo_id, :latitud, :longitud, :barrio_id, :direccion,
+               :gravedad, :familias, :servicio, :calle, :responsable, :contacto, :notas, :aprobado)'
     );
     $stmt->execute([
-      ':usuario_id'  => $_SESSION['usuario_id'],
-      ':tipo_id'     => $tipo_id,
-      ':latitud'     => $latitud,
-      ':longitud'    => $longitud,
-      ':barrio_id'   => $barrio_id,
-      ':direccion'   => mb_substr($direccion, 0, 255),
-      ':gravedad'    => $gravedad,
-      ':familias'    => $familias,
-      ':servicio'    => $servicio !== '' ? $servicio : null,
-      ':calle'       => $calleIntransitable,
-      ':responsable' => $responsable !== '' ? $responsable : null,
-      ':contacto'    => $contacto !== '' ? mb_substr($contacto, 0, 120) : null,
-      ':notas'       => $notas !== '' ? $notas : null,
+      ':usuario_id'     => $usuario_id,
+      ':propietario_id' => $propietario_id,
+      ':tipo_id'        => $tipo_id,
+      ':latitud'        => $latitud,
+      ':longitud'       => $longitud,
+      ':barrio_id'      => $barrio_id,
+      ':direccion'      => mb_substr($direccion, 0, 255),
+      ':gravedad'       => $gravedad,
+      ':familias'       => $familias,
+      ':servicio'       => $servicio !== '' ? $servicio : null,
+      ':calle'          => $calleIntransitable,
+      ':responsable'    => $responsable !== '' ? $responsable : null,
+      ':contacto'       => $contacto !== '' ? mb_substr($contacto, 0, 120) : null,
+      ':notas'          => $notas !== '' ? $notas : null,
+      ':aprobado'       => $aprobado,
     ]);
   } catch (PDOException $e) {
     // Codigo 1452: FK rota (usuario borrado o sesion vieja)
@@ -184,6 +203,9 @@ if ($metodo === 'POST') {
     $detalle_crear .= ' — barrio elegido manualmente (poligono detectaba ' . $barrio_detectado['nombre'] . ')';
   } elseif (!$barrio_detectado) {
     $detalle_crear .= ' — barrio manual (punto sin poligono)';
+  }
+  if ($aprobado === 0) {
+    $detalle_crear .= ' — pendiente de aprobación (colaborador)';
   }
   registrar_auditoria((int)$_SESSION['usuario_id'], 'crear', $id, $detalle_crear);
 
@@ -211,7 +233,14 @@ if ($metodo === 'POST') {
   ]);
 
   // Email al creador: confirmacion de que su reporte quedo cargado
-  notificar_creador_por_email($id, 'crear');
+  // (si es colaborador, el reporte queda pendiente de aprobacion)
+  notificar_creador_por_email(
+    $id,
+    'crear',
+    $aprobado === 0
+      ? 'Tu reporte queda pendiente de aprobación: se publica cuando un administrador lo apruebe.'
+      : ''
+  );
 
   respuesta_json(['ok' => true, 'id' => $id], 201);
 }

@@ -39,6 +39,10 @@ function accion_legible(string $accion): string
     'seguimiento'    => 'Nota de seguimiento',
     'bloqueo_login'  => 'Bloqueo anti-fuerza bruta',
     'acceso_bloqueado' => 'Intento bloqueado',
+    'aprobar'        => 'Aprobo reporte',
+    'rechazar'       => 'Rechazo reporte',
+    'agregar_colaborador' => 'Designo colaborador',
+    'quitar_colaborador'  => 'Quito colaborador',
     default          => ucfirst($accion),
   };
 }
@@ -57,6 +61,10 @@ function clase_accion(string $accion): string
     'seguimiento'    => 'aud-editar',
     'bloqueo_login'  => 'aud-ocultar',
     'acceso_bloqueado' => 'aud-ocultar',
+    'aprobar'        => 'aud-restaurar',
+    'rechazar'       => 'aud-ocultar',
+    'agregar_colaborador' => 'aud-editar',
+    'quitar_colaborador'  => 'aud-ocultar',
     default          => '',
   };
 }

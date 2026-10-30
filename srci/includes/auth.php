@@ -96,6 +96,15 @@ function validar_csrf(): void
   }
 }
 
+// Compara un token CSRF recibido por header o por cuerpo JSON (APIs con fetch)
+// Devuelve true si el token es valido
+function csrf_token_valido(string $token): bool
+{
+  iniciar_sesion();
+  $token_sesion = $_SESSION['csrf_token'] ?? '';
+  return $token_sesion !== '' && $token !== '' && hash_equals($token_sesion, $token);
+}
+
 // --- Anti fuerza bruta en el login (el PIN de 4 digitos tiene solo 10.000 combinaciones) ---
 // Contador de intentos fallidos en archivos de tmp (sin tocar el esquema de DB,
 // mismo patron de cache-en-archivos que el geocode). Dos llaves:

@@ -406,6 +406,20 @@ h3 { font-size: 1.125rem; font-weight: 600; }
   color: #475569;
 }
 
+/* Reporte pendiente de aprobacion (red de colaboradores) */
+.badge-aprobacion {
+  display: inline-block;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  background: rgba(245,158,11,.15);
+  color: var(--color-pendiente);
+  white-space: nowrap;
+}
+
 /* Badges de auditoria */
 .aud-badge {
   display: inline-block;
