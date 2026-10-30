@@ -23,7 +23,7 @@ Se definieron seis reglas de negocio para la red de colaboradores y se aplicaron
 - **Migraciones nuevas** (aplicadas en producción, con backup previo):
   - `sql/migracion_colaboradores_red_unica.sql`: normaliza colaboradores duplicados (conserva el vínculo más reciente), crea el UNIQUE `uq_colaborador` y dropea el índice `idx_colaborador` viejo.
   - `sql/migracion_rechazo_visible.sql`: `incidencias.rechazado` (TINYINT default 0), `rechazado_en`, `rechazado_por` (FK `fk_inc_rechaz_por`, SET NULL) y `motivo_rechazo` (VARCHAR 500), con su índice.
-- `api/aprobar_incidencia.php`: el rechazo exige un **motivo** (máx. 500 caracteres, se pide con un prompt en la UI) y guarda `rechazado/rechazado_en/rechazado_por/motivo_rechazo`; al aprobar se limpia ese estado. La auditoría y el email al creador incluyen el motivo.
+- `api/aprobar_incidencia.php`: el rechazo **exige un motivo** (máx. 500 caracteres; si falta, responde 400 y no toca el reporte) y guarda `rechazado/rechazado_en/rechazado_por/motivo_rechazo`; al aprobar se limpia ese estado. La UI (`perfil.php` y `detalle.php`) pide el motivo con un `prompt` y no envía el rechazo si queda vacío. La auditoría y el email al creador incluyen el motivo.
 - `includes/funciones.php`: `agregar_colaborador()` rechaza alta en una segunda red y a los admins como colaboradores; nuevo helper `notificar_propietario_por_email()`.
 - `api/reportes.php` (POST): avisa por email al propietario de la red cuando el reporte nace pendiente.
 - `perfil.php`: "Mis reportes" incluye los rechazados (`i.oculto = 0 OR i.rechazado = 1`) con badge y motivo; el prompt de motivo en el rechazo.
@@ -37,7 +37,9 @@ Se definieron seis reglas de negocio para la red de colaboradores y se aplicaron
 
 - Lint PHP de los 10 archivos modificados: sin errores.
 - Test funcional en base de datos (transacción + rollback): **14/14** — alta en una segunda red rechazada, admin no colaborable, motivo guardado, autor ve el rechazo y otro usuario no, restauración limpia el estado, aprobar limpia el rechazo.
-- Prueba E2E contra producción: ver la sección de despliegue de esta versión.
+- E2E contra el sitio real (`https://echo3dlaser.com.ar/srci`, usuarios de prueba `.local` para no enviar emails reales, espejo de Sheets desactivado y restaurado): **30/30** — una sola red por usuario, admin no colaborable, rechazo con motivo y sin motivo, el autor ve el badge y el motivo en el perfil y en el detalle, para el resto sigue 404 y fuera del mapa, editar (200 autor / 200 admin / 404 pendiente ajeno / 403 publicado ajeno), restaurar limpia el rechazo, aprobar publica, auditoría con el motivo, la gestión sigue siendo solo de admins. Sin residuos al terminar (0 reportes, 0 usuarios y 0 colaboradores huérfanos).
+- Email al propietario: verificado con un `sendmail` simulado sobre una base clonada (**no salió ningún correo real**): 1 solo mensaje, al propietario de la red, con el resumen del reporte (tipo, dirección, barrio, gravedad, autor, fecha) y los links al panel de pendientes y al reporte; al colaborador con email no ruteable no se le escribe.
+- Despliegue en producción: commit `ed50b97` + `aaa6c92` (push a `main`, deploy automático OK).
 
 ---
 
