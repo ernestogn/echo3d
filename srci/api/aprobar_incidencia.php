@@ -44,6 +44,10 @@ if (!in_array($accion, ['aprobar', 'rechazar'], true)) {
 if ($incidencia_id === 0) {
   respuesta_json(['error' => 'Incidencia invalida.'], 400);
 }
+// El rechazo se muestra al autor: sin motivo no tiene sentido rechazarlo.
+if ($accion === 'rechazar' && $motivo === '') {
+  respuesta_json(['error' => 'Tenés que escribir el motivo del rechazo: lo va a ver quien reportó.'], 400);
+}
 
 // La incidencia debe existir
 $st = db()->prepare('SELECT id, usuario_id, propietario_id, aprobado, rechazado, oculto, direccion FROM incidencias WHERE id = :id LIMIT 1');

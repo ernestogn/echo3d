@@ -503,6 +503,10 @@ if ($iniciales === '') {
           return;
         }
         motivo = respuesta.trim();
+        if (motivo === '') {
+          window.alert('Tenés que escribir el motivo del rechazo: lo va a ver quien reportó.');
+          return;
+        }
       }
       const pregunta = accion === 'aprobar'
         ? '¿Publicar este reporte? Va a aparecer en la lista y en el mapa.'

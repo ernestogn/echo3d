@@ -1236,11 +1236,14 @@ function agregar_colaborador(int $propietario_id, string $email, int $actor_id):
 
   // Un usuario pertenece a UNA sola red: si ya es colaborador de otro
   // propietario, no se puede sumar a otra.
-  $st = db()->prepare('SELECT c.propietario_id, u.nombre AS propietario_nombre FROM colaboradores c JOIN usuarios u ON u.id = c.propietario_id WHERE c.colaborador_id = :c LIMIT 1');
+  $st = db()->prepare('SELECT c.propietario_id, c.estado, u.nombre AS propietario_nombre FROM colaboradores c JOIN usuarios u ON u.id = c.propietario_id WHERE c.colaborador_id = :c LIMIT 1');
   $st->execute([':c' => $colaborador_id]);
   $otra_red = $st->fetch();
   if ($otra_red) {
-    return ['ok' => false, 'mensaje' => $u['nombre'] . ' ya es colaborador de ' . $otra_red['propietario_nombre'] . '. Cada usuario puede pertenecer a una sola red.'];
+    if (($otra_red['estado'] ?? '') === 'aprobado') {
+      return ['ok' => false, 'mensaje' => $u['nombre'] . ' ya es colaborador de ' . $otra_red['propietario_nombre'] . '. Cada usuario puede pertenecer a una sola red.'];
+    }
+    return ['ok' => false, 'mensaje' => $u['nombre'] . ' fue colaborador de ' . $otra_red['propietario_nombre'] . ' (vínculo dado de baja). Cada usuario puede pertenecer a una sola red.'];
   }
 
   db()->prepare("INSERT INTO colaboradores (propietario_id, colaborador_id, estado, creado_por) VALUES (:p, :c, 'aprobado', :actor)")
