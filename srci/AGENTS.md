@@ -37,6 +37,7 @@ Aplicacion web para que ciudadanos reporten incidencias urbanas geolocalizadas (
 
 ```
 srci/
+├── CHANGELOG.md           Cronologia de cambios funcionales del sistema (por fecha/version)
 ├── index.php              Mapa principal (Leaflet + modal de reporte en 2 pasos)
 ├── incidencias.php        Listado tabular con filtros (incl. categoria), paginacion, filas expandibles (todos los campos), columna de categorias, exportacion CSV/GeoJSON (incl. categorias); columnas ordenables fecha/barrio/gravedad server-side (?orden=&dir=; columna activa con clase .orden-activa pastel; contenedor .pagina-ancha 95% para evitar scroll horizontal)
 ├── detalle.php            Detalle de una incidencia + cambio de estado para admin
