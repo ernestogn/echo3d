@@ -5,6 +5,41 @@ Cronología de cambios funcionales del sistema. Las fechas son las de producció
 
 ---
 
+## v2026-11-04 — Alta automática de colaboradores
+
+Agregar un colaborador por email ya no falla cuando esa persona todavía no
+tiene cuenta: el sistema la crea, la vincula a la red y le manda las
+credenciales.
+
+### Qué se agregó
+
+- **Creación automática del usuario** en `includes/funciones.php`
+  (`agregar_colaborador()`): si no existe nadie con ese email, se crea con
+  `rol = 'usuario'`, `activo = 1` y un PIN aleatorio de 4 dígitos.
+- **Vínculo aprobado:** el usuario recién creado queda como colaborador
+  `aprobado` en la misma transacción (nada queda a medias si algo falla).
+- **Credenciales por email:** magic link (30 días) + PIN de respaldo con
+  `enviar_activacion_por_email()`. Si el mail no es ruteable (`*.local`) o
+  falla el envío, el mensaje del panel muestra el PIN para entregarlo a mano.
+- **Nombre de usuario derivado del email** (`_nombre_usuario_desde_email()`):
+  parte local del email normalizada a tipo título, con sufijo numérico si el
+  nombre ya existe (`usuarios.nombre` es UNIQUE).
+- **Auditoría:** acción `agregar_colaborador` con detalle
+  "Creó el usuario … y lo designó colaborador; envió link y PIN por email".
+- Textos de `perfil.php` actualizados ("Si el email todavía no tiene cuenta,
+  se crea el usuario y se le envían las credenciales").
+
+### Verificación
+
+- `php -l` en el VPS sin errores en `includes/funciones.php` y `perfil.php`.
+- Smoke test contra la base de producción con un email `@srci.local` (no
+  ruteable, no envía correo): usuario creado con `rol = usuario` y `activo = 1`,
+  vínculo `aprobado`, `pin_hash` válido, fila de auditoría con el detalle
+  nuevo, segunda alta rechazada ("ya es tu colaborador") y limpieza del
+  usuario y la auditoría de prueba al terminar.
+
+---
+
 ## v2026-11-04 — Auditoría: filtros y registro de accesos
 
 `admin/auditoria.php` ahora permite encontrar un registro sin recorrer la tabla

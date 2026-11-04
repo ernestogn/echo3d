@@ -264,7 +264,8 @@ if ($iniciales === '') {
   <div class="tarjeta" style="margin-bottom:var(--espacio-lg);" id="colaboradores">
     <h2 style="margin-bottom:var(--espacio-xs);">👥 Mis colaboradores</h2>
     <p style="color:var(--color-texto-suave);font-size:.9rem;margin-bottom:var(--espacio-md);">
-      Designá usuarios que cargan reportes a través tuyo. Los reportes que cargan
+      Designá usuarios que cargan reportes a través tuyo. Si el email todavía no tiene
+      cuenta, se crea el usuario y se le envían las credenciales. Los reportes que cargan
       quedan <strong>pendientes de aprobación</strong>: no se publican hasta que los apruebes.
     </p>
 

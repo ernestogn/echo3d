@@ -1195,7 +1195,32 @@ function condiciones_visibilidad_incidencias(int $usuario_id, bool $es_admin, st
 }
 
 // Alta de colaborador por email. El vinculo nace APROBADO (no requiere
-// aprobacion de la vinculacion). Devuelve ['ok' => bool, 'mensaje' => string].
+// aprobacion de la vinculacion). Si el email no existe, crea el usuario
+// (rol usuario) y le envia las credenciales. Devuelve ['ok' => bool, 'mensaje' => string].
+function _nombre_usuario_desde_email(string $email): string
+{
+  $local = strstr($email, '@', true);
+  $base  = $local !== false ? $local : $email;
+  $base  = trim((string)preg_replace('/[._+-]+/', ' ', $base));
+  if ($base === '') {
+    $base = 'Colaborador';
+  }
+  $base = mb_convert_case(mb_substr($base, 0, 90), MB_CASE_TITLE, 'UTF-8');
+
+  $st = db()->prepare('SELECT 1 FROM usuarios WHERE nombre = :nombre LIMIT 1');
+  $nombre = $base;
+  $n = 2;
+  while (true) {
+    $st->execute([':nombre' => $nombre]);
+    if (!$st->fetchColumn()) {
+      return $nombre;
+    }
+    $sufijo = ' ' . $n;
+    $nombre = mb_substr($base, 0, 100 - mb_strlen($sufijo), 'UTF-8') . $sufijo;
+    $n++;
+  }
+}
+
 function agregar_colaborador(int $propietario_id, string $email, int $actor_id): array
 {
   $email = strtolower(trim($email));
@@ -1207,7 +1232,54 @@ function agregar_colaborador(int $propietario_id, string $email, int $actor_id):
   $st->execute([':email' => $email]);
   $u = $st->fetch();
   if (!$u) {
-    return ['ok' => false, 'mensaje' => 'No hay ningún usuario con ese email.'];
+    $pin    = generar_pin();
+    $nombre = _nombre_usuario_desde_email($email);
+    $pdo    = db();
+
+    try {
+      $pdo->beginTransaction();
+      $pdo->prepare('INSERT INTO usuarios (nombre, email, pin_hash, rol, activo) VALUES (:nombre, :email, :pin_hash, :rol, 1)')
+        ->execute([
+          ':nombre'   => $nombre,
+          ':email'    => $email,
+          ':pin_hash' => password_hash($pin, PASSWORD_DEFAULT),
+          ':rol'      => 'usuario',
+        ]);
+      $colaborador_id = (int)$pdo->lastInsertId();
+      $pdo->prepare("INSERT INTO colaboradores (propietario_id, colaborador_id, estado, creado_por) VALUES (:propietario, :colaborador, 'aprobado', :actor)")
+        ->execute([
+          ':propietario' => $propietario_id,
+          ':colaborador' => $colaborador_id,
+          ':actor'       => $actor_id,
+        ]);
+      $pdo->commit();
+    } catch (Throwable $e) {
+      if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+      }
+      return ['ok' => false, 'mensaje' => 'No se pudo crear el usuario colaborador. Intentá de nuevo.'];
+    }
+
+    _invalidar_cache_colaboradores($colaborador_id);
+
+    $enviado = email_ruteable($email)
+      && enviar_activacion_por_email($email, $nombre, generar_magic_link($colaborador_id), $pin);
+
+    registrar_auditoria(
+      $actor_id,
+      'agregar_colaborador',
+      null,
+      'Creó el usuario ' . $nombre . ' (' . $email . ') y lo designó colaborador'
+        . ($enviado ? '; envió link y PIN por email' : '; EMAIL FALLO (PIN ' . $pin . ')')
+    );
+
+    return [
+      'ok' => true,
+      'mensaje' => 'Se creó el usuario ' . $nombre . ' (' . $email . ') y es tu colaborador. '
+        . ($enviado
+          ? 'Le enviamos el link de acceso y el PIN por email.'
+          : 'No se pudo enviar el email. Entregale este PIN: ' . $pin),
+    ];
   }
 
   $colaborador_id = (int)$u['id'];
