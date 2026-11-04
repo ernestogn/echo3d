@@ -11,7 +11,7 @@ $offset     = ($pagina - 1) * $por_pagina;
 
 // Filtros. En la vista de accesos ("?ver=logins") se ignoran tipo y accion.
 $ver_logins = (($_GET['ver'] ?? '') === 'logins');
-$f_usuario  = max(0, (int)($_GET['usuario_id'] ?? 0));
+$f_usuario  = is_string($_GET['usuario'] ?? null) ? mb_substr(trim($_GET['usuario']), 0, 120) : '';
 $f_tipo     = $ver_logins ? 0 : max(0, (int)($_GET['tipo_id'] ?? 0));
 $f_accion   = $ver_logins ? '' : (is_string($_GET['accion'] ?? null) ? trim($_GET['accion']) : '');
 $f_q        = is_string($_GET['q'] ?? null) ? mb_substr(trim($_GET['q']), 0, 120) : '';
@@ -19,9 +19,10 @@ $f_q        = is_string($_GET['q'] ?? null) ? mb_substr(trim($_GET['q']), 0, 120
 $donde  = [];
 $params = [];
 
-if ($f_usuario > 0) {
-  $donde[]               = 'a.usuario_id = :usuario_id';
-  $params[':usuario_id'] = $f_usuario;
+if ($f_usuario !== '') {
+  $escapado = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $f_usuario);
+  $donde[]  = "CONCAT_WS(' ', u.nombre, u.email) LIKE :usuario ESCAPE '\\\\'";
+  $params[':usuario'] = '%' . $escapado . '%';
 }
 if ($f_tipo > 0) {
   $donde[]           = 'i.tipo_id = :tipo_id';
@@ -73,7 +74,6 @@ $stmt->execute();
 $registros = $stmt->fetchAll();
 
 // Listas para los selects de filtros
-$usuarios_lista = db()->query('SELECT id, nombre FROM usuarios ORDER BY nombre')->fetchAll();
 $tipos_lista    = db()->query('SELECT id, nombre, icono FROM tipos_incidencia ORDER BY nombre')->fetchAll();
 $acciones_lista = db()->query('SELECT DISTINCT accion FROM auditoria ORDER BY accion')->fetchAll(PDO::FETCH_COLUMN);
 foreach (['login', 'login_link'] as $accion_login) {
@@ -85,9 +85,9 @@ sort($acciones_lista, SORT_NATURAL | SORT_FLAG_CASE);
 
 // Paginacion que conserva los filtros activos
 $params_url = [];
-if ($ver_logins)      { $params_url['ver'] = 'logins'; }
-if ($f_usuario > 0)   { $params_url['usuario_id'] = $f_usuario; }
-if ($f_tipo > 0)      { $params_url['tipo_id'] = $f_tipo; }
+if ($ver_logins)           { $params_url['ver'] = 'logins'; }
+if ($f_usuario !== '')     { $params_url['usuario'] = $f_usuario; }
+if ($f_tipo > 0)           { $params_url['tipo_id'] = $f_tipo; }
 if ($f_accion !== '') { $params_url['accion'] = $f_accion; }
 if ($f_q !== '')      { $params_url['q'] = $f_q; }
 $url_pagina = static function (int $p) use ($params_url): string {
@@ -227,14 +227,7 @@ function clase_accion(string $accion): string
       <?php if ($ver_logins): ?><input type="hidden" name="ver" value="logins"><?php endif; ?>
       <div class="campo">
         <label for="f-usuario">Usuario</label>
-        <select id="f-usuario" name="usuario_id">
-          <option value="">Todos</option>
-          <?php foreach ($usuarios_lista as $u): ?>
-            <option value="<?= (int)$u['id'] ?>" <?= $f_usuario === (int)$u['id'] ? 'selected' : '' ?>>
-              <?= esc((string)$u['nombre']) ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
+        <input type="search" id="f-usuario" name="usuario" placeholder="Nombre o email…" value="<?= esc($f_usuario) ?>">
       </div>
       <?php if (!$ver_logins): ?>
         <div class="campo">

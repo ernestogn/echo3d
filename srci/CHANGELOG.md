@@ -13,9 +13,9 @@ registrado el magic link).
 
 ### Qué se agregó
 
-- **Filtros combinables (GET):** usuario (`usuario_id`), tipo de incidencia
-  (`tipo_id`), acción (`accion`) y búsqueda libre (`q`) sobre detalle, usuario y
-  acción. La paginación conserva los filtros.
+- **Filtros combinables (GET):** usuario (`usuario`, texto libre por nombre o
+  email), tipo de incidencia (`tipo_id`), acción (`accion`) y búsqueda libre
+  (`q`) sobre detalle, usuario y acción. La paginación conserva los filtros.
 - **Vista "Inicios de sesión":** botón `🔐 Ver inicios de sesión`
   (`?ver=logins`) que muestra solo `login` (PIN) y `login_link` (magic link),
   con la misma búsqueda y filtro por usuario. Botón para volver a toda la
