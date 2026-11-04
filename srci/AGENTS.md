@@ -3,7 +3,7 @@
 **Proyecto:** Sistema de Reporte Ciudadano de Incidencias (SRCI)
 **Raiz en repositorio:** `d:\WEB\echo3d\srci\` (local) / `/home/*/public_html/srci/` (produccion VPS)
 **Implementado por:** Antigravity (sesion 12020e07-ddf7-4cdc-bc2c-b4f88b7e4065) — Octubre 2026
-**Estado:** Implementacion inicial completa + deploy en produccion (https://echo3dlaser.com.ar/srci). Pendiente: iconos PWA y ajuste del From del email de produccion.
+**Estado:** Implementacion inicial completa + deploy en produccion (https://echo3dlaser.com.ar/srci). Modulo de Reportes y Analisis Territorial implementado (2026-11-03, pendiente de deploy). Pendiente: iconos PWA y ajuste del From del email de produccion.
 
 ---
 
@@ -69,11 +69,15 @@ srci/
 │   ├── migracion_backfill_aprobado.sql  Migracion: backfill de incidencias existentes (aprobado=1, propietario_id=usuario_id) — ejecutar UNA sola vez
 │   ├── migracion_colaboradores_red_unica.sql  Migracion: normaliza colaboradores duplicados (deja el mas reciente) + UNIQUE uq_colaborador (una sola red por usuario) + dropea idx_colaborador
 │   └── migracion_rechazo_visible.sql  Migracion: incidencias.rechazado / rechazado_en / rechazado_por / motivo_rechazo + indice (el rechazo queda visible para el autor con su motivo)
+│   └── migracion_notificaciones_admin.sql  Migracion: usuarios.notifica_incidentes_admin / notifica_digest_admin (TINYINT default 1) — preferencias de mail de los admins (ver seccion Notificaciones a administradores)
+│
+├── bin/
+│   └── daily_digest.php    CLI: digest diario a las 08:00 vía cron del VPS (NO manda mail si no hay incidencias nuevas en 24h)
 │
 ├── includes/
 │   ├── db.php             Conexion PDO singleton (funcion db()), respuesta_json()
 │   ├── auth.php           Funciones de sesion: requiere_sesion(), requiere_admin(), csrf_token(), validar_csrf()
-│   └── funciones.php      Helpers: esc(), fecha_legible(), generar_pin(), guardar_foto(), enviar_pin_por_email(),
+│   ├── funciones.php      Helpers: esc(), fecha_legible(), generar_pin(), guardar_foto(), enviar_pin_por_email(),
 │                          enviar_activacion_por_email() (link 30 dias + PIN de respaldo),
 │                          barrio_por_punto(), geojson_a_anillos() / anillos_a_geojson() / contar_anillos_poligono(),
 │                          nombre_categoria() / clase_categoria() / color_categoria() / color_valido(),
@@ -81,7 +85,13 @@ srci/
 │                          categoria_default_id() / categorias_de_incidencia() /
 │                          guardar_categorias_incidencia() / categorias_por_incidencia(),
 │                          seguimiento_de_incidencia() / contar_seguimiento_por_incidencia() /
-│                          notificar_creador_por_email() / email_ruteable()
+│                          notificar_creador_por_email() / email_ruteable() /
+│                          notificar_propietario_por_email()
+│   ├── funciones_reportes.php  Motor del modulo de reportes: presets, filtros, KPIs, distribuciones, CSV/GeoJSON, URLs y auditoria
+├── includes/funciones_notificaciones_admin.php  Helpers de notificacion a admins (ver seccion Notificaciones a administradores):
+│                          obtener_admins_con_notificacion_incidente(), obtener_admins_con_notificacion_digest(),
+│                          notificar_administradores_nuevo_incidente(), enviar_digest_diario_admin(),
+│                          enviar_email_nuevo_incidente_admin(), enviar_email_digest_admin()
 │
 ├── api/
 │   ├── tipos.php          GET  /srci/api/tipos.php      — lista tipos activos (JSON)
@@ -104,7 +114,11 @@ srci/
 │   └── sin_ubicacion.php  GET  /srci/api/sin_ubicacion.php — conteo de incidencias sin coordenadas (chip del mapa)
 │
 ├── admin/
-│   ├── reportes.php       Panel admin: listado de reportes (con columna de categorias) + cambio de estado via form POST
+│   ├── reportes.php       Panel admin: listado de reportes (con columna de categorias) + cambio de estado via form POST + boton al generador
+│   ├── reportes_generador.php   Generador de reportes y analisis territorial (filtros GET, 5 presets, 8 KPIs, distribuciones, preview 50)
+│   ├── imprimir_cuadrilla.php   Hoja de cuadrilla A4 B&W agrupada por barrio, ordenada por gravedad (tope 300)
+│   ├── imprimir_dossier.php     Dossier ejecutivo A4 color: membrete, KPIs, distribuciones, tabla, firmas y foja (tope 300)
+│   ├── exportar_reporte.php     Exportacion CSV (BOM UTF-8 + ;) y GeoJSON (descarta filas sin coordenadas; tope 5000)
 │   ├── usuarios.php       Panel admin: crear usuarios, editarlos (nombre/email/rol), regenerar PIN, activar/desactivar +
 │   │                      tarjeta "Activacion masiva" (POST lote_links + CSRF): activa referentes inactivos con email
 │   │                      ruteable (excluye rol=admin y emails .local) y les envia link (30 dias) + PIN de respaldo via
@@ -233,9 +247,80 @@ Usuarios del relevamiento: cargados por script one-shot con username = email; el
 - Auditoria: `agregar_colaborador`, `quitar_colaborador`, `aprobar`, `rechazar` (mapeados en `admin/auditoria.php`). La baja de un vinculo NO borra: queda `estado = 'rechazado'`.
 - Esquema: tabla `colaboradores` (`propietario_id`, `colaborador_id`, `estado` ENUM aprobado|rechazado, `creado_en`, `creado_por`) con UNIQUE (propietario_id, colaborador_id) y FKs CASCADE a `usuarios`; en `incidencias`: `aprobado` TINYINT(1) UNSIGNED default 1, `aprobado_en` DATETIME NULL, `aprobado_por` INT NULL (FK SET NULL), `propietario_id` INT NULL (FK SET NULL). **Ojo con los tipos:** el esquema real usa `usuarios.id` = INT(11) **con signo**, asi que las columnas y FKs deben ser INT con signo (un INT UNSIGNED no puede referenciar un INT con signo en MariaDB). Backfill de las 57 incidencias existentes: `aprobado = 1` y `propietario_id = usuario_id`. Migraciones idempotentes en `sql/migracion_colaboradores.sql`, `sql/migracion_aprobacion_incidencias.sql` (las FKs se crean con SQL dinamico porque MariaDB no acepta `ADD CONSTRAINT IF NOT EXISTS`) y `sql/migracion_backfill_aprobado.sql` (UNA sola vez).
 
+**Notificaciones a administradores + digest diario (2026-11-01 — IMPLEMENTADO):** cada admin activo recibe **un mail propio por cada incidencia creada** (independientemente de quién la haya creado) y, además, un **digest diario a las 08:00** por cron del VPS. Las dos cosas se apagan **por separado desde el perfil** (tarjeta "🔔 Notificaciones de administrador", visible solo para `rol = 'admin'`).
+
+- **Esquema:** `usuarios.notifica_incidentes_admin` y `usuarios.notifica_digest_admin`, TINYINT(1) UNSIGNED NOT NULL DEFAULT 1. Migración idempotente `sql/migracion_notificaciones_admin.sql` (aplicada en prod). Los 4 admins quedaron con las dos banderas en 1.
+- **Helper:** `includes/funciones_notificaciones_admin.php` (no toca `funciones.php`). `obtener_admins_con_notificacion_incidente()` / `obtener_admins_con_notificacion_digest()` traen los admins con la bandera prendida; hacen fallback sin filtro si las columnas todavía no existen, para que el despliegue no rompa. Ambas usan `email_ruteable()` para descartar emails NULL / `*.local`.
+- **Disparo por incidente:** `api/reportes.php` POST, después de avisar al creador y al propietario de la red: `notificar_administradores_nuevo_incidente($id)`. Una query trae incidencia + tipo + barrio + creador y se manda **un mail por admin** (no un mail con varios destinatarios en copia).
+- **Digest:** `enviar_digest_diario_admin()` lista las incidencias de las últimas 24 h (`aprobado = 1 AND oculto = 0`) en una tabla HTML y manda uno por admin. `bin/daily_digest.php` (CLI, exige `php_sapi_name() === 'cli'`) es el script del cron. **Nunca manda un digest vacío:** si no hay incidencias nuevas en 24 h sale sin enviar nada; si las hay pero no hay admins con la bandera prendida, tampoco.
+- **Cron en el VPS:** `0 8 * * * /usr/local/lsws/lsphp83/bin/php .../srci/bin/daily_digest.php >> /var/log/srci-digest.log 2>&1`. Usar el binario absoluto de lsphp83 (el PATH del cron es mínimo; `php` a secas puede no resolverse). Backup del crontab previo en `/root/cron.backup.srci.txt` (chmod 600: el crontab lista rutas sensibles).
+- **Estilo de mail:** mismo patrón que `notificar_creador_por_email()` — multipart/alternative base64, header rojo para el incidente puntual y azul para el digest, botón al detalle, envelope `-fadmin@echo3dlaser.com.ar`. Fire-and-forget: un fallo de mail nunca interrumpe la creación del reporte.
+- **Cuidado con `esc()`:** los archivos nuevos van con `declare(strict_types=1)` y PDO con `EMULATE_PREPARES => false`. `esc()` pide `string`: castear `(string)` todo lo que venga de la BD (un INT como `incidencias.id` o un NULL revientan la query). Además nunca reutilizar dos veces el mismo named parameter en un `prepare()` (`:n` usado dos veces da `SQLSTATE[HY093]`).
+- **Estado:** probado en prod el 2026-11-01 con el usuario Ernesto (id 11) — mail por incidente OK a los 3 admins activos, toggle de apagado/encendido verificado (apagado desaparece de destinatarios), digest con ventana de prueba de 30 d OK a los 3 admins, digest real con 24 h sin datos no envió nada. Backup de crontab tomado antes de tocar nada.
+
 **Notificaciones por email al creador (2026-10-14):** cada evento sobre una incidencia le llega por email al creador (`incidencias.usuario_id` → `usuarios.email`), lo haya hecho el mismo o un admin: **crear** (`api/reportes.php` POST, siempre), **editar** (`editar.php`, SOLO si cambiaron campos o categorias — no envia si "Guardo sin cambios"), **cambio de estado** (`api/estado.php` y `admin/reportes.php`, SOLO si el estado realmente cambio) y **ocultar/restaurar** (`detalle.php` POST, `incidencias.php` POST — tiene SU PROPIO handler de ocultar/restaurar, no es el mismo que detalle.php, y la rama `restaurar` de `admin/reportes.php`). Helper `notificar_creador_por_email($incidencia_id, $evento, $detalle = '')` + `email_ruteable()` en `funciones.php`: una query trae incidencia + creador; si el creador no tiene email ruteable (NULL o `*.local`, misma regla que la activacion masiva) o el evento es desconocido, no envia; nunca rompe el flujo (patron fire-and-forget igual que `enviar_a_sheets`). El email usa el mismo estilo de PIN/activacion (header indigo, multipart/alternative base64, From `admin@echo3dlaser.com.ar` + envelope `-f`), incluye boton "Ver el reporte" a `detalle.php?id=N`, resumen (tipo/direccion/barrio/gravedad/estado), el detalle opcional (ej: "Estado: Pendiente → Resuelto") y quien lo hizo ("Lo hiciste vos desde tu cuenta" vs "Lo hizo X (organizador/referente)"). `mail()` es sincrono (~ms por envio, mismo costo que el envio de PIN). Probado en prod: guard con email NULL devuelve false y envio real OK (destinatario admin).
 
 **Ocultar (soft delete) + auditoria (REGLAS):** las incidencias **nunca se borran** de la BD. "Eliminar" = pasar a `oculto = 1` (solo admins, con CSRF y confirm). El mapa, listado y exportaciones filtran `oculto = 0`; el admin ve/restaura las ocultas desde `admin/reportes.php?ocultas=1`. Toda accion (crear, editar con detalle de campos cambiados, cambiar estado, ocultar, restaurar, subir foto, **agregar nota de seguimiento**) se registra en la tabla `auditoria` con `registrar_auditoria()` (`includes/funciones.php`) — visible en `/srci/admin/auditoria.php`.
+
+---
+
+### Modulo de Reportes y Analisis Territorial (2026-11-03 — IMPLEMENTADO, pendiente deploy)
+
+Modulo **solo para admins** que explota los datos existentes (no crea tablas ni migraciones) para producir reportes operativos y ejecutivos. Entrada: `admin/reportes_generador.php` (link `📊 Generador` en el sidebar de todas las paginas admin y boton en `admin/reportes.php`). Todo es **GET server-side**, sin AJAX ni librerias: el formulario recalcula KPIs, distribuciones y preview, y los botones de salida abren/descargan las 4 salidas con los mismos filtros.
+
+**Archivos nuevos**
+- `includes/funciones_reportes.php`: motor unico (constantes, presets, normalizacion, SQL, KPIs, CSV/GeoJSON, URLs y auditoria).
+- `admin/reportes_generador.php`: UI de filtros + KPIs + distribuciones + preview de 50 casos.
+- `admin/imprimir_cuadrilla.php`: hoja de cuadrilla A4 B&W agrupada por barrio (tope 300).
+- `admin/imprimir_dossier.php`: dossier ejecutivo A4 color con membrete, KPIs, barras, tabla y firmas (tope 300).
+- `admin/exportar_reporte.php`: CSV (BOM UTF-8 + `;`) y GeoJSON (descarta filas sin lat/lng), tope 5000.
+
+**Filtros** (normalizados en `normalizar_filtros_reportes()`): `fecha_desde`, `fecha_hasta`, `barrios[]`, `barrio_categoria` (formal|informal|asentamiento), `estados[]`, `gravedades[]`, `dias_min`, `familias_mayor_cero`, `calle_intransitable`, `responsable_area`, `con_foto`, `con_seguimiento`, `categorias[]` (ids), `tipos[]` (ids), `texto` (direccion/notas/contacto), `incluir_pendientes`, `orden`/`dir`. Todos combinables con AND.
+
+**Reglas SQL (importantes)**
+- Base: `i.oculto = 0`; `i.aprobado = 1` salvo `incluir_pendientes = 1`.
+- Categorias de incidencia SIEMPRE con `EXISTS (SELECT 1 FROM incidencia_categorias ...)`, nunca JOIN: evita duplicar filas y romper `COUNT`/`SUM`.
+- Presets resueltos por **clave semantica** a ids en runtime con `ids_por_clave_reporte()` (tabla en lista blanca; `LOWER(clave)` para tolerar claves historicas como `LuminariaRota`/`PosteCaido`).
+- Un placeholder nombrado por valor (`:estado_0`, `:categoria_1`, `:texto_1..3`); nunca se reutiliza el mismo `:param` (HY093).
+- "Dias abiertos" = `DATEDIFF(COALESCE(i.fecha_resolucion, NOW()), i.fecha_hora)`.
+- `ORDER BY` solo por lista blanca: `fecha, barrio, gravedad, estado, dias, familias, id, cuadrilla`; `cuadrilla` ordena barrio -> gravedad critica..baja -> fecha.
+- Texto libre escapa `\`, `%` y `_` y usa `ESCAPE '\\'`.
+
+**Presets (1 clic, `?preset=pN`)**
+
+| Clave | Titulo | Filtros semanticos | Casos al 2026-11-03 |
+|---|---|---|---|
+| p1 | Emergencias climaticas activas | categoria `climaticos`, gravedad alta/critica, estados pendiente/en_proceso | 20 |
+| p2 | Casos estancados | estado pendiente, `dias_min = 15` | 24 |
+| p3 | Plan de mantenimiento vial | tipo `alcantarilla`, estados abiertos | 7 |
+| p4 | Alumbrado y redes electricas | tipos `luminariarota` + `postecaido`, estados abiertos | 15 |
+| p5 | Balance mensual de gestion | fechas del mes en curso, todos los estados | 0 (sin datos de noviembre) |
+
+Notas: **p3** no exige `calle_intransitable` (en los datos no habia casos y quedaba vacio; el filtro sigue manual); **p4** usa tipos y no la categoria `luminarias` porque el backfill de categorias solo cargo `climaticos`. Los filtros manuales (`calle_intransitable`, `familias`, `con_foto`, etc.) siguen disponibles.
+
+**Limites y salidas**
+- `REPORTES_LIMITE_PREVIEW = 50`, `REPORTES_LIMITE_IMPRESION = 300`, `REPORTES_LIMITE_EXPORTACION = 5000`.
+- Las impresiones avisan cuando el total supera el tope y aclaran que los agregados son sobre el total filtrado.
+- CSV: 19 columnas, BOM + `;`, fecha y hora separadas, categorias concatenadas y URL de foto. Las celdas de texto pasan por `celda_csv_reporte()` (antepone apostrofo si empiezan con `=`, `+`, `-` o `@`) para neutralizar inyeccion de formulas en Excel.
+- GeoJSON: `FeatureCollection` WGS84 con propiedades (tipo, categorias, barrio, gravedad, estado, familias, calle, area, dias, fechas, usuario, notas, foto). Las filas sin coordenadas se omiten del GeoJSON pero quedan en el CSV.
+- `parametros_filtros_reporte()` y `url_salida_reporte()` centralizan los links (no incluyen `preset`).
+- Fechas: el preset de mes usa la zona `America/Argentina/Buenos_Aires` y los documentos toman la hora de MySQL (`DATE_FORMAT(NOW(), ...)`) para evitar el desfasaje UTC de PHP.
+
+**Auditoria**
+- `generar_reporte` (cuadrilla/dossier) y `exportar_reporte` (CSV/GeoJSON) via `registrar_salida_reporte()`.
+- Detalle: tipo de salida + cantidad de casos + descripcion de filtros (recortada a 1000).
+- Mapeadas en `admin/auditoria.php` como `Genero reporte` / `Exporto datos` (`aud-editar` / `aud-foto`).
+
+**Navegacion**
+- Link `📊 Generador` agregado al sidebar de `reportes.php`, `usuarios.php`, `tipos.php`, `categorias.php`, `barrios.php`, `barrio.php` y `auditoria.php`.
+- Boton "📊 Generador de reportes y cuadrillas" en el encabezado de `admin/reportes.php`.
+- En `auditoria.php` se corrigio el item activo del sidebar (marcaba Reportes en lugar de Auditoria).
+
+**Verificacion (2026-11-03)**
+- `php -l` en el VPS con `/usr/local/lsws/lsphp83/bin/php`: sin errores en los 5 archivos nuevos y en los 7 admin tocados.
+- Smoke test **read-only** contra la base de produccion (copia temporal en `/tmp/srci_lint`, borrada despues): 5 presets + 20 combinaciones de filtros + 3 ordenes + CSV/GeoJSON + URLs, sin errores SQL ni de tipos.
+- Datos al momento de la prueba: 61 incidencias (39 visibles/aprobadas, 22 ocultas), 0 pendientes de aprobacion; CSV de 38 filas con 19 columnas correctas; GeoJSON de 25 features con coordenadas `[lng, lat]`.
+- **Pendiente:** subir los archivos al VPS y probar las 4 salidas en el navegador con sesion admin. No requiere migracion de DB.
 
 ---
 
@@ -481,6 +566,8 @@ mysqldump -u srci_user -p srci > backup_srci_$(date +%F).sql
 El agente corre en PowerShell 5.1 (Windows) y **NO soporta bien las comillas anidadas** al enviar comandos por `ssh` (los `"` se pierden, `&` y `(` rompen el parser, y las variables `$...` se expanden y desaparecen). Regla para evitar intentos en vano:
 
 - **Nunca** mandar comandos complejos inline por ssh con comillas anidadas, heredocs ni `$`.
+- **NO EXISTEN `tail`, `head`, `sed`, `awk`, `grep -A/-C` localmente:** PowerShell 5.1 no los trae y cada pipe se rompe con `El termino 'tail' no se reconoce como nombre de un cmdlet...`. Para acotar salida usar los cmdlets propios (`| Select-Object -First 10` / `-Last 10`, `Select-String`, `Out-String`). Ojo: esto aplica TAMBIEN dentro de un `ssh host "..."` — el pipe lo resuelve PowerShell local, no el bash remoto.
+- **Ruta real del SRCI en el VPS:** `/home/echo3dlaser.com.ar/public_html/srci` (usuario del SO = `echo3dlaser.com.ar`, no `echo3d`; el public_html raiz con `ls /home/*/public_html` muestra primero `arteyoficios.com.ar` y confunde). Para localizarlo sin dudar: `ssh 149.50.142.160 "find /home -maxdepth 3 -type d -name srci"`.
 - **Para subir/editar archivos:** crear el archivo localmente (herramienta Write) y subirlo con `scp`:
   `scp -q "ruta\local" 149.50.142.160:/ruta/remota`
 - **Para ejecutar comandos:** escribir un `.sh` local, subirlo con `scp` y ejecutarlo:
@@ -491,6 +578,7 @@ El agente corre en PowerShell 5.1 (Windows) y **NO soporta bien las comillas ani
 - **Encoding UTF-8 (CRITICO):** `Get-Content`/`Set-Content` de PowerShell 5.1 leen como ANSI y re-guardan doble-encoded: **corrompen acentos y emojis** de los archivos. Para leer/reescribir archivos con texto en español/emojis usar metodos .NET:
   `$enc = New-Object System.Text.UTF8Encoding($false); $c = [System.IO.File]::ReadAllText($ruta, $enc); ... [System.IO.File]::WriteAllText($ruta, $c, $enc)`
 - Credenciales de prod viven en `includes/config.local.php` (no en git).
+- **NO dejar scripts `.sh` de prueba dentro del repo** (`srci/*.sh`): llevan el password de la BD en texto plano y el repo es git. Escribirlos, subirlos con `scp /tmp/script.sh`, ejecutarlos y **borrarlos del repo y del servidor** al terminar. Para repetir una prueba, el script se recrea desde cero (o se guarda fuera del repo).
 
 ### 11.2 Service Worker DESACTIVADO (decision 2026-10-12)
 
@@ -528,6 +616,7 @@ El SW (`sw.js`, antes network-first con cache `srci-vN`) fue **eliminado** porqu
 | 5 | incidencias.php (tabla, filtros, paginacion, CSV, GeoJSON) | ✅ Completo |
 | 6 | Panel admin (usuarios, tipos, estados) | ✅ Completo |
 | 7 | PWA + pruebas movil + deploy VPS | 🔄 En progreso (SW y manifest listos, deploy pendiente) |
+| 8 | Modulo de reportes y analisis territorial (generador, dossier, cuadrilla, CSV/GeoJSON) | ✅ Implementado (2026-11-03, pendiente deploy) |
 
 ---
 

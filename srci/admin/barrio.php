@@ -234,6 +234,7 @@ $csrf = csrf_token();
   <aside class="admin-sidebar">
     <div class="admin-sidebar-titulo">Panel de administración</div>
     <a href="/srci/admin/reportes.php" class="admin-nav-item">📋 Reportes</a>
+    <a href="/srci/admin/reportes_generador.php" class="admin-nav-item">📊 Generador</a>
     <a href="/srci/admin/usuarios.php" class="admin-nav-item">👥 Usuarios</a>
     <a href="/srci/admin/tipos.php"    class="admin-nav-item">🏷️ Tipos</a>
     <a href="/srci/admin/categorias.php" class="admin-nav-item">🗂️ Categorías</a>

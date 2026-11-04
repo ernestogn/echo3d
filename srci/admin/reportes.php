@@ -115,6 +115,7 @@ $csrf  = csrf_token();
   <aside class="admin-sidebar">
     <div class="admin-sidebar-titulo">Panel de administración</div>
     <a href="/srci/admin/reportes.php" class="admin-nav-item activo">📋 Reportes</a>
+    <a href="/srci/admin/reportes_generador.php" class="admin-nav-item">📊 Generador</a>
     <a href="/srci/admin/usuarios.php" class="admin-nav-item">👥 Usuarios</a>
     <a href="/srci/admin/tipos.php"    class="admin-nav-item">🏷️ Tipos</a>
     <a href="/srci/admin/categorias.php" class="admin-nav-item">🗂️ Categorías</a>
@@ -128,6 +129,9 @@ $csrf  = csrf_token();
       <span style="color:var(--color-texto-suave);font-size:.9rem;"><?= $total ?> incidencias</span>
       <a href="/srci/admin/reportes.php<?= $ver_ocultas ? '' : '?ocultas=1' ?>" class="boton <?= $ver_ocultas ? 'boton-secundario' : 'boton-primario' ?> boton-sm">
         <?= $ver_ocultas ? '← Ver activas' : '👁 Ver ocultas' ?>
+      </a>
+      <a href="/srci/admin/reportes_generador.php" class="boton boton-primario boton-sm">
+        📊 Generador de reportes y cuadrillas
       </a>
       <?php if (!$ver_ocultas): ?>
         <form method="POST" action="/srci/admin/reportes.php" style="display:inline;">

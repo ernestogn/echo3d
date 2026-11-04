@@ -43,6 +43,8 @@ function accion_legible(string $accion): string
     'rechazar'       => 'Rechazo reporte',
     'agregar_colaborador' => 'Designo colaborador',
     'quitar_colaborador'  => 'Quito colaborador',
+    'generar_reporte'     => 'Genero reporte',
+    'exportar_reporte'    => 'Exporto datos',
     default          => ucfirst($accion),
   };
 }
@@ -65,6 +67,8 @@ function clase_accion(string $accion): string
     'rechazar'       => 'aud-ocultar',
     'agregar_colaborador' => 'aud-editar',
     'quitar_colaborador'  => 'aud-ocultar',
+    'generar_reporte'     => 'aud-editar',
+    'exportar_reporte'    => 'aud-foto',
     default          => '',
   };
 }
@@ -96,12 +100,13 @@ function clase_accion(string $accion): string
 <div class="admin-layout">
   <aside class="admin-sidebar">
     <div class="admin-sidebar-titulo">Panel de administración</div>
-    <a href="/srci/admin/reportes.php" class="admin-nav-item activo">📋 Reportes</a>
+    <a href="/srci/admin/reportes.php" class="admin-nav-item">📋 Reportes</a>
+    <a href="/srci/admin/reportes_generador.php" class="admin-nav-item">📊 Generador</a>
     <a href="/srci/admin/usuarios.php" class="admin-nav-item">👥 Usuarios</a>
     <a href="/srci/admin/tipos.php"    class="admin-nav-item">🏷️ Tipos</a>
     <a href="/srci/admin/categorias.php" class="admin-nav-item">🗂️ Categorías</a>
     <a href="/srci/admin/barrios.php"  class="admin-nav-item">🏙️ Barrios</a>
-    <a href="/srci/admin/auditoria.php" class="admin-nav-item">🧾 Auditoría</a>
+    <a href="/srci/admin/auditoria.php" class="admin-nav-item activo">🧾 Auditoría</a>
   </aside>
 
   <main class="admin-main">

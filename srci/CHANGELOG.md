@@ -5,6 +5,150 @@ Cronología de cambios funcionales del sistema. Las fechas son las de producció
 
 ---
 
+## v2026-11-03 — Módulo de Reportes y Análisis Territorial
+
+Nuevo módulo **solo para administradores** que aprovecha los datos ya existentes
+(no crea tablas ni migraciones) para producir reportes operativos y ejecutivos:
+generador con filtros combinables, presets de un clic, dossier ejecutivo A4,
+hoja de cuadrilla A4 en blanco y negro, exportación CSV para Excel y GeoJSON
+para QGIS. Todo es **GET server-side**, sin AJAX, sin librerías externas y con
+los mismos patrones de seguridad del resto del sistema.
+
+### Qué se agregó
+
+| Pieza | Archivo | Detalle |
+|---|---|---|
+| Motor del módulo | `includes/funciones_reportes.php` | Constantes, presets, normalización de filtros, constructor de WHERE, KPIs, distribuciones, listado, CSV/GeoJSON, URLs de salida y auditoría. |
+| Generador | `admin/reportes_generador.php` | Formulario GET con todos los filtros, 5 presets, 8 KPI cards, distribuciones en barras CSS y preview de 50 casos. |
+| Dossier ejecutivo | `admin/imprimir_dossier.php` | A4 color: membrete, indicadores, distribuciones, tabla detallada, firmas y foja. Tope 300 casos. |
+| Hoja de cuadrilla | `admin/imprimir_cuadrilla.php` | A4 B&W: agrupada por barrio, ordenada por gravedad, casillas para tildar, observaciones y firmas. Tope 300 casos. |
+| Exportación | `admin/exportar_reporte.php` | CSV (BOM UTF-8 + separador `;`) y GeoJSON WGS84. Tope 5000 casos. |
+
+### Filtros disponibles
+
+Fechas (`fecha_desde`, `fecha_hasta`), barrios (múltiple), tipo de barrio
+(formal/informal/asentamiento), estados, gravedades, días abiertos mínimos,
+familias afectadas > 0, calle intransitable, área responsable, con foto,
+con seguimiento, categorías de incidencia (múltiple), tipos de problema
+(múltiple), búsqueda libre en dirección/notas/contacto, incluir pendientes de
+aprobación y orden/dirección. Todos se combinan con AND.
+
+### Presets (1 clic, `?preset=pN`)
+
+| Clave | Título | Filtros | Casos al 2026-11-03 |
+|---|---|---|---|
+| p1 | Emergencias climáticas activas | categoría `climaticos`, gravedad alta/crítica, abiertos | 20 |
+| p2 | Casos estancados (15+ días) | estado pendiente, `dias_min = 15` | 24 |
+| p3 | Plan de mantenimiento vial | tipo `alcantarilla`, abiertos | 7 |
+| p4 | Alumbrado y redes eléctricas | tipos `luminariarota` + `postecaido`, abiertos | 15 |
+| p5 | Balance mensual de gestión | fechas del mes en curso, todos los estados | 0 (sin datos de noviembre) |
+
+Los presets usan **claves semánticas** resueltas a ids en runtime, nunca ids
+fijos: funcionan igual en desarrollo y producción. La resolución de claves es
+case-insensitive porque el catálogo histórico mezcla formatos (`LuminariaRota`,
+`PosteCaido`).
+
+### Decisiones técnicas y de seguridad
+
+- **Categorías con `EXISTS`, nunca JOIN**: el pivote `incidencia_categorias` es
+  N:M; un JOIN multiplicaría filas y rompería `COUNT`/`SUM` de los KPIs.
+- **Un placeholder por valor** (`:estado_0`, `:gravedad_1`, `:categoria_0`,
+  `:texto_1..3`): nunca se reutiliza el mismo named param (evita `HY093` con
+  `EMULATE_PREPARES = false`).
+- **"Días abiertos"** = `DATEDIFF(COALESCE(i.fecha_resolucion, NOW()), i.fecha_hora)`,
+  la misma regla que la planilla y el listado público.
+- **`ORDER BY` por lista blanca**: `fecha, barrio, gravedad, estado, dias,
+  familias, id, cuadrilla`; nunca se concatena entrada del usuario.
+- **Texto libre** escapa `\`, `%` y `_` y usa `ESCAPE '\\'` en los tres `LIKE`.
+- **Límites**: preview 50, impresión 300, exportación 5000
+  (`REPORTES_LIMITE_PREVIEW/IMPRESION/EXPORTACION`).
+- **CSV**: BOM UTF-8 + `;` (Excel en español); 19 columnas con fecha y hora
+  separadas, categorías concatenadas y URL de foto. Las celdas de texto se
+  neutralizan contra inyección de fórmulas (apóstrofo si empiezan con `=`, `+`,
+  `-` o `@`), porque dirección y notas las escribe el ciudadano.
+- **GeoJSON**: descarta filas sin latitud/longitud (siguen en el CSV) para no
+  romper QGIS.
+- **Fechas**: el preset de mes usa la zona `America/Argentina/Buenos_Aires` y
+  los documentos imprimen la hora local de MySQL (`DATE_FORMAT(NOW())`), porque
+  PHP puede correr en UTC y el documento mostraría 3 horas de más.
+- **Auditoría**: `generar_reporte` (cuadrilla/dossier) y `exportar_reporte`
+  (CSV/GeoJSON) con tipo de salida, cantidad de casos y descripción de filtros.
+  Mapeadas en `admin/auditoria.php` como "Generó reporte" / "Exportó datos".
+
+### Navegación
+
+- Link `📊 Generador` en el sidebar de `reportes.php`, `usuarios.php`,
+  `tipos.php`, `categorias.php`, `barrios.php`, `barrio.php` y `auditoria.php`.
+- Botón "📊 Generador de reportes y cuadrillas" en el encabezado de
+  `admin/reportes.php`.
+- En `auditoria.php` se corrigió el ítem activo del sidebar (marcaba Reportes
+  en lugar de Auditoría).
+
+### Verificación (2026-11-03)
+
+- `php -l` en el VPS con `/usr/local/lsws/lsphp83/bin/php`: **sin errores** en
+  los 5 archivos nuevos y en los 7 archivos admin modificados.
+- Smoke test **read-only** contra la base de producción (copia temporal en
+  `/tmp/srci_lint`, borrada después): 5 presets + 20 combinaciones de filtros +
+  órdenes + CSV/GeoJSON + URLs, sin errores SQL ni de tipos.
+- Datos al momento de la prueba: 61 incidencias (39 visibles/aprobadas, 22
+  ocultas), 0 pendientes de aprobación; CSV de 38 filas con 19 columnas
+  correctas; GeoJSON de 25 features con coordenadas `[lng, lat]`.
+- **Pendiente:** subir los archivos al VPS y probar las 4 salidas en el
+  navegador con sesión admin. No requiere migración de base de datos.
+
+### Desvíos respecto del plan original
+
+- **p3** ya no exige `calle_intransitable`: en los datos reales no había casos
+  con esa combinación y el preset quedaba vacío. El filtro sigue disponible a
+  mano en el formulario.
+- **p4** usa los tipos `luminariarota` y `postecaido` en lugar de la categoría
+  `luminarias`, porque el backfill de categorías solo cargó `climaticos`; la
+  categoría dejaba el preset en 0.
+
+---
+
+## v2026-11-01 — Notificaciones a administradores + digest diario
+
+Nueva funcionalidad pedida por el cliente: que **cada admin reciba un mail por cada
+incidencia creada** (lo haya creado quien la haya creado), con la posibilidad de
+**desactivarlo desde su perfil**, más un **reporte diario tipo digest a las 08:00**
+enviado por cron del VPS.
+
+### Qué se agregó
+
+| Pieza | Dónde | Detalle |
+|---|---|---|
+| Preferencias por admin | `usuarios.notifica_incidentes_admin`, `usuarios.notifica_digest_admin` (TINYINT, default 1) | Dos banderas independientes: mail por incidente y digest diario. |
+| Migración | `sql/migracion_notificaciones_admin.sql` | Idempotente, aplicada en producción. |
+| Helpers | `includes/funciones_notificaciones_admin.php` | `obtener_admins_con_notificacion_incidente()`, `obtener_admins_con_notificacion_digest()`, `notificar_administradores_nuevo_incidente()`, `enviar_digest_diario_admin()` y los armadores de cada mail. |
+| Disparo por incidente | `api/reportes.php` (POST) | Al crear la incidencia se notifica a todos los admins activos con la bandera prendida. |
+| Toggle en el perfil | `perfil.php` | Tarjeta "🔔 Notificaciones de administrador" (solo visible para admins) con los dos checkboxes. |
+| Digest por cron | `bin/daily_digest.php` + crontab del VPS | `0 8 * * *` todos los días, con `/usr/local/lsws/lsphp83/bin/php` y log en `/var/log/srci-digest.log`. |
+
+### Reglas acordadas
+
+- Cada admin recibe **su propio mail** por incidente (no un mail conjunto a varios).
+- Llega **independientemente de quién** creó el reporte.
+- **Desactivable individualmente** desde el perfil, para el mail por incidente y para el digest, por separado.
+- El digest se envía **todos los días a las 08:00** vía cron del VPS.
+- **Nunca se manda un digest vacío**: si no hay incidencias nuevas en 24 h no sale ningún correo (verificación explícita antes de enviar).
+- Los mails usan el mismo estilo y el mismo `mail()` con envelope `-f` que el PIN y las notificaciones al creador, así que no agregan dependencias ni riesgo de spam.
+- Si el envío falla o no hay destinatarios ruteables, el flujo principal (crear el reporte) **no se interrumpe**.
+
+### Verificación (en producción, usuario Ernesto = id 11)
+
+- Migración aplicada: columnas creadas con default `1`.
+- Mail por incidente enviado a los 3 admins activos (`ernestogn`, `garay`, `marclay`) por la última incidencia publicada (#88): `notificar_administradores_nuevo_incidente()` => `true`.
+- Toggle: al apagar `notifica_incidentes_admin` de Ernesto, sale de la lista de destinatarios; al volver a encenderlo, vuelve a entrar. El digest apagado lo excluye igual.
+- Digest real (ventana 24 h): con 0 incidencias nuevas no se envió nada (comportamiento esperado). Con ventana de prueba de 30 días (38 incidencias) se envió a los 3 admins: el armado y el envío funcionan.
+- El script del cron corre con el binario de LiteSpeed (`lsphp83`, PHP 8.3.36) y sale con código 0.
+- `php -l` sin errores en los tres archivos modificados/nuevos.
+- Bug encontrado y corregido durante la prueba: `esc()` recibía un `int` (`inc['id']`) y rompía con `strict_types=1`; ahora se castea a string en todas las filas del digest.
+- Backups: crontab respaldado en `/root/cron.backup.srci.txt` (chmod 600, contiene rutas sensibles).
+
+---
+
 ## v2026-10-30 — Reglas de la red de colaboradores (6 decisiones del cliente)
 
 Se definieron seis reglas de negocio para la red de colaboradores y se aplicaron en el código.
