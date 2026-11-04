@@ -5,6 +5,40 @@ Cronología de cambios funcionales del sistema. Las fechas son las de producció
 
 ---
 
+## v2026-11-04 — Auditoría: filtros y registro de accesos
+
+`admin/auditoria.php` ahora permite encontrar un registro sin recorrer la tabla
+completa, y el sistema registra los ingresos con PIN (antes solo quedaba
+registrado el magic link).
+
+### Qué se agregó
+
+- **Filtros combinables (GET):** usuario (`usuario_id`), tipo de incidencia
+  (`tipo_id`), acción (`accion`) y búsqueda libre (`q`) sobre detalle, usuario y
+  acción. La paginación conserva los filtros.
+- **Vista "Inicios de sesión":** botón `🔐 Ver inicios de sesión`
+  (`?ver=logins`) que muestra solo `login` (PIN) y `login_link` (magic link),
+  con la misma búsqueda y filtro por usuario. Botón para volver a toda la
+  auditoría.
+- **Registro del login exitoso:** `login.php` audita `login` con el usuario y
+  la IP; `acceso.php` agrega la IP al detalle de `login_link`. Los intentos
+  fallidos y los bloqueos ya se auditaban.
+- **Etiquetas nuevas:** `login`, `login_link`, `magic_link`, `sync_planilla`,
+  `recalcular_barrios`, `activar`, `desactivar`, `nuevo_pin` y
+  `toggle_visibilidad` en `accion_legible()` / `clase_accion()`.
+- La columna "Incidencia" muestra también el tipo (icono + nombre) para
+  verificar el filtro por tipo.
+
+### Verificación
+
+- `php -l` en el VPS sin errores en `admin/auditoria.php`, `login.php` y
+  `acceso.php`.
+- Smoke test **read-only** contra la base de producción: filtros combinados,
+  búsqueda con `%`/`_` escapados y vista de logins; 319 registros totales y 125
+  de acceso histórico (magic link), sin errores SQL.
+
+---
+
 ## v2026-11-03 — Módulo de Reportes y Análisis Territorial
 
 Nuevo módulo **solo para administradores** que aprovecha los datos ya existentes

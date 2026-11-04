@@ -3,7 +3,7 @@
 **Proyecto:** Sistema de Reporte Ciudadano de Incidencias (SRCI)
 **Raiz en repositorio:** `d:\WEB\echo3d\srci\` (local) / `/home/*/public_html/srci/` (produccion VPS)
 **Implementado por:** Antigravity (sesion 12020e07-ddf7-4cdc-bc2c-b4f88b7e4065) — Octubre 2026
-**Estado:** Implementacion inicial completa + deploy en produccion (https://echo3dlaser.com.ar/srci). Modulo de Reportes y Analisis Territorial implementado (2026-11-03, pendiente de deploy). Pendiente: iconos PWA y ajuste del From del email de produccion.
+**Estado:** Implementacion inicial completa + deploy en produccion (https://echo3dlaser.com.ar/srci). Modulo de Reportes y Analisis Territorial implementado y desplegado (2026-11-03/04). Auditoria con filtros y registro de accesos (2026-11-04). Pendiente: iconos PWA y ajuste del From del email de produccion.
 
 ---
 
@@ -44,9 +44,9 @@ srci/
 ├── editar.php             Edicion completa de una incidencia (todos los campos, con CSRF) + seccion Fotos:
 │                           miniaturas de las existentes y subida de fotos nuevas (fetch a api/subir_foto.php con
 │                           vista previa y spinner; recarga al terminar) — disponible tenga o no fotos ya
-├── login.php              Autenticacion por nombre + PIN de 4 digitos (teclado virtual)
+├── login.php              Autenticacion por email + PIN de 4 digitos (teclado virtual); audita el login exitoso como `login`
 ├── logout.php             Destruye la sesion y redirige a login.php
-├── acceso.php             Magic link: token HMAC-SHA256 con vencimiento (7 dias) loguea sin PIN
+├── acceso.php             Magic link: token HMAC-SHA256 con vencimiento (7 dias) loguea sin PIN; audita `login_link`
 ├── error403.php           Pagina de error para acceso denegado (incluida por auth.php)
 ├── ayuda.php              Ayuda publica (guia de uso, sin sesion)
 ├── perfil.php             Perfil privado del usuario logueado (datos, barrios, sus reportes, cambiar PIN; avatar Gravatar)
@@ -129,7 +129,8 @@ srci/
 │   ├── barrio.php         Panel admin: detalle de un barrio (info reversa: datos, incidencias, ultimas, referentes),
 │   │                      edicion de nombre/estado/poligono (subir/pegar/dibujar GeoJSON, vista previa Leaflet.draw,
 │   │                      descargar/limpiar) y recalculo del barrio de incidencias sin barrio
-│   └── auditoria.php      Panel admin: log de auditoria (quien, cuando, que hizo)
+│   └── auditoria.php      Panel admin: log de auditoria con filtros por usuario, tipo de incidencia y accion,
+│                          buscador libre y vista aparte de inicios de sesion (quien, cuando, que hizo)
 │
 ├── assets/
 │   ├── css/estilos.css    Sistema de diseno completo (variables CSS, dark mode, responsive)
@@ -262,9 +263,11 @@ Usuarios del relevamiento: cargados por script one-shot con username = email; el
 
 **Ocultar (soft delete) + auditoria (REGLAS):** las incidencias **nunca se borran** de la BD. "Eliminar" = pasar a `oculto = 1` (solo admins, con CSRF y confirm). El mapa, listado y exportaciones filtran `oculto = 0`; el admin ve/restaura las ocultas desde `admin/reportes.php?ocultas=1`. Toda accion (crear, editar con detalle de campos cambiados, cambiar estado, ocultar, restaurar, subir foto, **agregar nota de seguimiento**) se registra en la tabla `auditoria` con `registrar_auditoria()` (`includes/funciones.php`) — visible en `/srci/admin/auditoria.php`.
 
+**Filtros de auditoria y registro de accesos (2026-11-04):** `admin/auditoria.php` tiene un formulario GET con `usuario_id`, `tipo_id` (tipo de la incidencia asociada, via `LEFT JOIN incidencias`), `accion` y `q` (busqueda libre sobre `detalle`, nombre de usuario y accion, con `%`/`_` escapados). La paginacion conserva todos los filtros. El boton **"🔐 Ver inicios de sesión"** (`?ver=logins`) cambia a una vista que solo muestra `accion IN ('login','login_link')`, manteniendo busqueda y filtro por usuario; hay un boton para volver a la auditoria completa. El login exitoso por PIN ahora se audita en `login.php` como `login` (detalle con IP); el magic link ya se auditaba como `login_link` y ahora tambien guarda la IP (`acceso.php`). Los intentos fallidos (`bloqueo_login`) y rechazados (`acceso_bloqueado`) ya se auditaban. Mapeos nuevos en `accion_legible()`/`clase_accion()`: `login`, `login_link`, `magic_link`, `sync_planilla`, `recalcular_barrios`, `activar`, `desactivar`, `nuevo_pin`, `toggle_visibilidad`. La columna "Incidencia" muestra el tipo (icono + nombre) para verificar el filtro. No requiere migracion de DB.
+
 ---
 
-### Modulo de Reportes y Analisis Territorial (2026-11-03 — IMPLEMENTADO, pendiente deploy)
+### Modulo de Reportes y Analisis Territorial (2026-11-03 — IMPLEMENTADO Y DESPLEGADO)
 
 Modulo **solo para admins** que explota los datos existentes (no crea tablas ni migraciones) para producir reportes operativos y ejecutivos. Entrada: `admin/reportes_generador.php` (link `📊 Generador` en el sidebar de todas las paginas admin y boton en `admin/reportes.php`). Todo es **GET server-side**, sin AJAX ni librerias: el formulario recalcula KPIs, distribuciones y preview, y los botones de salida abren/descargan las 4 salidas con los mismos filtros.
 
@@ -320,7 +323,7 @@ Notas: **p3** no exige `calle_intransitable` (en los datos no habia casos y qued
 - `php -l` en el VPS con `/usr/local/lsws/lsphp83/bin/php`: sin errores en los 5 archivos nuevos y en los 7 admin tocados.
 - Smoke test **read-only** contra la base de produccion (copia temporal en `/tmp/srci_lint`, borrada despues): 5 presets + 20 combinaciones de filtros + 3 ordenes + CSV/GeoJSON + URLs, sin errores SQL ni de tipos.
 - Datos al momento de la prueba: 61 incidencias (39 visibles/aprobadas, 22 ocultas), 0 pendientes de aprobacion; CSV de 38 filas con 19 columnas correctas; GeoJSON de 25 features con coordenadas `[lng, lat]`.
-- **Pendiente:** subir los archivos al VPS y probar las 4 salidas en el navegador con sesion admin. No requiere migracion de DB.
+- **Deploy:** los 5 archivos nuevos + los 9 admin modificados se desplegaron por push a `main` (2026-11-04); hashes MD5 de produccion identicos a los locales. No requiere migracion de DB.
 
 ---
 
@@ -616,7 +619,8 @@ El SW (`sw.js`, antes network-first con cache `srci-vN`) fue **eliminado** porqu
 | 5 | incidencias.php (tabla, filtros, paginacion, CSV, GeoJSON) | ✅ Completo |
 | 6 | Panel admin (usuarios, tipos, estados) | ✅ Completo |
 | 7 | PWA + pruebas movil + deploy VPS | 🔄 En progreso (SW y manifest listos, deploy pendiente) |
-| 8 | Modulo de reportes y analisis territorial (generador, dossier, cuadrilla, CSV/GeoJSON) | ✅ Implementado (2026-11-03, pendiente deploy) |
+| 8 | Modulo de reportes y analisis territorial (generador, dossier, cuadrilla, CSV/GeoJSON) | ✅ Implementado y desplegado (2026-11-03/04) |
+| 9 | Auditoria: filtros por usuario/tipo/accion, buscador y registro de inicios de sesion | ✅ Implementado (2026-11-04) |
 
 ---
 

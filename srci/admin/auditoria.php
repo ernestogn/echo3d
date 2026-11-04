@@ -9,20 +9,92 @@ $pagina     = max(1, (int)($_GET['pagina'] ?? 1));
 $por_pagina = 50;
 $offset     = ($pagina - 1) * $por_pagina;
 
-$total      = (int)db()->query('SELECT COUNT(*) FROM auditoria')->fetchColumn();
+// Filtros. En la vista de accesos ("?ver=logins") se ignoran tipo y accion.
+$ver_logins = (($_GET['ver'] ?? '') === 'logins');
+$f_usuario  = max(0, (int)($_GET['usuario_id'] ?? 0));
+$f_tipo     = $ver_logins ? 0 : max(0, (int)($_GET['tipo_id'] ?? 0));
+$f_accion   = $ver_logins ? '' : (is_string($_GET['accion'] ?? null) ? trim($_GET['accion']) : '');
+$f_q        = is_string($_GET['q'] ?? null) ? mb_substr(trim($_GET['q']), 0, 120) : '';
+
+$donde  = [];
+$params = [];
+
+if ($f_usuario > 0) {
+  $donde[]               = 'a.usuario_id = :usuario_id';
+  $params[':usuario_id'] = $f_usuario;
+}
+if ($f_tipo > 0) {
+  $donde[]           = 'i.tipo_id = :tipo_id';
+  $params[':tipo_id'] = $f_tipo;
+}
+if ($ver_logins) {
+  $donde[] = "a.accion IN ('login', 'login_link')";
+} elseif ($f_accion !== '') {
+  $donde[]           = 'a.accion = :accion';
+  $params[':accion'] = $f_accion;
+}
+if ($f_q !== '') {
+  $escapado = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $f_q);
+  $donde[]  = "CONCAT_WS(' ', a.detalle, u.nombre, a.accion) LIKE :q ESCAPE '\\\\'";
+  $params[':q'] = '%' . $escapado . '%';
+}
+
+$where_sql = $donde ? (' WHERE ' . implode(' AND ', $donde)) : '';
+$base_sql  = 'FROM auditoria a
+  LEFT JOIN usuarios u ON u.id = a.usuario_id
+  LEFT JOIN incidencias i ON i.id = a.incidencia_id
+  LEFT JOIN tipos_incidencia t ON t.id = i.tipo_id';
+
+$stmt = db()->prepare('SELECT COUNT(*) ' . $base_sql . $where_sql);
+foreach ($params as $clave => $valor) {
+  $stmt->bindValue($clave, $valor, is_int($valor) ? PDO::PARAM_INT : PDO::PARAM_STR);
+}
+$stmt->execute();
+$total      = (int)$stmt->fetchColumn();
 $total_pags = (int)ceil($total / $por_pagina);
+if ($total_pags > 0 && $pagina > $total_pags) {
+  $pagina = $total_pags;
+  $offset = ($pagina - 1) * $por_pagina;
+}
 
 $stmt = db()->prepare(
-  'SELECT a.id, a.accion, a.incidencia_id, a.detalle, a.fecha_hora, u.nombre AS usuario
-   FROM auditoria a
-   LEFT JOIN usuarios u ON u.id = a.usuario_id
+  'SELECT a.id, a.accion, a.incidencia_id, a.detalle, a.fecha_hora, u.nombre AS usuario,
+          t.nombre AS tipo_nombre, t.icono AS tipo_icono '
+  . $base_sql . $where_sql . '
    ORDER BY a.id DESC
    LIMIT :lim OFFSET :off'
 );
+foreach ($params as $clave => $valor) {
+  $stmt->bindValue($clave, $valor, is_int($valor) ? PDO::PARAM_INT : PDO::PARAM_STR);
+}
 $stmt->bindValue(':lim', $por_pagina, PDO::PARAM_INT);
 $stmt->bindValue(':off', $offset,     PDO::PARAM_INT);
 $stmt->execute();
 $registros = $stmt->fetchAll();
+
+// Listas para los selects de filtros
+$usuarios_lista = db()->query('SELECT id, nombre FROM usuarios ORDER BY nombre')->fetchAll();
+$tipos_lista    = db()->query('SELECT id, nombre, icono FROM tipos_incidencia ORDER BY nombre')->fetchAll();
+$acciones_lista = db()->query('SELECT DISTINCT accion FROM auditoria ORDER BY accion')->fetchAll(PDO::FETCH_COLUMN);
+foreach (['login', 'login_link'] as $accion_login) {
+  if (!in_array($accion_login, $acciones_lista, true)) {
+    $acciones_lista[] = $accion_login;
+  }
+}
+sort($acciones_lista, SORT_NATURAL | SORT_FLAG_CASE);
+
+// Paginacion que conserva los filtros activos
+$params_url = [];
+if ($ver_logins)      { $params_url['ver'] = 'logins'; }
+if ($f_usuario > 0)   { $params_url['usuario_id'] = $f_usuario; }
+if ($f_tipo > 0)      { $params_url['tipo_id'] = $f_tipo; }
+if ($f_accion !== '') { $params_url['accion'] = $f_accion; }
+if ($f_q !== '')      { $params_url['q'] = $f_q; }
+$url_pagina = static function (int $p) use ($params_url): string {
+  $query = $params_url;
+  $query['pagina'] = $p;
+  return '/srci/admin/auditoria.php?' . http_build_query($query);
+};
 
 // Nombre legible y color de cada accion
 function accion_legible(string $accion): string
@@ -39,6 +111,15 @@ function accion_legible(string $accion): string
     'seguimiento'    => 'Nota de seguimiento',
     'bloqueo_login'  => 'Bloqueo anti-fuerza bruta',
     'acceso_bloqueado' => 'Intento bloqueado',
+    'login'          => 'Ingreso con PIN',
+    'login_link'     => 'Ingreso por magic link',
+    'magic_link'     => 'Genero link de acceso',
+    'sync_planilla'  => 'Sincronizo planilla',
+    'recalcular_barrios' => 'Recalculo barrios',
+    'activar'        => 'Activo usuario',
+    'desactivar'     => 'Desactivo usuario',
+    'nuevo_pin'      => 'Regenero PIN',
+    'toggle_visibilidad' => 'Cambio visibilidad',
     'aprobar'        => 'Aprobo reporte',
     'rechazar'       => 'Rechazo reporte',
     'agregar_colaborador' => 'Designo colaborador',
@@ -63,6 +144,15 @@ function clase_accion(string $accion): string
     'seguimiento'    => 'aud-editar',
     'bloqueo_login'  => 'aud-ocultar',
     'acceso_bloqueado' => 'aud-ocultar',
+    'login'          => 'aud-restaurar',
+    'login_link'     => 'aud-restaurar',
+    'magic_link'     => 'aud-editar',
+    'sync_planilla'  => 'aud-editar',
+    'recalcular_barrios' => 'aud-editar',
+    'activar'        => 'aud-restaurar',
+    'desactivar'     => 'aud-ocultar',
+    'nuevo_pin'      => 'aud-editar',
+    'toggle_visibilidad' => 'aud-editar',
     'aprobar'        => 'aud-restaurar',
     'rechazar'       => 'aud-ocultar',
     'agregar_colaborador' => 'aud-editar',
@@ -111,9 +201,75 @@ function clase_accion(string $accion): string
 
   <main class="admin-main">
     <div class="pagina-encabezado">
-      <h1>Auditoría</h1>
-      <span style="color:var(--color-texto-suave);font-size:.9rem;"><?= $total ?> registros · quién, cuándo y qué hizo</span>
+      <div>
+        <h1>Auditoría</h1>
+        <span style="color:var(--color-texto-suave);font-size:.9rem;">
+          <?= $total ?> registro<?= $total === 1 ? '' : 's' ?><?= $ver_logins ? ' de inicio de sesión' : '' ?> · quién, cuándo y qué hizo
+        </span>
+      </div>
+      <div style="display:flex;gap:var(--espacio-sm);flex-wrap:wrap;">
+        <?php if ($ver_logins): ?>
+          <a href="/srci/admin/auditoria.php" class="boton boton-secundario boton-sm">← Ver toda la auditoría</a>
+        <?php else: ?>
+          <a href="/srci/admin/auditoria.php?ver=logins" class="boton boton-primario boton-sm">🔐 Ver inicios de sesión</a>
+        <?php endif; ?>
+      </div>
     </div>
+
+    <?php if ($ver_logins): ?>
+      <div class="mensaje mensaje-info" style="margin-bottom:var(--espacio-lg);">
+        <span>🔐</span>
+        <span>Mostrando solo inicios de sesión (PIN y magic link).</span>
+      </div>
+    <?php endif; ?>
+
+    <form class="filtros-barra" method="GET" action="/srci/admin/auditoria.php">
+      <?php if ($ver_logins): ?><input type="hidden" name="ver" value="logins"><?php endif; ?>
+      <div class="campo">
+        <label for="f-usuario">Usuario</label>
+        <select id="f-usuario" name="usuario_id">
+          <option value="">Todos</option>
+          <?php foreach ($usuarios_lista as $u): ?>
+            <option value="<?= (int)$u['id'] ?>" <?= $f_usuario === (int)$u['id'] ? 'selected' : '' ?>>
+              <?= esc((string)$u['nombre']) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <?php if (!$ver_logins): ?>
+        <div class="campo">
+          <label for="f-tipo">Tipo de incidencia</label>
+          <select id="f-tipo" name="tipo_id">
+            <option value="">Todos</option>
+            <?php foreach ($tipos_lista as $t): ?>
+              <?php $tipo_label = trim(((string)($t['icono'] ?? '')) . ' ' . ((string)($t['nombre'] ?? ''))); ?>
+              <option value="<?= (int)$t['id'] ?>" <?= $f_tipo === (int)$t['id'] ? 'selected' : '' ?>>
+                <?= esc($tipo_label) ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="f-accion">Acción</label>
+          <select id="f-accion" name="accion">
+            <option value="">Todas</option>
+            <?php foreach ($acciones_lista as $a): ?>
+              <option value="<?= esc((string)$a) ?>" <?= $f_accion === $a ? 'selected' : '' ?>>
+                <?= esc(accion_legible((string)$a)) ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+      <?php endif; ?>
+      <div class="campo">
+        <label for="f-q">Buscar</label>
+        <input type="search" id="f-q" name="q" placeholder="Detalle, usuario o acción…" value="<?= esc($f_q) ?>">
+      </div>
+      <div style="display:flex;gap:var(--espacio-sm);align-items:flex-end;">
+        <button type="submit" class="boton boton-primario">Filtrar</button>
+        <a href="/srci/admin/auditoria.php<?= $ver_logins ? '?ver=logins' : '' ?>" class="boton boton-secundario">Limpiar</a>
+      </div>
+    </form>
 
     <div class="tabla-contenedor">
       <table class="tabla-incidencias">
@@ -137,6 +293,10 @@ function clase_accion(string $accion): string
               <td>
                 <?php if ($r['incidencia_id']): ?>
                   <a href="/srci/detalle.php?id=<?= (int)$r['incidencia_id'] ?>">#<?= (int)$r['incidencia_id'] ?></a>
+                  <?php $tipo_txt = trim(((string)($r['tipo_icono'] ?? '')) . ' ' . ((string)($r['tipo_nombre'] ?? ''))); ?>
+                  <?php if ($tipo_txt !== ''): ?>
+                    <div style="color:var(--color-texto-suave);font-size:.78rem;"><?= esc($tipo_txt) ?></div>
+                  <?php endif; ?>
                 <?php else: ?>—<?php endif; ?>
               </td>
               <td style="max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<?= esc($r['detalle'] ?? '') ?>"><?= esc($r['detalle'] ?? '') ?></td>
@@ -149,13 +309,13 @@ function clase_accion(string $accion): string
     <?php if ($total_pags > 1): ?>
       <nav class="paginacion">
         <?php if ($pagina > 1): ?>
-          <a href="/srci/admin/auditoria.php?pagina=<?= $pagina - 1 ?>" class="pagina-enlace">‹</a>
+          <a href="<?= esc($url_pagina($pagina - 1)) ?>" class="pagina-enlace">‹</a>
         <?php endif; ?>
         <?php for ($p = max(1, $pagina - 2); $p <= min($total_pags, $pagina + 2); $p++): ?>
-          <a href="/srci/admin/auditoria.php?pagina=<?= $p ?>" class="pagina-enlace <?= $p === $pagina ? 'activa' : '' ?>"><?= $p ?></a>
+          <a href="<?= esc($url_pagina($p)) ?>" class="pagina-enlace <?= $p === $pagina ? 'activa' : '' ?>"><?= $p ?></a>
         <?php endfor; ?>
         <?php if ($pagina < $total_pags): ?>
-          <a href="/srci/admin/auditoria.php?pagina=<?= $pagina + 1 ?>" class="pagina-enlace">›</a>
+          <a href="<?= esc($url_pagina($pagina + 1)) ?>" class="pagina-enlace">›</a>
         <?php endif; ?>
       </nav>
     <?php endif; ?>

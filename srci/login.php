@@ -45,6 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $_SESSION['usuario_id'] = $usuario['id'];
       $_SESSION['nombre']     = $usuario['nombre'];
       $_SESSION['rol']        = $usuario['rol'];
+      registrar_auditoria((int)$usuario['id'], 'login', null, 'Ingreso con PIN — IP ' . $ip);
       header('Location: /srci/index.php');
       exit;
     }

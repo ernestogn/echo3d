@@ -44,7 +44,7 @@ $_SESSION['usuario_id'] = (int)$usuario['id'];
 $_SESSION['nombre']     = $usuario['nombre'];
 $_SESSION['rol']        = $usuario['rol'];
 
-registrar_auditoria((int)$usuario['id'], 'login_link', null, 'Ingreso por magic link');
+registrar_auditoria((int)$usuario['id'], 'login_link', null, 'Ingreso por magic link — IP ' . ($_SERVER['REMOTE_ADDR'] ?? 'desconocida'));
 
 header('Location: /srci/index.php');
 exit;
