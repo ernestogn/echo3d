@@ -9,7 +9,7 @@
 
 ## 1. Que es el SRCI
 
-Aplicacion web para que ciudadanos reporten incidencias urbanas geolocalizadas (arboles caidos, alcantarillas tapadas, fugas de agua, etc.) sobre un mapa interactivo. Tiene dos roles: `usuario` (reporta) y `admin` (gestiona estados y usuarios).
+Aplicacion web para que ciudadanos reporten incidencias urbanas geolocalizadas (arboles caidos, alcantarillas tapadas, fugas de agua, etc.) sobre un mapa interactivo. Tiene tres roles: `usuario` (reporta), `colaborador` (reporta a traves de otro usuario, su vinculacion vive en la tabla `colaboradores`) y `admin` (gestiona estados y usuarios). Hoy `usuario` y `colaborador` tienen los mismos permisos; el rol existe para poder diferenciarlos en el futuro (migracion `sql/migracion_rol_colaborador.sql`, aplicada en prod).
 
 ---
 
@@ -68,6 +68,7 @@ srci/
 │   ├── migracion_aprobacion_incidencias.sql  Migracion: incidencias.aprobado / aprobado_en / aprobado_por / propietario_id + indices + FKs
 │   ├── migracion_backfill_aprobado.sql  Migracion: backfill de incidencias existentes (aprobado=1, propietario_id=usuario_id) — ejecutar UNA sola vez
 │   ├── migracion_colaboradores_red_unica.sql  Migracion: normaliza colaboradores duplicados (deja el mas reciente) + UNIQUE uq_colaborador (una sola red por usuario) + dropea idx_colaborador
+│   ├── migracion_rol_colaborador.sql  Migracion idempotente: agrega 'colaborador' al ENUM de usuarios.rol (aplicada en prod) + backfill de los usuarios vinculados en colaboradores
 │   └── migracion_rechazo_visible.sql  Migracion: incidencias.rechazado / rechazado_en / rechazado_por / motivo_rechazo + indice (el rechazo queda visible para el autor con su motivo)
 │   └── migracion_notificaciones_admin.sql  Migracion: usuarios.notifica_incidentes_admin / notifica_digest_admin (TINYINT default 1) — preferencias de mail de los admins (ver seccion Notificaciones a administradores)
 │
@@ -164,7 +165,7 @@ define('SRCI_MAGIC_SECRET', 'secreto_aleatorio_64_hex');  // firma los magic lin
 ### Esquema
 
 ```sql
-usuarios          id, nombre(UNIQUE), email, pin_hash, rol(usuario|admin), activo, creado_en
+usuarios          id, nombre(UNIQUE), email, pin_hash, rol(usuario|admin|colaborador), activo, creado_en
 tipos_incidencia  id, clave(UNIQUE), nombre, icono, activo
 barrios           id, nombre(UNIQUE), poligono(TEXT NULL: JSON [[[lat,lng],...],...]),
                   categoria(ENUM formal|informal|asentamiento NULL), color(VARCHAR(7) #rrggbb NULL), activo, creado_en —
@@ -240,7 +241,7 @@ Usuarios del relevamiento: cargados por script one-shot con username = email; el
 **MODO ACTUAL: SOLO ADMINS (`SRCI_COLABORADORES_SOLO_ADMIN = true` en `includes/funciones.php`).** Hasta nuevo aviso la red la gestionan unicamente los admins: solo ellos designan/quitan colaboradores y solo ellos aprueban/rechazan. El flag en `false` abre la funcionalidad a todos los usuarios (cada uno con su propia red) sin tocar el codigo. Implementacion:
 - Helpers en `includes/funciones.php`: `puede_gestionar_colaboradores()`, `puede_gestionar_aprobaciones()`, `es_colaborador()`, `propietario_de_colaborador()`, `ids_grupo_propietario()`, `colaboradores_de()`, `incidencias_pendientes_de_aprobacion()`, `condiciones_visibilidad_incidencias()`, `agregar_colaborador()`, `quitar_colaborador()`, `notificar_propietario_por_email()`. Cache en `$GLOBALS['srci_cache_colaboradores']` (se invalida al alta/baja de vinculos).
 - **Una sola red por usuario:** `colaboradores.colaborador_id` tiene UNIQUE (`uq_colaborador`, migracion `sql/migracion_colaboradores_red_unica.sql`). `agregar_colaborador()` rechaza el alta si el usuario ya pertenece a otra red, y un admin no puede ser colaborador (sin anidar).
-- **Alta por email con creacion automatica (2026-11-04):** si el email no existe en `usuarios`, `agregar_colaborador()` crea el usuario (`rol = 'usuario'`, `activo = 1`, PIN aleatorio de 4 digitos), lo vincula como colaborador **aprobado**, le envia el magic link + el PIN con `enviar_activacion_por_email()` y audita `agregar_colaborador` con el detalle "Creo el usuario ... y lo designo colaborador". El `nombre` se deriva de la parte local del email con `_nombre_usuario_desde_email()` (agrega un sufijo numerico si ya existe). Si el mail no es ruteable (`*.local`) o falla el envio, el mensaje al admin incluye el PIN para entregarlo a mano. No hay rol `colaborador`: es un vinculo, no un rol.
+- **Alta por email con creacion automatica (2026-11-04):** si el email no existe en `usuarios`, `agregar_colaborador()` crea el usuario (`rol = 'colaborador'` desde la migracion `sql/migracion_rol_colaborador.sql`, `activo = 1`, PIN aleatorio de 4 digitos), lo vincula como colaborador **aprobado**, le envia el magic link + el PIN con `enviar_activacion_por_email()` y audita `agregar_colaborador` con el detalle "Creo el usuario ... y lo designo colaborador". El `nombre` se deriva de la parte local del email con `_nombre_usuario_desde_email()` (agrega un sufijo numerico si ya existe). Si el mail no es ruteable (`*.local`) o falla el envio, el mensaje al admin incluye el PIN para entregarlo a mano. `colaborador` **no es admin**: toda la autorizacion sigue siendo `rol === 'admin'` (`includes/auth.php`), asi que el rol nuevo no cambia ningun permiso por ahora.
 - Creacion del reporte (`api/reportes.php` POST): si el creador `es_colaborador()` -> `aprobado = 0` + `propietario_id` = su propietario; si no -> `aprobado = 1` + `propietario_id` = el propio creador.
 - **Publicacion:** los reportes pendientes NUNCA van al mapa (`api/reportes.php` GET filtra `i.aprobado = 1`) ni a las exportaciones CSV/GeoJSON (`incidencias.php` exporta solo `aprobado = 1`). Se ven solo en el listado del admin y en el panel de aprobacion.
 - Visibilidad (filtro SIEMPRE en servidor): admin ve todas (incluidas pendientes); el resto ve las **aprobadas** + sus **propias pendientes** (`condiciones_visibilidad_incidencias()`). `detalle.php` y `editar.php` devuelven 404 a un reporte pendiente para quien no es admin ni su autor.

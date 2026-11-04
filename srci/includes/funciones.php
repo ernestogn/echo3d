@@ -1243,7 +1243,7 @@ function agregar_colaborador(int $propietario_id, string $email, int $actor_id):
           ':nombre'   => $nombre,
           ':email'    => $email,
           ':pin_hash' => password_hash($pin, PASSWORD_DEFAULT),
-          ':rol'      => 'usuario',
+          ':rol'      => 'colaborador',
         ]);
       $colaborador_id = (int)$pdo->lastInsertId();
       $pdo->prepare("INSERT INTO colaboradores (propietario_id, colaborador_id, estado, creado_por) VALUES (:propietario, :colaborador, 'aprobado', :actor)")

@@ -5,6 +5,35 @@ Cronología de cambios funcionales del sistema. Las fechas son las de producció
 
 ---
 
+## v2026-11-04 — Rol `colaborador`
+
+Se agrega el valor `colaborador` al `ENUM` de `usuarios.rol` para poder
+diferenciar en el futuro a quienes reportan a través de otro usuario. **No
+cambia ningún permiso**: sigue siendo admin quien tiene `rol = 'admin'`.
+
+### Qué cambió
+
+- **Migración** `sql/migracion_rol_colaborador.sql` (idempotente, **aplicada en
+  producción**): `rol ENUM('usuario','admin','colaborador') NOT NULL DEFAULT 'usuario'`
+  más backfill de los usuarios vinculados en `colaboradores` (los que eran
+  `usuario`). Se tomaron backups de `usuarios` y `colaboradores` antes de
+  aplicar.
+- **Esquema base** `sql/esquema.sql` actualizado con el nuevo valor.
+- **Alta de colaboradores:** `agregar_colaborador()` crea ahora el usuario con
+  `rol = 'colaborador'` (antes `usuario`).
+- **`admin/usuarios.php`:** el rol `Colaborador` se puede elegir al crear y al
+  editar un usuario.
+- Documentación (`AGENTS.md`) ajustada: tres roles, nueva migración en la lista
+  de `sql/` y aclaración de que `colaborador` no es admin.
+
+### Verificación
+
+- ENUM en producción: `enum('usuario','admin','colaborador')`; roles después de
+  la migración: 60 usuario, 4 admin, 1 colaborador.
+- Backup previo de `usuarios` (12 KB) y `colaboradores` (2,8 KB) en el VPS.
+
+---
+
 ## v2026-11-04 — Alta automática de colaboradores
 
 Agregar un colaborador por email ya no falla cuando esa persona todavía no

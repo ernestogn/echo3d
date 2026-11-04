@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nombre = trim($_POST['nombre'] ?? '');
     $email  = trim($_POST['email']  ?? '');
     $rol    = $_POST['rol'] ?? 'usuario';
-    $roles  = ['usuario','admin'];
+    $roles  = ['usuario','admin','colaborador'];
 
     if ($nombre === '') {
       $mensaje = 'El nombre es obligatorio.';
@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nombre = trim($_POST['nombre'] ?? '');
     $email  = trim($_POST['email']  ?? '');
     $rol    = $_POST['rol'] ?? 'usuario';
-    $roles  = ['usuario','admin'];
+    $roles  = ['usuario','admin','colaborador'];
 
     if ($nombre === '') {
       $mensaje  = 'El nombre es obligatorio.';
@@ -342,6 +342,7 @@ $csrf = csrf_token();
             <select id="nuevo-rol" name="rol">
               <option value="usuario">Usuario</option>
               <option value="admin">Admin</option>
+              <option value="colaborador">Colaborador</option>
             </select>
           </div>
           <button type="submit" class="boton boton-primario" style="align-self:flex-end;">Crear</button>
@@ -527,6 +528,7 @@ $csrf = csrf_token();
         <select id="editar-rol" name="rol">
           <option value="usuario">Usuario</option>
           <option value="admin">Admin</option>
+          <option value="colaborador">Colaborador</option>
         </select>
         <p id="editar-rol-nota" style="display:none;color:var(--color-texto-suave);font-size:.8rem;margin:var(--espacio-xs) 0 0;">
           No podés cambiar tu propio rol.
