@@ -259,6 +259,31 @@ if ($iniciales === '') {
 
   </div>
 
+  <?php if (es_rol_colaborador((int)$_SESSION['usuario_id'])): ?>
+  <!-- Ayuda para el rol colaborador: que puede hacer y que puede ver -->
+  <div class="tarjeta" style="margin-bottom:var(--espacio-lg);">
+    <h2 style="margin-bottom:var(--espacio-xs);">Ayuda: tu rol de colaborador</h2>
+    <p style="color:var(--color-texto-suave);font-size:.9rem;">
+      Cargás reportes de incidencias a través de la persona que te designó
+      colaborador. Esto es lo que implica:
+    </p>
+    <ul style="margin:var(--espacio-sm) 0 0;padding-left:1.2rem;color:var(--color-texto-suave);font-size:.9rem;line-height:1.7;">
+      <li><strong style="color:var(--color-texto);">Qué podés hacer:</strong> crear
+        reportes desde el mapa, ver y editar los tuyos, y seguir el estado de los
+        reportes de tu grupo.</li>
+      <li><strong style="color:var(--color-texto);">Qué podés ver:</strong> solo las
+        incidencias de tu grupo (las tuyas, las de quien te designó y las de tus
+        compañeros de red). No ves el resto de los reportes del sistema.</li>
+      <li><strong style="color:var(--color-texto);">Aprobación:</strong> tus reportes
+        nacen <strong>pendientes de aprobación</strong> y recién se publican cuando
+        la persona a cargo de tu red los aprueba. Hasta entonces solo los ve tu
+        grupo, con el badge “Pendiente de aprobación”.</li>
+      <li><strong style="color:var(--color-texto);">Qué no podés hacer:</strong>
+        aprobar o rechazar reportes, y editar reportes de otras personas.</li>
+    </ul>
+  </div>
+  <?php endif; ?>
+
   <?php if ($gestiona_colaboradores): ?>
   <!-- Red de colaboradores (gestion de admins) -->
   <div class="tarjeta" style="margin-bottom:var(--espacio-lg);" id="colaboradores">

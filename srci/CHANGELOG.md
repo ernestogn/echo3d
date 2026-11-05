@@ -5,6 +5,23 @@ Cronología de cambios funcionales del sistema. Las fechas son las de producció
 
 ---
 
+## v2026-11-04 — Ayuda del rol colaborador en el perfil
+
+`perfil.php` muestra una tarjeta **“Ayuda: tu rol de colaborador”** (solo para
+usuarios con `rol = 'colaborador'`, vía `es_rol_colaborador()`) que explica:
+
+- **Qué puede hacer:** crear reportes desde el mapa, ver/editar los propios y
+  seguir el estado de los de su grupo.
+- **Qué puede ver:** solo las incidencias de su grupo (las suyas, las de quien lo
+  designó y las de sus compañeros de red); no ve el resto del sistema.
+- **Aprobación:** sus reportes nacen “Pendiente de aprobación” y recién se
+  publican cuando la persona a cargo de su red los aprueba; hasta entonces solo
+  los ve su grupo.
+- **Qué no puede hacer:** aprobar/rechazar reportes ni editar reportes de otras
+  personas.
+
+---
+
 ## v2026-11-04 — Colaborador: solo ve su grupo
 
 Un usuario con rol `colaborador` deja de ver el listado general de incidencias
