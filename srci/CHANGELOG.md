@@ -5,6 +5,37 @@ Cronología de cambios funcionales del sistema. Las fechas son las de producció
 
 ---
 
+## v2026-11-04 — Colaborador: solo ve su grupo
+
+Un usuario con rol `colaborador` deja de ver el listado general de incidencias
+aprobadas: ahora **solo ve lo de su grupo**.
+
+### Qué cambió
+
+- **Regla de visibilidad:** nuevo `condiciones_grupo_colaborador()`
+  (`includes/funciones.php`). Un colaborador (por rol `colaborador` o por tener
+  vínculo aprobado en `colaboradores`) ve únicamente las incidencias de su
+  grupo: las propias, las de su **padre** (propietario de la red) y las de sus
+  compañeros de red. No ve el resto de las aprobadas.
+- **Aplicada en todos lados:** listado y exportaciones (`incidencias.php`, vía
+  `condiciones_visibilidad_incidencias()`), feed del mapa
+  (`api/reportes.php` GET) y vistas de detalle (`detalle.php`) y edición
+  (`editar.php`), que ahora usan `puede_ver_incidencia()` y devuelven **404**
+  (no 403) para no revelar reportes fuera del grupo.
+- **Editar sigue igual:** solo el autor del reporte o un admin pueden editarlo.
+- Nuevo helper `es_rol_colaborador()` (con cache por request) para no depender
+  solo del vínculo.
+
+### Verificación
+
+- `php -l` en el VPS sin errores en `includes/funciones.php`,
+  `api/reportes.php`, `detalle.php`, `editar.php` e `incidencias.php`.
+- Smoke test de visibilidad contra producción (usuario colaborador del grupo):
+  ve su grupo y sus pendientes; un reporte ajeno aprobado ya no aparece en su
+  conteo ni en el mapa; `detalle.php` de un ajeno devuelve 404.
+
+---
+
 ## v2026-11-04 — Rol `colaborador`
 
 Se agrega el valor `colaborador` al `ENUM` de `usuarios.rol` para poder

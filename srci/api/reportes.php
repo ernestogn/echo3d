@@ -22,6 +22,13 @@ if ($metodo === 'GET') {
   // Se ven solo en el listado (admin) y en el panel de aprobacion.
   $donde[] = 'i.aprobado = 1';
 
+  // Colaborador: en el mapa SOLO ve las incidencias de su grupo.
+  $grupo = condiciones_grupo_colaborador((int)($_SESSION['usuario_id'] ?? 0), 'i');
+  if ($grupo !== null) {
+    $donde[] = $grupo[0];
+    $params  = array_merge($params, $grupo[1]);
+  }
+
   if (!empty($_GET['tipo_id'])) {
     $donde[]              = 'i.tipo_id = :tipo_id';
     $params[':tipo_id']   = (int)$_GET['tipo_id'];

@@ -116,6 +116,14 @@ if ((int)$inc['aprobado'] === 0
   die('Incidencia no encontrada.');
 }
 
+// Un colaborador solo puede ver las incidencias de su grupo: para cualquier
+// otra no existe (404, igual que un pendiente ajeno).
+if (!es_admin()
+    && !puede_ver_incidencia($id, (int)$_SESSION['usuario_id'], false)) {
+  http_response_code(404);
+  die('Incidencia no encontrada.');
+}
+
 // Dias abiertos: desde el reporte hasta la resolucion (o hoy)
 $inicio = new DateTime($inc['fecha_hora']);
 $fin    = $inc['fecha_resolucion'] ? new DateTime($inc['fecha_resolucion']) : new DateTime('now');

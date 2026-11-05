@@ -1180,18 +1180,95 @@ function incidencias_pendientes_de_aprobacion(int $usuario_id, bool $es_admin): 
   return $st->fetchAll();
 }
 
+// True si el usuario tiene el rol 'colaborador'
+function es_rol_colaborador(int $usuario_id): bool
+{
+  static $cache = [];
+  if (isset($cache[$usuario_id])) {
+    return $cache[$usuario_id];
+  }
+  try {
+    $st = db()->prepare('SELECT 1 FROM usuarios WHERE id = :id AND rol = :rol LIMIT 1');
+    $st->execute([':id' => $usuario_id, ':rol' => 'colaborador']);
+    $cache[$usuario_id] = (bool)$st->fetchColumn();
+  } catch (Throwable $e) {
+    $cache[$usuario_id] = false;
+  }
+  return $cache[$usuario_id];
+}
+
+// Condicion SQL de visibilidad de un COLABORADOR: solo las incidencias de su
+// grupo (las propias, las de su padre y las de sus companeros de red).
+// Devuelve null si el usuario no es colaborador.
+function condiciones_grupo_colaborador(int $usuario_id, string $alias = 'i'): ?array
+{
+  if (!es_colaborador($usuario_id) && !es_rol_colaborador($usuario_id)) {
+    return null;
+  }
+
+  $propietario_id = propietario_de_colaborador($usuario_id);
+  if ($propietario_id === null) {
+    return ["{$alias}.usuario_id = :grupo_sin_red", [':grupo_sin_red' => $usuario_id]];
+  }
+
+  return [
+    "({$alias}.usuario_id IN (
+        SELECT c.colaborador_id FROM colaboradores c
+         WHERE c.propietario_id = :grupo_propietario_a AND c.estado = 'aprobado'
+      )
+      OR {$alias}.usuario_id = :grupo_propietario_b
+      OR {$alias}.usuario_id = :grupo_usuario)",
+    [
+      ':grupo_propietario_a' => $propietario_id,
+      ':grupo_propietario_b' => $propietario_id,
+      ':grupo_usuario'       => $usuario_id,
+    ],
+  ];
+}
+
 // Condicion SQL de visibilidad de incidencias (se aplica SIEMPRE en el servidor).
-// Admin: ve todas (incluidas las pendientes). Usuario: ve las aprobadas y sus
-// propias pendientes (para poder seguir su propio reporte antes de publicarse).
+// Admin: ve todas (incluidas las pendientes). Colaborador (rol o vinculo):
+// SOLO las de su grupo. Usuario: ve las aprobadas y sus propias pendientes
+// (para poder seguir su propio reporte antes de publicarse).
 function condiciones_visibilidad_incidencias(int $usuario_id, bool $es_admin, string $alias = 'i'): array
 {
   if ($es_admin) {
     return ['1 = 1', []];
   }
+
+  $grupo = condiciones_grupo_colaborador($usuario_id, $alias);
+  if ($grupo !== null) {
+    return $grupo;
+  }
+
   return [
     "({$alias}.aprobado = 1 OR {$alias}.usuario_id = :uid_vis)",
     [':uid_vis' => $usuario_id],
   ];
+}
+
+// True si el usuario puede ver una incidencia concreta (detalle/editar):
+// aplica la misma regla de visibilidad que usan el listado y el mapa.
+function puede_ver_incidencia(int $incidencia_id, int $usuario_id, bool $es_admin): bool
+{
+  if ($incidencia_id <= 0 || $usuario_id <= 0) {
+    return false;
+  }
+  if ($es_admin) {
+    return true;
+  }
+
+  [$cond, $params] = condiciones_visibilidad_incidencias($usuario_id, false, 'i');
+  $sql = "SELECT i.id FROM incidencias i WHERE i.id = :incidencia_id AND i.oculto = 0 AND {$cond}";
+
+  $params[':incidencia_id'] = $incidencia_id;
+  try {
+    $st = db()->prepare($sql);
+    $st->execute($params);
+    return (bool)$st->fetchColumn();
+  } catch (Throwable $e) {
+    return false;
+  }
 }
 
 // Alta de colaborador por email. El vinculo nace APROBADO (no requiere
