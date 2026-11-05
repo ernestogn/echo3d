@@ -5,6 +5,20 @@ Cronología de cambios funcionales del sistema. Las fechas son las de producció
 
 ---
 
+## v2026-11-04 — “Qué hace un colaborador” en la tarjeta del padre
+
+Antes del formulario de alta, la tarjeta **“Mis colaboradores”** del perfil
+explica qué implica designar un colaborador:
+
+- carga reportes desde el mapa a través de tu red;
+- sus reportes **requieren tu aprobación** (o rechazo con motivo) para publicarse;
+- solo ve las incidencias de su grupo (las propias, las tuyas y las de sus
+  compañeros de red), no el resto del sistema;
+- no puede aprobar ni rechazar reportes ni editar los de otras personas;
+- al crearlo recibe por email el link de ingreso y un PIN de 4 dígitos.
+
+---
+
 ## v2026-11-04 — Ayuda del rol colaborador en el perfil
 
 `perfil.php` muestra una tarjeta **“Ayuda: tu rol de colaborador”** (solo para

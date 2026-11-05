@@ -294,6 +294,20 @@ if ($iniciales === '') {
       quedan <strong>pendientes de aprobación</strong>: no se publican hasta que los apruebes.
     </p>
 
+    <div style="border:1px solid var(--color-borde);border-radius:12px;padding:var(--espacio-md);margin-bottom:var(--espacio-md);background:var(--color-superficie);">
+      <strong style="display:block;margin-bottom:var(--espacio-xs);font-size:.9rem;">Qué hace un colaborador</strong>
+      <ul style="margin:0;padding-left:1.2rem;color:var(--color-texto-suave);font-size:.85rem;line-height:1.7;">
+        <li>Carga reportes de incidencias desde el mapa a través de tu red.</li>
+        <li>Sus reportes <strong>requieren tu aprobación</strong>: no se publican
+          hasta que los aprobés (o rechacés con un motivo).</li>
+        <li>Solo ve las incidencias de su grupo: las propias, las tuyas y las de
+          sus compañeros de red. No ve el resto del sistema.</li>
+        <li>No puede aprobar ni rechazar reportes, ni editar los de otras personas.</li>
+        <li>Al crearlo recibe por email el link de ingreso y un PIN de 4 dígitos
+          para entrar al sistema.</li>
+      </ul>
+    </div>
+
     <form method="POST" action="/srci/perfil.php#colaboradores" style="display:flex;gap:var(--espacio-sm);flex-wrap:wrap;align-items:flex-end;margin-bottom:var(--espacio-md);">
       <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
       <input type="hidden" name="accion" value="agregar_colaborador">
