@@ -594,6 +594,19 @@ function copiarMagicLink(btn) {
     document.getElementById('editar-rol-nota').style.display = esSelf ? 'block' : 'none';
     document.getElementById('modal-editar').classList.add('visible');
   }
+
+  // Abrir modal automáticamente si hay un ID en la URL
+  window.addEventListener('DOMContentLoaded', function() {
+    const params = new URLSearchParams(window.location.search);
+    const uid = params.get('id');
+    if (uid) {
+      const btn = document.querySelector(`button[data-id="${uid}"]`);
+      if (btn) {
+        abrirModalEditar(btn);
+      }
+    }
+  });
+
 function cerrarModalEditar() {
   document.getElementById('modal-editar').classList.remove('visible');
 }
