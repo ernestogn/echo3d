@@ -32,6 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $csrf = csrf_token();
 
 // --- Filtros ---
+$usuario_id_filtro = (int)($_GET['usuario_id'] ?? 0);
 $tipo_id     = (int)($_GET['tipo_id']     ?? 0);
 $estado      = $_GET['estado']      ?? '';
 $barrio_id   = (int)($_GET['barrio_id']   ?? 0);
@@ -82,6 +83,11 @@ $donde[] = 'i.oculto = 0';
 );
 $donde[] = $cond_visibilidad;
 $params  = array_merge($params, $params_visibilidad);
+
+if ($usuario_id_filtro > 0) {
+  $donde[]            = 'i.usuario_id = :usuario_id';
+  $params[':usuario_id'] = $usuario_id_filtro;
+}
 
 if ($tipo_id > 0) {
   $donde[]            = 'i.tipo_id = :tipo_id';
@@ -251,7 +257,7 @@ $nombre_usuario = esc((string)($_SESSION['nombre'] ?? ''));
 
 // URL base para filtros y paginacion (conserva el orden activo)
 function url_filtros(array $extras = []): string {
-  $base = ['tipo_id' => $_GET['tipo_id'] ?? '', 'estado' => $_GET['estado'] ?? '', 'barrio_id' => $_GET['barrio_id'] ?? '', 'gravedad' => $_GET['gravedad'] ?? '', 'categoria_id' => $_GET['categoria_id'] ?? '', 'fecha_desde' => $_GET['fecha_desde'] ?? '', 'fecha_hasta' => $_GET['fecha_hasta'] ?? '', 'orden' => $_GET['orden'] ?? 'fecha', 'dir' => $_GET['dir'] ?? 'desc'];
+  $base = ['usuario_id' => $_GET['usuario_id'] ?? '', 'tipo_id' => $_GET['tipo_id'] ?? '', 'estado' => $_GET['estado'] ?? '', 'barrio_id' => $_GET['barrio_id'] ?? '', 'gravedad' => $_GET['gravedad'] ?? '', 'categoria_id' => $_GET['categoria_id'] ?? '', 'fecha_desde' => $_GET['fecha_desde'] ?? '', 'fecha_hasta' => $_GET['fecha_hasta'] ?? '', 'orden' => $_GET['orden'] ?? 'fecha', 'dir' => $_GET['dir'] ?? 'desc'];
   $merged = array_merge($base, $extras);
   return '/srci/incidencias.php?' . http_build_query(array_filter($merged, fn($v) => $v !== '' && $v !== '0' && $v !== 0));
 }
