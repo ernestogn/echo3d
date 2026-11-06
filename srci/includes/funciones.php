@@ -1392,7 +1392,13 @@ function agregar_colaborador(int $propietario_id, string $email, int $actor_id):
     if (($otra_red['estado'] ?? '') === 'aprobado') {
       return ['ok' => false, 'mensaje' => $u['nombre'] . ' ya es colaborador de ' . $otra_red['propietario_nombre'] . '. Cada usuario puede pertenecer a una sola red.'];
     }
-    return ['ok' => false, 'mensaje' => $u['nombre'] . ' fue colaborador de ' . $otra_red['propietario_nombre'] . ' (vínculo dado de baja). Cada usuario puede pertenecer a una sola red.'];
+    // Si el vínculo existente está 'rechazado', podemos reutilizarlo o crear uno nuevo.
+    // Para simplificar y mantener la trazabilidad, actualizamos el vínculo existente al nuevo propietario.
+    db()->prepare("UPDATE colaboradores SET propietario_id = :p, estado = 'aprobado', creado_en = NOW(), creado_por = :actor WHERE colaborador_id = :c")
+      ->execute([':p' => $propietario_id, ':actor' => $actor_id, ':c' => $colaborador_id]);
+    _invalidar_cache_colaboradores($colaborador_id);
+    registrar_auditoria($actor_id, 'agregar_colaborador', null, 'Designó como colaborador a ' . $u['nombre'] . ' (' . $email . ') (tras vínculo previo dado de baja)');
+    return ['ok' => true, 'mensaje' => $u['nombre'] . ' es tu colaborador. Sus reportes quedan pendientes de tu aprobación.'];
   }
 
   db()->prepare("INSERT INTO colaboradores (propietario_id, colaborador_id, estado, creado_por) VALUES (:p, :c, 'aprobado', :actor)")
