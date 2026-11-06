@@ -364,7 +364,7 @@ if ($iniciales === '') {
                  <td>
                    <div style="display:flex;gap:4px;">
                      <a href="/srci/incidencias.php?usuario_id=<?= (int)$col['colaborador_id'] ?>" class="boton boton-secundario boton-sm">Ver Reportes</a>
-                     <a href="/srci/admin/usuarios.php?id=<?= (int)$col['colaborador_id'] ?>" class="boton boton-secundario boton-sm">✏️ Editar</a>
+                     <a href="/srci/admin/usuarios.php?id=<?= (int)$col['colaborador_id'] ?>&redirect=perfil" class="boton boton-secundario boton-sm">✏️ Editar</a>
                      <?php if ($col['estado'] === 'aprobado'): ?>
                        <form method="POST" action="/srci/perfil.php#colaboradores" onsubmit="return confirm('¿Quitar a <?= esc($col['nombre']) ?> de tu red de colaboradores?');">
                          <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">

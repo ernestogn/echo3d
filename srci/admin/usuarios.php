@@ -59,6 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $email  = trim($_POST['email']  ?? '');
       $tel    = trim($_POST['telefono'] ?? '');
       $rol    = $_POST['rol'] ?? 'usuario';
+      $redirect = $_POST['redirect'] ?? '';
       $roles  = ['usuario','admin','colaborador'];
 
       if ($nombre === '') {
@@ -105,6 +106,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
               $stmt = db()->prepare('UPDATE usuarios SET nombre = :n, email = :e, telefono = :t, rol = :r WHERE id = :id');
               $stmt->execute([':n' => $nombre, ':e' => $email_nuevo, ':t' => $tel_nuevo, ':r' => $rol, ':id' => $uid]);
+              
+              if ($redirect === 'perfil') {
+                header('Location: /srci/perfil.php');
+                exit;
+              }
+              
               $mensaje  = "Usuario '{$nombre}' actualizado.";
               $tipo_msg = 'exito';
               registrar_auditoria(
@@ -520,7 +527,8 @@ $csrf = csrf_token();
       <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
       <input type="hidden" name="accion"     value="editar">
       <input type="hidden" name="usuario_id" id="editar-id" value="">
-       <div class="campo" style="margin-bottom:var(--espacio-md);">
+      <input type="hidden" name="redirect" id="editar-redirect" value="">
+      <div class="campo" style="margin-bottom:var(--espacio-md);">
          <label for="editar-nombre">Nombre completo</label>
          <input type="text" id="editar-nombre" name="nombre" required>
        </div>
@@ -589,6 +597,10 @@ function copiarMagicLink(btn) {
     document.getElementById('editar-email').value  = btn.dataset.email;
     document.getElementById('editar-telefono').value = btn.dataset.tel;
     document.getElementById('editar-rol').value    = btn.dataset.rol;
+    
+    const params = new URLSearchParams(window.location.search);
+    document.getElementById('editar-redirect').value = params.get('redirect') || '';
+    
     const esSelf = btn.dataset.self === '1';
     document.getElementById('editar-rol').disabled = esSelf;
     document.getElementById('editar-rol-nota').style.display = esSelf ? 'block' : 'none';
