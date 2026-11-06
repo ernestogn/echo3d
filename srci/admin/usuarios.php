@@ -53,70 +53,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 
   // Editar usuario (nombre, email, rol)
-  if ($accion === 'editar') {
-    $uid    = (int)($_POST['usuario_id'] ?? 0);
-    $nombre = trim($_POST['nombre'] ?? '');
-    $email  = trim($_POST['email']  ?? '');
-    $rol    = $_POST['rol'] ?? 'usuario';
-    $roles  = ['usuario','admin','colaborador'];
+    if ($accion === 'editar') {
+      $uid    = (int)($_POST['usuario_id'] ?? 0);
+      $nombre = trim($_POST['nombre'] ?? '');
+      $email  = trim($_POST['email']  ?? '');
+      $tel    = trim($_POST['telefono'] ?? '');
+      $rol    = $_POST['rol'] ?? 'usuario';
+      $roles  = ['usuario','admin','colaborador'];
 
-    if ($nombre === '') {
-      $mensaje  = 'El nombre es obligatorio.';
-      $tipo_msg = 'error';
-    } elseif (!in_array($rol, $roles, true)) {
-      $mensaje  = 'Rol invalido.';
-      $tipo_msg = 'error';
-    } elseif ($uid <= 0) {
-      $mensaje  = 'Usuario invalido.';
-      $tipo_msg = 'error';
-    } else {
-      $st = db()->prepare('SELECT id, nombre, email, rol FROM usuarios WHERE id = :id');
-      $st->execute([':id' => $uid]);
-      $u = $st->fetch();
-
-      if (!$u) {
-        $mensaje  = 'El usuario no existe.';
+      if ($nombre === '') {
+        $mensaje  = 'El nombre es obligatorio.';
         $tipo_msg = 'error';
-      } elseif ((int)$u['id'] === (int)$_SESSION['usuario_id'] && $rol !== $u['rol']) {
-        // Evita que un admin se degrade a si mismo y pierda el panel
-        $mensaje  = 'No podes cambiar tu propio rol.';
+      } elseif (!in_array($rol, $roles, true)) {
+        $mensaje  = 'Rol invalido.';
+        $tipo_msg = 'error';
+      } elseif ($uid <= 0) {
+        $mensaje  = 'Usuario invalido.';
         $tipo_msg = 'error';
       } else {
-        $email_nuevo = $email !== '' ? $email : null;
-        $cambios = [];
-        if ($nombre !== $u['nombre']) {
-          $cambios[] = "nombre: '{$u['nombre']}' -> '{$nombre}'";
-        }
-        if ($email_nuevo !== $u['email']) {
-          $cambios[] = 'email: ' . ($u['email'] ?? '(vacio)') . ' -> ' . ($email_nuevo ?? '(vacio)');
-        }
-        if ($rol !== $u['rol']) {
-          $cambios[] = "rol: {$u['rol']} -> {$rol}";
-        }
+        $st = db()->prepare('SELECT id, nombre, email, rol, telefono FROM usuarios WHERE id = :id');
+        $st->execute([':id' => $uid]);
+        $u = $st->fetch();
 
-        if (!$cambios) {
-          $mensaje  = 'Sin cambios: los datos ya eran esos.';
-          $tipo_msg = 'info';
+        if (!$u) {
+          $mensaje  = 'El usuario no existe.';
+          $tipo_msg = 'error';
+        } elseif ((int)$u['id'] === (int)$_SESSION['usuario_id'] && $rol !== $u['rol']) {
+          $mensaje  = 'No podes cambiar tu propio rol.';
+          $tipo_msg = 'error';
         } else {
-          try {
-            $stmt = db()->prepare('UPDATE usuarios SET nombre = :n, email = :e, rol = :r WHERE id = :id');
-            $stmt->execute([':n' => $nombre, ':e' => $email_nuevo, ':r' => $rol, ':id' => $uid]);
-            $mensaje  = "Usuario '{$nombre}' actualizado.";
-            $tipo_msg = 'exito';
-            registrar_auditoria(
-              (int)$_SESSION['usuario_id'],
-              'editar',
-              null,
-              'Edito a ' . $u['nombre'] . ' (#' . $uid . '): ' . implode('; ', $cambios)
-            );
-          } catch (PDOException $e) {
-            $mensaje  = 'Ese nombre de usuario ya existe.';
-            $tipo_msg = 'error';
+          $email_nuevo = $email !== '' ? $email : null;
+          $tel_nuevo   = $tel !== '' ? $tel : null;
+          $cambios = [];
+          if ($nombre !== $u['nombre']) {
+            $cambios[] = "nombre: '{$u['nombre']}' -> '{$nombre}'";
+          }
+          if ($email_nuevo !== $u['email']) {
+            $cambios[] = 'email: ' . ($u['email'] ?? '(vacio)') . ' -> ' . ($email_nuevo ?? '(vacio)');
+          }
+          if ($tel_nuevo !== $u['telefono']) {
+            $cambios[] = 'tel: ' . ($u['telefono'] ?? '(vacio)') . ' -> ' . ($tel_nuevo ?? '(vacio)');
+          }
+          if ($rol !== $u['rol']) {
+            $cambios[] = "rol: {$u['rol']} -> {$rol}";
+          }
+
+          if (!$cambios) {
+            $mensaje  = 'Sin cambios: los datos ya eran esos.';
+            $tipo_msg = 'info';
+          } else {
+            try {
+              $stmt = db()->prepare('UPDATE usuarios SET nombre = :n, email = :e, telefono = :t, rol = :r WHERE id = :id');
+              $stmt->execute([':n' => $nombre, ':e' => $email_nuevo, ':t' => $tel_nuevo, ':r' => $rol, ':id' => $uid]);
+              $mensaje  = "Usuario '{$nombre}' actualizado.";
+              $tipo_msg = 'exito';
+              registrar_auditoria(
+                (int)$_SESSION['usuario_id'],
+                'editar',
+                null,
+                'Edito a ' . $u['nombre'] . ' (#' . $uid . '): ' . implode('; ', $cambios)
+              );
+            } catch (PDOException $e) {
+              $mensaje  = 'Ese nombre de usuario ya existe.';
+              $tipo_msg = 'error';
+            }
           }
         }
       }
     }
-  }
 
   // Regenerar PIN
   if ($accion === 'nuevo_pin') {
@@ -249,15 +253,15 @@ $historial_lotes  = db()->query("SELECT a.fecha_hora, a.detalle, u.nombre AS adm
                                   WHERE a.accion = 'activar' AND a.detalle LIKE 'Lote masivo:%'
                                ORDER BY a.id DESC LIMIT 10")->fetchAll();
 
-$usuarios = db()->query(
-  "SELECT u.id, u.nombre, u.email, u.rol, u.activo, u.creado_en,
-          GROUP_CONCAT(b.nombre ORDER BY b.nombre SEPARATOR ', ') AS barrios
-   FROM usuarios u
-   LEFT JOIN referentes_barrios rb ON rb.usuario_id = u.id
-   LEFT JOIN barrios b ON b.id = rb.barrio_id
-   GROUP BY u.id
-   ORDER BY u.id"
-)->fetchAll();
+    $usuarios = db()->query(
+      "SELECT u.id, u.nombre, u.email, u.rol, u.activo, u.creado_en, u.telefono,
+              GROUP_CONCAT(b.nombre ORDER BY b.nombre SEPARATOR ', ') AS barrios
+       FROM usuarios u
+       LEFT JOIN referentes_barrios rb ON rb.usuario_id = u.id
+       LEFT JOIN barrios b ON b.id = rb.barrio_id
+       GROUP BY u.id
+       ORDER BY u.id"
+    )->fetchAll();
 $csrf = csrf_token();
 ?>
 <!DOCTYPE html>
@@ -453,17 +457,18 @@ $csrf = csrf_token();
                 </span>
               </td>
               <td><?= esc(fecha_legible($u['creado_en'])) ?></td>
-              <td>
-                <div style="display:flex;gap:var(--espacio-sm);flex-wrap:wrap;">
-                  <!-- Editar usuario -->
-                  <button type="button" class="boton boton-secundario boton-sm" onclick="abrirModalEditar(this)"
-                          data-id="<?= (int)$u['id'] ?>"
-                          data-nombre="<?= esc($u['nombre']) ?>"
-                          data-email="<?= esc($u['email'] ?? '') ?>"
-                          data-rol="<?= esc($u['rol']) ?>"
-                          data-self="<?= (int)$u['id'] === (int)$_SESSION['usuario_id'] ? '1' : '0' ?>">
-                    ✏️ Editar
-                  </button>
+               <td>
+                 <div style="display:flex;gap:var(--espacio-sm);flex-wrap:wrap;">
+                   <!-- Editar usuario -->
+                   <button type="button" class="boton boton-secundario boton-sm" onclick="abrirModalEditar(this)"
+                           data-id="<?= (int)$u['id'] ?>"
+                           data-nombre="<?= esc($u['nombre']) ?>"
+                           data-email="<?= esc($u['email'] ?? '') ?>"
+                           data-tel="<?= esc($u['telefono'] ?? '') ?>"
+                           data-rol="<?= esc($u['rol']) ?>"
+                           data-self="<?= (int)$u['id'] === (int)$_SESSION['usuario_id'] ? '1' : '0' ?>">
+                     ✏️ Editar
+                   </button>
                   <!-- Magic link -->
                   <form method="POST" style="display:inline;">
                     <input type="hidden" name="csrf_token"  value="<?= esc($csrf) ?>">
@@ -515,16 +520,20 @@ $csrf = csrf_token();
       <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
       <input type="hidden" name="accion"     value="editar">
       <input type="hidden" name="usuario_id" id="editar-id" value="">
-      <div class="campo" style="margin-bottom:var(--espacio-md);">
-        <label for="editar-nombre">Nombre (es el usuario de login)</label>
-        <input type="text" id="editar-nombre" name="nombre" required>
-      </div>
-      <div class="campo" style="margin-bottom:var(--espacio-md);">
-        <label for="editar-email">Email (para enviar PIN)</label>
-        <input type="email" id="editar-email" name="email" placeholder="opcional">
-      </div>
-      <div class="campo" style="margin-bottom:var(--espacio-md);">
-        <label for="editar-rol">Rol</label>
+       <div class="campo" style="margin-bottom:var(--espacio-md);">
+         <label for="editar-nombre">Nombre completo</label>
+         <input type="text" id="editar-nombre" name="nombre" required>
+       </div>
+       <div class="campo" style="margin-bottom:var(--espacio-md);">
+         <label for="editar-email">Email (para enviar PIN)</label>
+         <input type="email" id="editar-email" name="email" placeholder="opcional">
+       </div>
+       <div class="campo" style="margin-bottom:var(--espacio-md);">
+         <label for="editar-telefono">Teléfono</label>
+         <input type="text" id="editar-telefono" name="telefono" placeholder="opcional">
+       </div>
+       <div class="campo" style="margin-bottom:var(--espacio-md);">
+         <label for="editar-rol">Rol</label>
         <select id="editar-rol" name="rol">
           <option value="usuario">Usuario</option>
           <option value="admin">Admin</option>
@@ -574,16 +583,17 @@ function copiarMagicLink(btn) {
   });
 }
 
-function abrirModalEditar(btn) {
-  document.getElementById('editar-id').value     = btn.dataset.id;
-  document.getElementById('editar-nombre').value = btn.dataset.nombre;
-  document.getElementById('editar-email').value  = btn.dataset.email;
-  document.getElementById('editar-rol').value    = btn.dataset.rol;
-  const esSelf = btn.dataset.self === '1';
-  document.getElementById('editar-rol').disabled = esSelf;
-  document.getElementById('editar-rol-nota').style.display = esSelf ? 'block' : 'none';
-  document.getElementById('modal-editar').classList.add('visible');
-}
+  function abrirModalEditar(btn) {
+    document.getElementById('editar-id').value     = btn.dataset.id;
+    document.getElementById('editar-nombre').value = btn.dataset.nombre;
+    document.getElementById('editar-email').value  = btn.dataset.email;
+    document.getElementById('editar-telefono').value = btn.dataset.tel;
+    document.getElementById('editar-rol').value    = btn.dataset.rol;
+    const esSelf = btn.dataset.self === '1';
+    document.getElementById('editar-rol').disabled = esSelf;
+    document.getElementById('editar-rol-nota').style.display = esSelf ? 'block' : 'none';
+    document.getElementById('modal-editar').classList.add('visible');
+  }
 function cerrarModalEditar() {
   document.getElementById('modal-editar').classList.remove('visible');
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/funciones.php';
+require_once __DIR__ . '/includes/funciones_notificaciones_admin.php';
 
 requiere_sesion();
 
@@ -57,6 +58,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
       $mensaje  = $res['mensaje'];
       $tipo_msg = $res['ok'] ? 'exito' : 'error';
+    }
+  }
+
+  // --- Configuración de notificaciones de administrador ---
+  if ($accion === 'guardar_notificaciones_admin') {
+    if (!es_admin()) {
+      $mensaje  = 'Solo los administradores pueden modificar estas preferencias.';
+      $tipo_msg = 'error';
+    } else {
+      $inc = isset($_POST['notifica_incidentes_admin']) ? 1 : 0;
+      $dig = isset($_POST['notifica_digest_admin']) ? 1 : 0;
+      try {
+        db()->prepare('UPDATE usuarios SET notifica_incidentes_admin = :inc, notifica_digest_admin = :dig WHERE id = :id')
+           ->execute([':inc' => $inc, ':dig' => $dig, ':id' => $uid]);
+        $mensaje  = 'Preferencias de notificaciones guardadas.';
+        $tipo_msg = 'exito';
+      } catch (Throwable $e) {
+        $mensaje  = 'No se pudieron guardar las preferencias.';
+        $tipo_msg = 'error';
+      }
     }
   }
 
@@ -340,16 +361,19 @@ if ($iniciales === '') {
                   <?php endif; ?>
                 </td>
                 <td style="white-space:nowrap;"><?= esc(fecha_legible((string)$col['creado_en'])) ?></td>
-                <td>
-                  <?php if ($col['estado'] === 'aprobado'): ?>
-                    <form method="POST" action="/srci/perfil.php#colaboradores" onsubmit="return confirm('¿Quitar a <?= esc($col['nombre']) ?> de tu red de colaboradores?');">
-                      <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
-                      <input type="hidden" name="accion" value="quitar_colaborador">
-                      <input type="hidden" name="colaborador_id" value="<?= (int)$col['colaborador_id'] ?>">
-                      <button type="submit" class="boton boton-peligro boton-sm">Quitar</button>
-                    </form>
-                  <?php endif; ?>
-                </td>
+                 <td>
+                   <div style="display:flex;gap:4px;">
+                     <a href="/srci/incidencias.php?usuario_id=<?= (int)$col['colaborador_id'] ?>" class="boton boton-secundario boton-sm">Ver Reportes</a>
+                     <?php if ($col['estado'] === 'aprobado'): ?>
+                       <form method="POST" action="/srci/perfil.php#colaboradores" onsubmit="return confirm('¿Quitar a <?= esc($col['nombre']) ?> de tu red de colaboradores?');">
+                         <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
+                         <input type="hidden" name="accion" value="quitar_colaborador">
+                         <input type="hidden" name="colaborador_id" value="<?= (int)$col['colaborador_id'] ?>">
+                         <button type="submit" class="boton boton-peligro boton-sm">Quitar</button>
+                       </form>
+                     <?php endif; ?>
+                   </div>
+                 </td>
               </tr>
             <?php endforeach; ?>
           </tbody>
@@ -469,6 +493,43 @@ if ($iniciales === '') {
       </div>
     <?php endif; ?>
   </div>
+
+  <?php if (es_admin()): ?>
+  <div class="tarjeta" style="margin-top:var(--espacio-xl);">
+    <h2 style="margin:0 0 var(--espacio-md);font-size:1.1rem;">🔔 Notificaciones de administrador</h2>
+    <p style="margin:0 0 var(--espacio-lg);color:var(--color-texto-secundario);font-size:.9rem;">Configura cuándo quieres recibir notificaciones por correo electrónico.</p>
+    <?php
+      try {
+        $stn = db()->prepare('SELECT notifica_incidentes_admin, notifica_digest_admin FROM usuarios WHERE id = :id');
+        $stn->execute([':id' => $uid]);
+        $pref = $stn->fetch();
+      } catch (Throwable $e) {
+        $pref = ['notifica_incidentes_admin' => 1, 'notifica_digest_admin' => 1];
+      }
+    ?>
+    <form method="POST" action="/srci/perfil.php">
+      <input type="hidden" name="csrf_token" value="<?= esc($csrf) ?>">
+      <input type="hidden" name="accion" value="guardar_notificaciones_admin">
+      <div style="display:flex;flex-direction:column;gap:var(--espacio-md);margin-bottom:var(--espacio-lg);">
+        <label style="display:flex;align-items:center;gap:var(--espacio-sm);cursor:pointer;">
+          <input type="checkbox" name="notifica_incidentes_admin" value="1" <?= ((int)($pref['notifica_incidentes_admin'] ?? 1) === 1) ? 'checked' : '' ?>>
+          <div>
+            <strong>Notificación por cada incidente</strong>
+            <div style="font-size:.85rem;color:var(--color-texto-secundario);">Recibir un correo electrónico por cada nuevo incidente creado</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:center;gap:var(--espacio-sm);cursor:pointer;">
+          <input type="checkbox" name="notifica_digest_admin" value="1" <?= ((int)($pref['notifica_digest_admin'] ?? 1) === 1) ? 'checked' : '' ?>>
+          <div>
+            <strong>Digest diario (08:00 AM)</strong>
+            <div style="font-size:.85rem;color:var(--color-texto-secundario);">Recibir un resumen diario con todos los incidentes de las últimas 24 horas</div>
+          </div>
+        </label>
+      </div>
+      <button type="submit" class="boton boton-primario">Guardar preferencias</button>
+    </form>
+  </div>
+  <?php endif; ?>
 </main>
 
 <!-- Modal: cambiar PIN -->
