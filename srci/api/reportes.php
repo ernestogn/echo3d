@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/funciones.php';
+require_once __DIR__ . '/../includes/funciones_notificaciones_admin.php';
 
 requiere_sesion();
 
@@ -252,6 +253,13 @@ if ($metodo === 'POST') {
   // Email al propietario de la red: entro un reporte pendiente de su aprobación
   if ($aprobado === 0 && $propietario_id !== $usuario_id) {
     notificar_propietario_por_email($id, $propietario_id);
+  }
+
+  // Notificación a administradores por nuevo incidente (desactivable por admin en perfil)
+  try {
+    notificar_administradores_nuevo_incidente($id);
+  } catch (Throwable $e) {
+    // No interrumpir el flujo principal
   }
 
   respuesta_json(['ok' => true, 'id' => $id], 201);
