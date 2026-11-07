@@ -511,6 +511,17 @@ function mostrarMensaje(texto, tipo) {
 // (El reporte inicia tocando el mapa principal -> abrirReporteConCoordenada)
 btnCerrar.addEventListener('click', cerrarModal);
 modalFondo.addEventListener('click', (e) => { if (e.target === modalFondo) cerrarModal(); });
+
+// Boton Cancelar del encabezado: confirmacion para no perder datos cargados
+const btnCancelar = document.getElementById('btn-cancelar-reporte');
+if (btnCancelar) {
+  btnCancelar.addEventListener('click', () => {
+    if (confirm('¿Cancelar el reporte? Se van a perder los datos que cargaste.')) {
+      cerrarModal();
+    }
+  });
+}
+
 btnSiguienteUbicacion.addEventListener('click', () => mostrarPaso('tipo'));
 btnVolverTipo.addEventListener('click', () => mostrarPaso('ubicacion'));
 btnVolver.addEventListener('click', () => mostrarPaso('tipo'));
