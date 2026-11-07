@@ -262,7 +262,7 @@ if (window.visualViewport) {
 function actualizarTag() {
   const tag = document.getElementById('build-tag');
   if (!tag) return;
-  tag.textContent = 'v20261026';
+  tag.textContent = 'v20261106';
 }
 
 // Abrir el modal con una ubicacion ya marcada (click en el mapa principal)
