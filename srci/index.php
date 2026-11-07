@@ -63,10 +63,7 @@ $es_admin       = es_admin();
        style="position:fixed;top:0;left:0;width:100%;height:100%;background:#ffffff;margin:0;padding:16px;overflow-y:auto;overflow-x:hidden;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);box-sizing:border-box;">
     <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;margin:-16px -16px 16px;padding:8px 16px;position:sticky;top:0;background:#ffffff;z-index:5;">
       <h2 id="modal-titulo" style="font-size:1.15rem;font-weight:600;color:#334155;">Nueva incidencia <span id="build-tag" style="font-size:.62rem;font-weight:400;color:#94a3b8;vertical-align:super;" title="Build actual">v20261106</span></h2>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <button type="button" id="btn-cancelar-reporte" class="boton boton-secundario boton-sm" style="padding:4px 12px;font-size:.85rem;">Cancelar</button>
-        <button id="btn-cerrar-modal" aria-label="Cerrar" style="background:none;border:none;font-size:1.5rem;line-height:1;color:#94a3b8;cursor:pointer;padding:4px;">×</button>
-      </div>
+      <button id="btn-cerrar-modal" aria-label="Cerrar" style="background:none;border:none;font-size:1.5rem;line-height:1;color:#94a3b8;cursor:pointer;padding:4px;">×</button>
     </div>
 
     <!-- Paso 1: ubicacion (punto, barrio y direccion detectados) -->
@@ -92,9 +89,12 @@ $es_admin       = es_admin();
         <div id="sugerencia-direccion" style="display:none;margin-top:6px;"></div>
       </div>
 
-      <button class="boton boton-primario boton-bloque" id="btn-siguiente-ubicacion" disabled>
-        Siguiente →
-      </button>
+      <div style="display:flex;gap:var(--espacio-sm);">
+        <button type="button" class="boton boton-peligro" id="btn-cancelar-reporte" style="flex:1;">Cancelar</button>
+        <button class="boton boton-primario" id="btn-siguiente-ubicacion" style="flex:2;" disabled>
+          Siguiente →
+        </button>
+      </div>
     </div>
 
     <!-- Paso 2: tipo de incidencia (avanza solo al tocar un icono) -->
@@ -208,6 +208,23 @@ $es_admin       = es_admin();
       </button>
     </div>
 
+  </div>
+</div>
+
+<!-- Modal: confirmar cancelacion del reporte (estilo del sistema) -->
+<div class="modal-fondo modal-centrado" id="modal-cancelar" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-cancelar" style="z-index:1100;">
+  <div class="modal-caja">
+    <div class="modal-encabezado" style="margin-bottom:var(--espacio-sm);">
+      <h2 id="titulo-modal-cancelar" style="margin:0;font-size:1.1rem;">⚠️ ¿Cancelar el reporte?</h2>
+      <button type="button" class="modal-cerrar" id="btn-cancelar-cerrar" aria-label="Cerrar">✕</button>
+    </div>
+    <p style="color:var(--color-texto-suave);font-size:.92rem;margin:0 0 var(--espacio-md);">
+      Se van a perder los datos que cargaste hasta ahora. Esta acción no se puede deshacer.
+    </p>
+    <div style="display:flex;gap:var(--espacio-sm);justify-content:flex-end;">
+      <button type="button" class="boton boton-secundario" id="btn-cancelar-seguir">Seguir editando</button>
+      <button type="button" class="boton boton-peligro" id="btn-cancelar-confirmar">Sí, cancelar reporte</button>
+    </div>
   </div>
 </div>
 

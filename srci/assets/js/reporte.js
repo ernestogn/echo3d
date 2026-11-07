@@ -512,13 +512,26 @@ function mostrarMensaje(texto, tipo) {
 btnCerrar.addEventListener('click', cerrarModal);
 modalFondo.addEventListener('click', (e) => { if (e.target === modalFondo) cerrarModal(); });
 
-// Boton Cancelar del encabezado: confirmacion para no perder datos cargados
-const btnCancelar = document.getElementById('btn-cancelar-reporte');
-if (btnCancelar) {
-  btnCancelar.addEventListener('click', () => {
-    if (confirm('¿Cancelar el reporte? Se van a perder los datos que cargaste.')) {
-      cerrarModal();
-    }
+// Boton Cancelar (en linea con "Siguiente"): abre el modal de confirmacion
+// estilizado; nunca el confirm() nativo.
+const btnCancelar   = document.getElementById('btn-cancelar-reporte');
+const modalCancelar = document.getElementById('modal-cancelar');
+if (btnCancelar && modalCancelar) {
+  const abrirModalCancelar  = () => modalCancelar.classList.add('visible');
+  const cerrarModalCancelar = () => modalCancelar.classList.remove('visible');
+
+  btnCancelar.addEventListener('click', abrirModalCancelar);
+  document.getElementById('btn-cancelar-cerrar').addEventListener('click', cerrarModalCancelar);
+  document.getElementById('btn-cancelar-seguir').addEventListener('click', cerrarModalCancelar);
+  document.getElementById('btn-cancelar-confirmar').addEventListener('click', () => {
+    cerrarModalCancelar();
+    cerrarModal();
+  });
+  modalCancelar.addEventListener('click', (e) => {
+    if (e.target === modalCancelar) cerrarModalCancelar();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modalCancelar.classList.contains('visible')) cerrarModalCancelar();
   });
 }
 
