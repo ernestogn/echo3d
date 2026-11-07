@@ -245,13 +245,27 @@ function abrirModal(latlng = null) {
 
 // Ajusta el panel al viewport VISUAL (lo que realmente se ve en pantalla),
 // inmune a zoom de pagina, teclado o layouts expandidos por contenido ancho.
+// En PC (ancho >= 900px) el modal ocupa ~90% (se ve el mapa alrededor);
+// en movil sigue siendo 100% pantalla completa.
 function ajustarPanelAVista() {
   const vv = window.visualViewport;
-  if (!vv) return; // navegadores viejos: quedan los estilos inline base (100%)
-  modalCaja.style.width = Math.round(vv.width) + 'px';
-  modalCaja.style.height = Math.round(vv.height) + 'px';
-  modalCaja.style.left = Math.round(vv.offsetLeft) + 'px';
-  modalCaja.style.top = Math.round(vv.offsetTop) + 'px';
+  const w = vv ? vv.width  : window.innerWidth;
+  const h = vv ? vv.height : window.innerHeight;
+  const offX = vv ? vv.offsetLeft : 0;
+  const offY = vv ? vv.offsetTop  : 0;
+  if (w >= 900) {
+    modalCaja.style.width  = Math.round(w * 0.9) + 'px';
+    modalCaja.style.height = Math.round(h * 0.9) + 'px';
+    modalCaja.style.left   = Math.round(offX + w * 0.05) + 'px';
+    modalCaja.style.top    = Math.round(offY + h * 0.05) + 'px';
+    modalCaja.style.borderRadius = '16px';
+  } else {
+    modalCaja.style.width  = Math.round(w) + 'px';
+    modalCaja.style.height = Math.round(h) + 'px';
+    modalCaja.style.left   = Math.round(offX) + 'px';
+    modalCaja.style.top    = Math.round(offY) + 'px';
+    modalCaja.style.borderRadius = '0';
+  }
 }
 if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', ajustarPanelAVista);
